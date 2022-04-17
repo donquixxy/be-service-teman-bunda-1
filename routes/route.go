@@ -38,9 +38,24 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.GET("/user/:id", userControllerInterface.FindUserById)
 }
 
-// User Route
+// Auth Route
+func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, authControllerInterface controllers.AuthControllerInterface) {
+	group := e.Group("api/v1")
+	group.POST("/auth/login", authControllerInterface.Login)
+	group.POST("/auth/new-token", authControllerInterface.NewToken)
+}
+
+// Balance Point Route
 func BalancePointRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, balancePointControllerInterface controllers.BalancePointControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/balance_point_with_tx/user/:id", balancePointControllerInterface.FindBalancePointWithTxByIdUser)
-	group.GET("/balance_point/user/:id", balancePointControllerInterface.FindBalancePointWithTxByIdUser)
+	group.GET("/balance_point/user/:id", balancePointControllerInterface.FindBalancePointByIdUser)
+}
+
+// Product Route
+func ProductRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, productControllerInterface controllers.ProductControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/products", productControllerInterface.FindAllProducts)
+	group.GET("/products/search", productControllerInterface.FindProductsBySearch)
+	group.GET("/product/:id", productControllerInterface.FindProductById)
 }

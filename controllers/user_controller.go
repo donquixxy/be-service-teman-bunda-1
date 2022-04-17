@@ -37,7 +37,7 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 	requestId := ""
 	request := request.ReadFromCreateUserRequestBody(c, requestId, controller.Logger)
 	userResponse := controller.UserServiceInterface.CreateUser(requestId, request)
-	response := response.Response{Code: "201", Mssg: "success", Data: userResponse, Error: []string{}}
+	response := response.Response{Code: "201", Mssg: "user created", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

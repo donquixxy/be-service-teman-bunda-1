@@ -13,6 +13,8 @@ type UserRepositoryInterface interface {
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
 	FindUserByReferal(DB *gorm.DB, referalCode string) (entity.User, error)
 	FindUserById(DB *gorm.DB, id string) (entity.User, error)
+	SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error)
+	FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error)
 }
 
 type UserRepositoryImplementation struct {
@@ -63,4 +65,15 @@ func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id str
 		Where("users.id = ?", id).
 		Find(&user)
 	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error) {
+	var user entity.User
+	results := DB.Where("username = ?", username).Where("refresh_token = ?", refresh_token).First(&user)
+	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error) {
+	results := DB.Exec("UPDATE `users` SET refresh_token = ? WHERE id = ?", refreshToken, id)
+	return results.RowsAffected, results.Error
 }

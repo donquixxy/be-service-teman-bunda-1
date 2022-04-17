@@ -9,6 +9,7 @@ import (
 type BalancePointRepositoryInterface interface {
 	CreateBalancePoint(DB *gorm.DB, balancePoint entity.BalancePoint) (entity.BalancePoint, error)
 	FindBalancePointWithTxByIdUser(DB *gorm.DB, IdUser string) (entity.BalancePoint, error)
+	FindBalancePointByIdUser(DB *gorm.DB, IdUser string) (entity.BalancePoint, error)
 }
 
 type BalancePointRepositoryImplementation struct {
@@ -29,5 +30,11 @@ func (repository *BalancePointRepositoryImplementation) CreateBalancePoint(DB *g
 func (repository *BalancePointRepositoryImplementation) FindBalancePointWithTxByIdUser(DB *gorm.DB, IdUser string) (entity.BalancePoint, error) {
 	var balancePoint entity.BalancePoint
 	results := DB.Where("balance_point.id_user = ?", IdUser).Preload("BalancePointTxs").Find(&balancePoint)
+	return balancePoint, results.Error
+}
+
+func (repository *BalancePointRepositoryImplementation) FindBalancePointByIdUser(DB *gorm.DB, IdUser string) (entity.BalancePoint, error) {
+	var balancePoint entity.BalancePoint
+	results := DB.Where("balance_point.id_user = ?", IdUser).Find(&balancePoint)
 	return balancePoint, results.Error
 }

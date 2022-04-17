@@ -13,6 +13,7 @@ import (
 
 type BalancePointServiceInterface interface {
 	FindBalancePointWithTxByIdUser(requestId string, IdUser string) (balancePointWithTxResponses response.FindBalancePointWithTxByIdUser)
+	FindBalancePointByIdUser(requestId string, IdUser string) (balancePointResponses response.FindBalancePointByIdUser)
 }
 
 type BalancePointServiceImplementation struct {
@@ -42,4 +43,14 @@ func (service *BalancePointServiceImplementation) FindBalancePointWithTxByIdUser
 	}
 	balancePointWithTxResponse = response.ToFindBalancePointWithTxByIdUser(balancePointWithTx)
 	return balancePointWithTxResponse
+}
+
+func (service *BalancePointServiceImplementation) FindBalancePointByIdUser(requestId string, IdUser string) (balancePointResponse response.FindBalancePointByIdUser) {
+	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, IdUser)
+	if balancePoint.IdUser == "" {
+		err := errors.New("user not found")
+		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)
+	}
+	balancePointResponse = response.ToFindBalancePointByIdUser(balancePoint)
+	return balancePointResponse
 }
