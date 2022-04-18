@@ -44,7 +44,7 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 
 func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context) error {
 	requestId := ""
-	referal := c.Param("referal")
+	referal := c.QueryParam("referal")
 	userResponse := controller.UserServiceInterface.FindUserByReferal(requestId, referal)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse.ReferalCode, Error: []string{}}
 	return c.JSON(http.StatusOK, response)

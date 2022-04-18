@@ -30,7 +30,7 @@ func NewKecamatanController(configWebserver config.Webserver, kecamatanServiceIn
 
 func (controller *KecamatanControllerImplementation) FindAllKecamatanByIdKabupaten(c echo.Context) error {
 	requestId := ""
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, _ := strconv.Atoi(c.QueryParam("idkabu"))
 	kecamatanResponses := controller.KecamatanServiceInterface.FindAllKecamatanByIdKabupaten(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "success", Data: kecamatanResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)

@@ -30,7 +30,7 @@ func NewKelurahanController(configWebserver config.Webserver, kelurahanServiceIn
 
 func (controller *KelurahanControllerImplementation) FindAllKelurahanByIdKecamatan(c echo.Context) error {
 	requestId := ""
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, _ := strconv.Atoi(c.QueryParam("idkeca"))
 	kelurahanResponses := controller.KelurahanServiceInterface.FindAllKelurahanByIdKecamatan(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "success", Data: kelurahanResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)

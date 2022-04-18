@@ -25,19 +25,19 @@ func ProvinsiRoute(e *echo.Echo, configWebserver config.Webserver, configJWT con
 // Kabupaten Route
 func KabupatenRoute(e *echo.Echo, configWebserver config.Webserver, kabupatenControllerInterface controllers.KabupatenControllerInterface) {
 	group := e.Group("api/v1")
-	group.GET("/kabupaten/provinsi/:id", kabupatenControllerInterface.FindAllKabupatenByIdProvinsi)
+	group.GET("/kabupaten", kabupatenControllerInterface.FindAllKabupatenByIdProvinsi)
 }
 
 // Kabupaten Route
 func KecamatanRoute(e *echo.Echo, configWebserver config.Webserver, kecamatanControllerInterface controllers.KecamatanControllerInterface) {
 	group := e.Group("api/v1")
-	group.GET("/kecamatan/kabupaten/:id", kecamatanControllerInterface.FindAllKecamatanByIdKabupaten)
+	group.GET("/kecamatan", kecamatanControllerInterface.FindAllKecamatanByIdKabupaten)
 }
 
 // Kelurahan Route
 func KelurahanRoute(e *echo.Echo, configWebserver config.Webserver, kelurahanControllerInterface controllers.KelurahanControllerInterface) {
 	group := e.Group("api/v1")
-	group.GET("/kelurahan/kecamatan/:id", kelurahanControllerInterface.FindAllKelurahanByIdKecamatan)
+	group.GET("/kelurahan", kelurahanControllerInterface.FindAllKelurahanByIdKecamatan)
 }
 
 // User Route
