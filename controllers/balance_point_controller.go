@@ -36,7 +36,7 @@ func (controller *BalancePointControllerImplementation) FindBalancePointWithTxBy
 	requestId := ""
 	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointWithTxResponse := controller.BalancePointServiceInterface.FindBalancePointWithTxByIdUser(requestId, IdUser)
-	response := response.Response{Code: "200", Mssg: "success", Data: balancePointWithTxResponse, Error: []string{}}
+	response := response.Response{Code: 200, Mssg: "success", Data: balancePointWithTxResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -44,6 +44,6 @@ func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser
 	requestId := ""
 	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointResponse := controller.BalancePointServiceInterface.FindBalancePointByIdUser(requestId, IdUser)
-	response := response.Response{Code: "200", Mssg: "success", Data: balancePointResponse, Error: []string{}}
+	response := response.Response{Code: 200, Mssg: "success", Data: balancePointResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

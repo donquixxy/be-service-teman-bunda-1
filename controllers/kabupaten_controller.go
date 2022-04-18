@@ -32,6 +32,6 @@ func (controller *KabupatenControllerImplementation) FindAllKabupatenByIdProvins
 	requestId := ""
 	id, _ := strconv.Atoi(c.Param("id"))
 	kabupatenResponses := controller.KabupatenServiceInterface.FindAllKabupatenByIdProvinsi(requestId, id)
-	responses := response.Response{Code: "200", Mssg: "success", Data: kabupatenResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "success", Data: kabupatenResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

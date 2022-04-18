@@ -36,7 +36,7 @@ func (controller *ProductControllerImplementation) FindAllProducts(c echo.Contex
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	productResponses := controller.ProductServiceInterface.FindAllProducts(requestId, limit, page)
-	responses := response.Response{Code: "200", Mssg: "success", Data: productResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }
 
@@ -44,7 +44,7 @@ func (controller *ProductControllerImplementation) FindProductsBySearch(c echo.C
 	requestId := ""
 	product := c.QueryParam("product")
 	productResponses := controller.ProductServiceInterface.FindProductsBySearch(requestId, product)
-	responses := response.Response{Code: "200", Mssg: "Success", Data: productResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }
 
@@ -52,7 +52,7 @@ func (controller *ProductControllerImplementation) FindProductById(c echo.Contex
 	requestId := ""
 	id := c.Param("id")
 	productResponses := controller.ProductServiceInterface.FindProductById(requestId, id)
-	responses := response.Response{Code: "200", Mssg: "Success", Data: productResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }
 
@@ -60,6 +60,6 @@ func (controller *ProductControllerImplementation) FindProductByIdCategory(c ech
 	requestId := ""
 	id := c.Param("id")
 	productResponses := controller.ProductServiceInterface.FindProductByIdCategory(requestId, id)
-	responses := response.Response{Code: "200", Mssg: "Success", Data: productResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

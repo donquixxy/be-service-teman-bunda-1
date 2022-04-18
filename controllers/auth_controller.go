@@ -36,7 +36,7 @@ func (controller *AuthControllerImplementation) Login(c echo.Context) error {
 	requestId := ""
 	request := request.ReadFromAuthRequestBody(c, requestId, controller.Logger)
 	loginResponse := controller.AuthServiceInterface.Login(requestId, request)
-	respon := response.Response{Code: "200", Mssg: "success", Data: loginResponse, Error: []string{}}
+	respon := response.Response{Code: 200, Mssg: "success", Data: loginResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, respon)
 }
 
@@ -44,6 +44,6 @@ func (controller *AuthControllerImplementation) NewToken(c echo.Context) error {
 	requestId := ""
 	refreshToken := c.FormValue("refresh_token")
 	token := controller.AuthServiceInterface.NewToken(requestId, refreshToken)
-	respon := response.Response{Code: "200", Mssg: "success", Data: token, Error: []string{}}
+	respon := response.Response{Code: 200, Mssg: "success", Data: token, Error: []string{}}
 	return c.JSON(http.StatusOK, respon)
 }

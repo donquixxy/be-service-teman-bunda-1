@@ -30,6 +30,6 @@ func NewProvinsiController(configWebserver config.Webserver, provinsiServiceInte
 func (controller *ProvinsiControllerImplementation) FindAllProvinsi(c echo.Context) error {
 	requestId := ""
 	provinsiResponses := controller.ProvinsiServiceInterface.FindAllProvinsi(requestId)
-	responses := response.Response{Code: "200", Mssg: "success", Data: provinsiResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "success", Data: provinsiResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

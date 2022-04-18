@@ -32,6 +32,6 @@ func (controller *KelurahanControllerImplementation) FindAllKelurahanByIdKecamat
 	requestId := ""
 	id, _ := strconv.Atoi(c.Param("id"))
 	kelurahanResponses := controller.KelurahanServiceInterface.FindAllKelurahanByIdKecamatan(requestId, id)
-	responses := response.Response{Code: "200", Mssg: "success", Data: kelurahanResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "success", Data: kelurahanResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

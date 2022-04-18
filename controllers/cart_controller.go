@@ -32,6 +32,6 @@ func (controller *CartControllerImplementation) FindCartByIdUser(c echo.Context)
 	requestId := ""
 	IdUser := middleware.TokenClaimsIdUser(c)
 	cartResponses := controller.CartServiceInterface.FindCartByIdUser(requestId, IdUser)
-	responses := response.Response{Code: "200", Mssg: "success", Data: cartResponses, Error: []string{}}
+	responses := response.Response{Code: 200, Mssg: "success", Data: cartResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }
