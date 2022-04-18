@@ -17,6 +17,7 @@ type CartItem struct {
 	IdProduct   string          `json:"id_product"`
 	Price       decimal.Decimal `json:"price"`
 	ProductName string          `json:"product_name"`
+	Stock       int             `json:"stock"`
 	PictureUrl  string          `json:"picture_url"`
 	Thumbnail   string          `json:"thumbnail"`
 	Qty         int             `json:"qty"`
@@ -24,6 +25,7 @@ type CartItem struct {
 
 func ToFindCartByIdUser(carts []entity.Cart) (cartResponse FindCartByIdUser) {
 	var cartItems []CartItem
+	var totalPricePerItem decimal.Decimal
 	var SubTotal decimal.Decimal
 	var shippingCost decimal.Decimal
 	for _, cart := range carts {
@@ -32,10 +34,13 @@ func ToFindCartByIdUser(carts []entity.Cart) (cartResponse FindCartByIdUser) {
 		cartItem.IdProduct = cart.IdProduct
 		cartItem.Price = cart.Product.Price
 		cartItem.ProductName = cart.Product.ProductName
+		cartItem.Stock = cart.Product.Stock
 		cartItem.PictureUrl = cart.Product.PictureUrl
 		cartItem.Thumbnail = cart.Product.Thumbnail
 		cartItem.Qty = cart.Qty
-		SubTotal = SubTotal.Add(cart.Product.Price)
+		totalPricePerItem = cart.Product.Price
+		totalPricePerItem = totalPricePerItem.Mul(decimal.NewFromFloat32(float32(cart.Qty)))
+		SubTotal = SubTotal.Add(totalPricePerItem)
 		cartItems = append(cartItems, cartItem)
 	}
 

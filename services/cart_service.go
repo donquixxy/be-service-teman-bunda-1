@@ -1,29 +1,45 @@
 package services
 
 import (
+	"time"
+
+	"github.com/go-playground/validator"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
 	"gorm.io/gorm"
 )
 
 type CartServiceInterface interface {
+	AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse)
 	FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUser)
+	CartPlusQtyProduct(requestId string, IdCart string) (addProductToCartResponse response.AddProductToCartResponse)
+	CartMinQtyProduct(requestId string, IdCart string) (addProductToCartResponse response.AddProductToCartResponse)
 }
 
 type CartServiceImplementation struct {
 	ConfigWebserver         config.Webserver
 	DB                      *gorm.DB
+	Validate                *validator.Validate
 	Logger                  *logrus.Logger
 	CartRepositoryInterface mysql.CartRepositoryInterface
 }
 
-func NewCartService(configWebserver config.Webserver, DB *gorm.DB, logger *logrus.Logger, cartRepositoryInterface mysql.CartRepositoryInterface) CartServiceInterface {
+func NewCartService(
+	configWebserver config.Webserver,
+	DB *gorm.DB,
+	validate *validator.Validate,
+	logger *logrus.Logger,
+	cartRepositoryInterface mysql.CartRepositoryInterface) CartServiceInterface {
 	return &CartServiceImplementation{
 		ConfigWebserver:         configWebserver,
 		DB:                      DB,
+		Validate:                validate,
 		Logger:                  logger,
 		CartRepositoryInterface: cartRepositoryInterface,
 	}
@@ -34,4 +50,58 @@ func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdU
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	cartResponses = response.ToFindCartByIdUser(carts)
 	return cartResponses
+}
+
+func (service *CartServiceImplementation) CartPlusQtyProduct(requestId string, IdCart string) (cartResponse response.AddProductToCartResponse) {
+	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, IdCart)
+	cartEntity := &entity.Cart{}
+	cartEntity.Id = IdCart
+	cartEntity.Qty = cartProductExist.Qty + 1
+	cart, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, IdCart, *cartEntity)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	cartResponse = response.ToAddProductToCartResponse(cart)
+	return cartResponse
+}
+
+func (service *CartServiceImplementation) CartMinQtyProduct(requestId string, IdCart string) (cartResponse response.AddProductToCartResponse) {
+	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, IdCart)
+	cartEntity := &entity.Cart{}
+	cartEntity.Id = IdCart
+	cartEntity.Qty = cartProductExist.Qty - 1
+	cart, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, IdCart, *cartEntity)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	cartResponse = response.ToAddProductToCartResponse(cart)
+	return cartResponse
+}
+
+func (service *CartServiceImplementation) AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse) {
+	// Validate request
+	request.ValidateAddProductToCartRequest(service.Validate, addProductToCartRequest, requestId, service.Logger)
+
+	// Cek apakah produk yang dimasukkan sudah ada di keranjang
+	cartProductExist, _ := service.CartRepositoryInterface.FindProductInCartByIdUser(service.DB, IdUser, addProductToCartRequest.IdProduct)
+	// Produk belum pernah dimasukkan
+	if cartProductExist.Id == "" {
+		cartEntity := &entity.Cart{}
+		cartEntity.Id = utilities.RandomUUID()
+		cartEntity.IdUser = IdUser
+		cartEntity.IdProduct = addProductToCartRequest.IdProduct
+		cartEntity.Qty = addProductToCartRequest.Qty
+		cartEntity.CreatedAt = time.Now()
+		cart, err := service.CartRepositoryInterface.AddProductToCart(service.DB, *cartEntity)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+		addProductToCartResponse = response.ToAddProductToCartResponse(cart)
+		return addProductToCartResponse
+	} else {
+		// Jika produk sudah ada
+		cartEntity := &entity.Cart{}
+		cartEntity.Id = cartProductExist.Id
+		cartEntity.Qty = cartProductExist.Qty + addProductToCartRequest.Qty
+
+		cart, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, cartProductExist.Id, *cartEntity)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+
+		addProductToCartResponse = response.ToAddProductToCartResponse(cart)
+		return addProductToCartResponse
+	}
 }

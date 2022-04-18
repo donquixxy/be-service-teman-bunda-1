@@ -9,7 +9,7 @@ import (
 
 type FindBalancePointWithTxByIdUser struct {
 	Id             string           `json:"id"`
-	IdUser         string           `json:"IdUser"`
+	IdUser         string           `json:"id_user"`
 	BalancePoints  decimal.Decimal  `json:"balance_points"`
 	BalancePointTx []BalancePointTx `json:"balance_point_tx"`
 }

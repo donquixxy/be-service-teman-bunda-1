@@ -50,7 +50,7 @@ func (controller *ProductControllerImplementation) FindProductsBySearch(c echo.C
 
 func (controller *ProductControllerImplementation) FindProductById(c echo.Context) error {
 	requestId := ""
-	id := c.Param("id")
+	id := c.QueryParam("id_product")
 	productResponses := controller.ProductServiceInterface.FindProductById(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
@@ -58,7 +58,7 @@ func (controller *ProductControllerImplementation) FindProductById(c echo.Contex
 
 func (controller *ProductControllerImplementation) FindProductByIdCategory(c echo.Context) error {
 	requestId := ""
-	id := c.Param("id")
+	id := c.QueryParam("id_category")
 	productResponses := controller.ProductServiceInterface.FindProductByIdCategory(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)

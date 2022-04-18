@@ -144,6 +144,7 @@ func main() {
 	cartService := services.NewCartService(
 		appConfig.Webserver,
 		mysqlDBConnection,
+		validate,
 		logrusLogger,
 		cartRepository)
 	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
