@@ -15,6 +15,7 @@ type ProductControllerInterface interface {
 	FindAllProducts(c echo.Context) error
 	FindProductsBySearch(c echo.Context) error
 	FindProductById(c echo.Context) error
+	FindProductByIdCategory(c echo.Context) error
 }
 
 type ProductControllerImplementation struct {
@@ -51,6 +52,14 @@ func (controller *ProductControllerImplementation) FindProductById(c echo.Contex
 	requestId := ""
 	id := c.Param("id")
 	productResponses := controller.ProductServiceInterface.FindProductById(requestId, id)
+	responses := response.Response{Code: "200", Mssg: "Success", Data: productResponses, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *ProductControllerImplementation) FindProductByIdCategory(c echo.Context) error {
+	requestId := ""
+	id := c.Param("id")
+	productResponses := controller.ProductServiceInterface.FindProductByIdCategory(requestId, id)
 	responses := response.Response{Code: "200", Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/services"
 )
@@ -33,7 +34,7 @@ func NewBalancePointController(configWebserver config.Webserver,
 
 func (controller *BalancePointControllerImplementation) FindBalancePointWithTxByIdUser(c echo.Context) error {
 	requestId := ""
-	IdUser := c.Param("id")
+	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointWithTxResponse := controller.BalancePointServiceInterface.FindBalancePointWithTxByIdUser(requestId, IdUser)
 	response := response.Response{Code: "200", Mssg: "success", Data: balancePointWithTxResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
@@ -41,7 +42,7 @@ func (controller *BalancePointControllerImplementation) FindBalancePointWithTxBy
 
 func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser(c echo.Context) error {
 	requestId := ""
-	IdUser := c.Param("id")
+	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointResponse := controller.BalancePointServiceInterface.FindBalancePointByIdUser(requestId, IdUser)
 	response := response.Response{Code: "200", Mssg: "success", Data: balancePointResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)

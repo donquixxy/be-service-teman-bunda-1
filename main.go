@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator"
-	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -49,50 +47,6 @@ func main() {
 	}))
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler
-
-	signingKey := []byte(appConfig.Jwt.Key)
-	config := middleware.JWTConfig{
-		ParseTokenFunc: func(auth string, c echo.Context) (interface{}, error) {
-			keyFunc := func(t *jwt.Token) (interface{}, error) {
-				if t.Method.Alg() != "HS256" {
-					return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
-				}
-				return signingKey, nil
-			}
-			// claims are of type `jwt.MapClaims` when token is created with `jwt.Parse`
-			token, err := jwt.Parse(auth, keyFunc)
-
-			if err != nil {
-				err := errors.New("Unauthorized")
-				exceptions.PanicIfUnauthorized(err, "", []string{}, logrusLogger)
-			}
-
-			if !token.Valid {
-				exceptions.PanicIfUnauthorized(err, "", []string{}, logrusLogger)
-			}
-
-			return token, nil
-		},
-		Skipper: func(c echo.Context) bool {
-			if c.Request().URL.Path == "/api/v1/auth/login" {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/user/create" {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/user/referal/"+c.Param("referal") {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/provinsi" {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/kabupaten/provinsi/"+c.Param("id") {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/kecamatan/kabupaten/"+c.Param("id") {
-				return true
-			} else if c.Request().URL.Path == "/api/v1/kelurahan/kecamatan/"+c.Param("id") {
-				return true
-			}
-			return false
-		},
-	}
-	e.Use(middleware.JWTWithConfig(config))
 
 	// Provinsi
 	provinsiRepository := mysql.NewProvinsiRepository(&appConfig.Database)
@@ -185,6 +139,15 @@ func main() {
 		productRepository)
 	productController := controllers.NewProductController(appConfig.Webserver, productService)
 	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
+
+	cartRepository := mysql.NewCartRepository(&appConfig.Database)
+	cartService := services.NewCartService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		cartRepository)
+	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
+	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
 
 	// Careful shutdown
 	go func() {

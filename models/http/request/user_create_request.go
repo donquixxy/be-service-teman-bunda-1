@@ -8,17 +8,17 @@ import (
 )
 
 type CreateUserRequest struct {
-	FullName                string `json:"full_name" validate:"required"`
-	Email                   string `json:"email" validate:"required"`
-	Address                 string `json:"address" validate:"required"`
-	Phone                   string `json:"phone" validate:"required"`
-	Username                string `json:"username" validate:"required"`
-	Password                string `json:"password" validate:"required"`
-	IdProvinsi              int    `json:"id_provinsi" validate:"required"`
-	IdKabupaten             int    `json:"id_kabupaten" validate:"required"`
-	IdKecamatan             int    `json:"id_kecamatan" validate:"required"`
-	IdKelurahan             int    `json:"id_kelurahan" validate:"required"`
-	RegistrationReferalCode string `json:"registration_referal_code"`
+	FullName                string `json:"full_name" form:"username" validate:"required"`
+	Email                   string `json:"email" form:"email" validate:"required"`
+	Address                 string `json:"address" form:"address" validate:"required"`
+	Phone                   string `json:"phone" form:"phone" validate:"required"`
+	Username                string `json:"username" form:"username" validate:"required"`
+	Password                string `json:"password" form:"password" validate:"required"`
+	IdProvinsi              int    `json:"id_provinsi" form:"id_provinsi" validate:"required"`
+	IdKabupaten             int    `json:"id_kabupaten" form:"id_kabupaten" validate:"required"`
+	IdKecamatan             int    `json:"id_kecamatan" form:"id_kecamatan" validate:"required"`
+	IdKelurahan             int    `json:"id_kelurahan" form:"id_kelurahan" validate:"required"`
+	RegistrationReferalCode string `json:"registration_referal_code" form:"registration_referal_code"`
 }
 
 func ReadFromCreateUserRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createUser *CreateUserRequest) {

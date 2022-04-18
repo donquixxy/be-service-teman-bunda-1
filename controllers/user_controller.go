@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/services"
@@ -51,8 +52,8 @@ func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context
 
 func (controller *UserControllerImplementation) FindUserById(c echo.Context) error {
 	requestId := ""
-	id := c.Param("id")
-	userResponse := controller.UserServiceInterface.FindUserById(requestId, id)
+	idUser := middleware.TokenClaimsIdUser(c)
+	userResponse := controller.UserServiceInterface.FindUserById(requestId, idUser)
 	response := response.Response{Code: "200", Mssg: "success", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

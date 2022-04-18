@@ -10,6 +10,7 @@ type ProductRepositoryInterface interface {
 	FindAllProducts(DB *gorm.DB, limit int, page int) ([]entity.Product, error)
 	FindProductsBySearch(DB *gorm.DB, productName string) ([]entity.Product, error)
 	FindProductById(DB *gorm.DB, id string) (entity.Product, error)
+	FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error)
 }
 
 type ProductRepositoryImplementation struct {
@@ -24,7 +25,10 @@ func NewProductRepository(configDatabase *config.Database) ProductRepositoryInte
 
 func (repository *ProductRepositoryImplementation) FindAllProducts(DB *gorm.DB, limit int, page int) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Limit(limit).Offset(page - 1).Find(&products)
+	results := DB.Joins("ProductDiscount").
+		Limit(limit).
+		Offset(page - 1).
+		Find(&products)
 	return products, results.Error
 }
 
@@ -38,4 +42,10 @@ func (repository *ProductRepositoryImplementation) FindProductById(DB *gorm.DB, 
 	var product entity.Product
 	results := DB.Where("id = ?", id).Find(&product)
 	return product, results.Error
+}
+
+func (repository *ProductRepositoryImplementation) FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error) {
+	var products []entity.Product
+	results := DB.Where("id_category = ?", idCategory).Find(&products)
+	return products, results.Error
 }

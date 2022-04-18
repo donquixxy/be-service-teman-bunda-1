@@ -2,7 +2,7 @@ app:
   name: aether
   server: Development
 webserver:
-  port: 9001
+  port: 8000
   timeout: 10 # in second
   rate_limit: 10
 database:

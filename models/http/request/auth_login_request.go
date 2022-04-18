@@ -10,8 +10,8 @@ import (
 )
 
 type AuthRequest struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Username string `json:"username" form:"username" validate:"required"`
+	Password string `json:"password" form:"password" validate:"required"`
 }
 
 func ReadFromAuthRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (authRequest *AuthRequest) {
