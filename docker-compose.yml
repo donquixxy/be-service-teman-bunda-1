@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  be-service-teman-bunda:
+    build: .
+    ports:
+      - 9000:9000
+    volumes:
+      - .:/app
