@@ -14,6 +14,7 @@ type FindProductResponse struct {
 	PictureUrl  string          `json:"picture_url"`
 	Thumbnail   string          `json:"thumbnail"`
 	Stock       int             `json:"stock"`
+	FlagPromo   string          `json:"flag_promo"`
 	Percentage  decimal.Decimal `json:"discount_percentage"`
 	Nominal     decimal.Decimal `json:"discount_nominal"`
 }
@@ -30,6 +31,7 @@ func ToFindProductResponses(products []entity.Product) (productResponses []FindP
 		productResponse.Thumbnail = product.Thumbnail
 		productResponse.Stock = product.Stock
 		productResponse.Percentage = product.ProductDiscount.Percentage
+		productResponse.FlagPromo = product.ProductDiscount.FlagPromo
 		productResponse.Nominal = product.ProductDiscount.Nominal
 		productResponses = append(productResponses, productResponse)
 	}

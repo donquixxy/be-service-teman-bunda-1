@@ -18,8 +18,8 @@ import (
 type CartServiceInterface interface {
 	AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse)
 	FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUser)
-	CartPlusQtyProduct(requestId string, IdCart string) (addProductToCartResponse response.AddProductToCartResponse)
-	CartMinQtyProduct(requestId string, IdCart string) (addProductToCartResponse response.AddProductToCartResponse)
+	CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
+	CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 }
 
 type CartServiceImplementation struct {
@@ -45,33 +45,43 @@ func NewCartService(
 	}
 }
 
-func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUser) {
+func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string) (addProductToCartResponse response.FindCartByIdUser) {
 	carts, err := service.CartRepositoryInterface.FindCartByIdUser(service.DB, IdUser)
 	exceptions.PanicIfError(err, requestId, service.Logger)
-	cartResponses = response.ToFindCartByIdUser(carts)
-	return cartResponses
+	addProductToCartResponse = response.ToFindCartByIdUser(carts)
+	return addProductToCartResponse
 }
 
-func (service *CartServiceImplementation) CartPlusQtyProduct(requestId string, IdCart string) (cartResponse response.AddProductToCartResponse) {
-	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, IdCart)
+func (service *CartServiceImplementation) CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse) {
+	request.ValidateUpdateQtyProductInCartRequest(service.Validate, updateQtyProductInCartRequest, requestId, service.Logger)
+	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, updateQtyProductInCartRequest.IdCart)
 	cartEntity := &entity.Cart{}
-	cartEntity.Id = IdCart
+	cartEntity.Id = updateQtyProductInCartRequest.IdCart
 	cartEntity.Qty = cartProductExist.Qty + 1
-	cart, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, IdCart, *cartEntity)
+	cartResult, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, updateQtyProductInCartRequest.IdCart, *cartEntity)
 	exceptions.PanicIfError(err, requestId, service.Logger)
-	cartResponse = response.ToAddProductToCartResponse(cart)
-	return cartResponse
+	updateProductQtyInCartResponse = response.ToUpdateProductQtyInCartResponse(cartResult)
+	return updateProductQtyInCartResponse
 }
 
-func (service *CartServiceImplementation) CartMinQtyProduct(requestId string, IdCart string) (cartResponse response.AddProductToCartResponse) {
-	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, IdCart)
-	cartEntity := &entity.Cart{}
-	cartEntity.Id = IdCart
-	cartEntity.Qty = cartProductExist.Qty - 1
-	cart, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, IdCart, *cartEntity)
-	exceptions.PanicIfError(err, requestId, service.Logger)
-	cartResponse = response.ToAddProductToCartResponse(cart)
-	return cartResponse
+func (service *CartServiceImplementation) CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse) {
+	request.ValidateUpdateQtyProductInCartRequest(service.Validate, updateQtyProductInCartRequest, requestId, service.Logger)
+	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, updateQtyProductInCartRequest.IdCart)
+
+	if cartProductExist.Qty == 1 {
+		err := service.CartRepositoryInterface.DeleteProductInCart(service.DB, cartProductExist.Id)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+		updateProductQtyInCartResponse = response.ToUpdateProductQtyInCartResponse(entity.Cart{Id: cartProductExist.Id})
+		return updateProductQtyInCartResponse
+	} else {
+		cartEntity := &entity.Cart{}
+		cartEntity.Id = updateQtyProductInCartRequest.IdCart
+		cartEntity.Qty = cartProductExist.Qty - 1
+		cartResult, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, updateQtyProductInCartRequest.IdCart, *cartEntity)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+		updateProductQtyInCartResponse = response.ToUpdateProductQtyInCartResponse(cartResult)
+		return updateProductQtyInCartResponse
+	}
 }
 
 func (service *CartServiceImplementation) AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse) {

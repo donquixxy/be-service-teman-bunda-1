@@ -11,6 +11,7 @@ type CartRepositoryInterface interface {
 	FindProductInCartByIdUser(DB *gorm.DB, IdUser string, IdProduct string) (entity.Cart, error)
 	AddProductToCart(DB *gorm.DB, cart entity.Cart) (entity.Cart, error)
 	UpdateProductInCart(DB *gorm.DB, IdCart string, cartEntity entity.Cart) (entity.Cart, error)
+	DeleteProductInCart(DB *gorm.DB, IdCart string) (err error)
 	FindCartById(DB *gorm.DB, IdCart string) (entity.Cart, error)
 }
 
@@ -31,7 +32,11 @@ func (repository *CartRepositoryImplementation) AddProductToCart(DB *gorm.DB, ca
 
 func (repository *CartRepositoryImplementation) FindCartByIdUser(DB *gorm.DB, IdUser string) ([]entity.Cart, error) {
 	var cart []entity.Cart
-	results := DB.Where("cart.id_user = ?", IdUser).Joins("Product").Find(&cart)
+	// results := DB.Where("cart.id_user = ?", IdUser).Joins("Product").Preload("ProductDiscount").Find(&cart)
+	results := DB.Where("cart.id_user = ?", IdUser).
+		Joins("Product").
+		Preload("Product.ProductDiscount").
+		Find(&cart)
 	return cart, results.Error
 }
 
@@ -55,4 +60,9 @@ func (repository *CartRepositoryImplementation) UpdateProductInCart(DB *gorm.DB,
 			Qty: cart.Qty,
 		})
 	return cart, result.Error
+}
+
+func (repository *CartRepositoryImplementation) DeleteProductInCart(DB *gorm.DB, IdCart string) (err error) {
+	result := DB.Where("id = ?", IdCart).Delete(&entity.Cart{})
+	return result.Error
 }

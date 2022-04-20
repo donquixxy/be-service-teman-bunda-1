@@ -51,16 +51,16 @@ func (controller *CartControllerImplementation) AddProductToCart(c echo.Context)
 
 func (controller *CartControllerImplementation) CartPlusQtyProduct(c echo.Context) error {
 	requestId := ""
-	IdCart := c.QueryParam("id_cart")
-	cartResponse := controller.CartServiceInterface.CartPlusQtyProduct(requestId, IdCart)
-	response := response.Response{Code: 201, Mssg: "success add qty product", Data: cartResponse, Error: []string{}}
+	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
+	cartResponseResult := controller.CartServiceInterface.CartPlusQtyProduct(requestId, request)
+	response := response.Response{Code: 201, Mssg: "success add qty product", Data: cartResponseResult, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 
 func (controller *CartControllerImplementation) CartMinQtyProduct(c echo.Context) error {
 	requestId := ""
-	IdCart := c.QueryParam("id_cart")
-	cartResponse := controller.CartServiceInterface.CartMinQtyProduct(requestId, IdCart)
-	response := response.Response{Code: 201, Mssg: "success reduce qty product", Data: cartResponse, Error: []string{}}
+	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
+	cartResponseResult := controller.CartServiceInterface.CartMinQtyProduct(requestId, request)
+	response := response.Response{Code: 201, Mssg: "success reduce qty product", Data: cartResponseResult, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

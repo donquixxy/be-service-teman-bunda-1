@@ -11,6 +11,7 @@ type ProductDiscount struct {
 	IdProduct  string          `gorm:"column:id_product;"`
 	Percentage decimal.Decimal `gorm:"column:percentage;"`
 	Nominal    decimal.Decimal `gorm:"column:nominal;"`
+	FlagPromo  string          `gorm:"column:flag_promo;"`
 	StartDate  time.Time       `gorm:"column:start_date;"`
 	EndDate    time.Time       `gorm:"column:end_date;"`
 }

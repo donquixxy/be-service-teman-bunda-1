@@ -22,7 +22,7 @@ database:
 jwt:
   key: secret # key untuk development
   # key: bss$%host&@! key untuk production
-  tokenexpiredtime: 120 # in minute
+  tokenexpiredtime: 900 # in minute
   refreshtokenexpiredtime: 365 # in days
 timezone:
   timezone: Asia/Makassar # Asia/Jakarta, Asia/Makassar, Asia/Jayapura

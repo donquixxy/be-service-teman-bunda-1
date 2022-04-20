@@ -1,8 +1,10 @@
 version: '3.8'
+
 services:
-  be-service-teman-bunda:
-    build: .
-    ports:
-      - 9000:9000
-    volumes:
-      - .:/app
+  main:
+    image: be-service-teman-bunda:latest  # tag after build
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    command:
+      - ./main
