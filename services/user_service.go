@@ -123,6 +123,10 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	familyMembersEntity.Email = userRequest.Email
 	familyMembersEntity.Address = userRequest.Address
 	familyMembersEntity.Phone = userRequest.Phone
+	familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
+	familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
+	familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
+	familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
 	familyMembers, err := service.FamilyMembersRepositoryInterface.CreateFamilyMembers(tx, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family members"}, service.Logger, tx)
 
@@ -200,12 +204,12 @@ func (service *UserServiceImplementation) FindUserByReferal(requestId string, re
 
 func (service *UserServiceImplementation) FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse) {
 	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, id)
-	userCount, _ := service.UserRepositoryInterface.CountUserByRegistrationReferal(service.DB, user.ReferalCode)
-	fmt.Println("Jumlah orang = ", userCount)
 	if user.Id == "" {
 		err := errors.New("user not found")
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)
 	}
-	userResponse = response.ToUserFindByIdResponse(user)
+	userCount, _ := service.UserRepositoryInterface.CountUserByRegistrationReferal(service.DB, user.ReferalCode)
+	fmt.Println("Jumlah orang = ", userCount)
+	userResponse = response.ToUserFindByIdResponse(user, userCount)
 	return userResponse
 }
