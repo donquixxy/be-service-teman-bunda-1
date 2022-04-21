@@ -75,5 +75,5 @@ func CartRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 // Shipping Cost Route
 func ShippingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, shippingControllerInterface controllers.ShippingControllerInterface) {
 	group := e.Group("api/v1")
-	group.GET("/shipping/cost", shippingControllerInterface.FindShippingCost, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/shipping/cost", shippingControllerInterface.GetShippingCostByIdKelurahan, authMiddlerware.Authentication(configurationJWT))
 }

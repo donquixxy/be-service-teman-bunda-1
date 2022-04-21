@@ -152,6 +152,17 @@ func main() {
 	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
 	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
 
+	// Shipping
+	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
+	shippingService := services.NewShippingService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		shippingRepository)
+	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
+	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
+
 	// Careful shutdown
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(int(appConfig.Webserver.Port))); err != nil && err != http.ErrServerClosed {

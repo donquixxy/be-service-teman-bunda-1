@@ -55,8 +55,8 @@ func ToFindCartByIdUserResponse(carts []entity.Cart, kelurahan entity.Kelurahan)
 
 	cartResponse.CartItems = cartItems
 	cartResponse.SubTotal = subTotal
-	cartResponse.ShippingCost = kelurahan.ServiceZonaArea.ShippingCost
-	cartResponse.TotalBill = subTotal + kelurahan.ServiceZonaArea.ShippingCost
+	cartResponse.ShippingCost = kelurahan.ShippingCostArea.ShippingCost
+	cartResponse.TotalBill = subTotal + kelurahan.ShippingCostArea.ShippingCost
 
 	return cartResponse
 }
