@@ -8,7 +8,8 @@ import (
 )
 
 type UpdateQtyProductInCartRequest struct {
-	IdCart string `json:"full_name" form:"id_cart" validate:"required"`
+	IdCart string `json:"id_cart" form:"id_cart" validate:"required"`
+	Qty    int    `json:"qty" form:"qty"`
 }
 
 func ReadFromUpdateProductInCartRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (updateQtyProductInCart *UpdateQtyProductInCartRequest) {
