@@ -21,3 +21,10 @@ func TokenClaimsIdUser(c echo.Context) (id string) {
 	idUser := claims.Id
 	return idUser
 }
+
+func TokenClaimsIdKelurahan(c echo.Context) (id int) {
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(*modelService.TokenClaims)
+	idKelurahan := claims.IdKelurahan
+	return idKelurahan
+}

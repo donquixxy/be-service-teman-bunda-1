@@ -8,6 +8,7 @@ import (
 
 type KelurahanRepositoryInterface interface {
 	FindAllKelurahanByIdKecamatan(DB *gorm.DB, id int) ([]entity.Kelurahan, error)
+	FindKelurahanById(DB *gorm.DB, IdKelurahan int) (entity.Kelurahan, error)
 }
 
 type KelurahanRepositoryImplementation struct {
@@ -24,4 +25,10 @@ func (repository *KelurahanRepositoryImplementation) FindAllKelurahanByIdKecamat
 	var kelurahans []entity.Kelurahan
 	results := DB.Where("idkeca = ?", id).Find(&kelurahans)
 	return kelurahans, results.Error
+}
+
+func (repository *KelurahanRepositoryImplementation) FindKelurahanById(DB *gorm.DB, IdKelurahan int) (entity.Kelurahan, error) {
+	var kelurahan entity.Kelurahan
+	results := DB.Where("master_kelurahan.idkelu = ?", IdKelurahan).Joins("ServiceZonaArea").Find(&kelurahan)
+	return kelurahan, results.Error
 }

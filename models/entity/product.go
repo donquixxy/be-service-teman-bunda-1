@@ -1,11 +1,9 @@
 package entity
 
-import "github.com/shopspring/decimal"
-
 type Product struct {
 	Id              string          `gorm:"primaryKey;column:id;"`
 	ProductName     string          `gorm:"column:product_name;"`
-	Price           decimal.Decimal `gorm:"column:price;"`
+	Price           float64         `gorm:"column:price;"`
 	Description     string          `gorm:"column:description;"`
 	PictureUrl      string          `gorm:"column:picture_url;"`
 	Thumbnail       string          `gorm:"column:thumbnail;"`
