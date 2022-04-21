@@ -1,24 +1,23 @@
 package response
 
 import (
-	"github.com/shopspring/decimal"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 )
 
 type FindUserByIdResponse struct {
-	Id                   string          `json:"id"`
-	FullName             string          `json:"full_name"`
-	Username             string          `json:"username"`
-	Email                string          `json:"email"`
-	Address              string          `json:"address"`
-	Phone                string          `json:"phone"`
-	ReferalCode          string          `json:"referal_code"`
-	BalancePoints        decimal.Decimal `json:"balance_points"`
-	IdProvinsi           int             `json:"id_provinsi"`
-	IdKabupaten          int             `json:"id_kabupaten"`
-	IdKecamatan          int             `json:"id_kecamatan"`
-	IdKelurahan          int             `json:"id_kelurahan"`
-	ReferalCodeUsedCount int             `json:"referal_code_used_count"`
+	Id                   string  `json:"id"`
+	FullName             string  `json:"full_name"`
+	Username             string  `json:"username"`
+	Email                string  `json:"email"`
+	Address              string  `json:"address"`
+	Phone                string  `json:"phone"`
+	ReferalCode          string  `json:"referal_code"`
+	BalancePoints        float64 `json:"balance_points"`
+	IdProvinsi           int     `json:"id_provinsi"`
+	IdKabupaten          int     `json:"id_kabupaten"`
+	IdKecamatan          int     `json:"id_kecamatan"`
+	IdKelurahan          int     `json:"id_kelurahan"`
+	ReferalCodeUsedCount int     `json:"referal_code_used_count"`
 }
 
 func ToUserFindByIdResponse(user entity.User, userCount int) (userResponse FindUserByIdResponse) {

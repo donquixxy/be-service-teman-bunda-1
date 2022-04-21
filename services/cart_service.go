@@ -18,7 +18,7 @@ import (
 
 type CartServiceInterface interface {
 	AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse)
-	FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUser)
+	FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUserResponse)
 	CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
@@ -47,10 +47,11 @@ func NewCartService(
 	}
 }
 
-func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string) (addProductToCartResponse response.FindCartByIdUser) {
+func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string) (addProductToCartResponse response.FindCartByIdUserResponse) {
 	carts, err := service.CartRepositoryInterface.FindCartByIdUser(service.DB, IdUser)
+
 	exceptions.PanicIfError(err, requestId, service.Logger)
-	addProductToCartResponse = response.ToFindCartByIdUser(carts)
+	addProductToCartResponse = response.ToFindCartByIdUserResponse(carts)
 	return addProductToCartResponse
 }
 

@@ -1,22 +1,21 @@
 package response
 
 import (
-	"github.com/shopspring/decimal"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 )
 
 type FindProductResponse struct {
-	Id          string          `json:"id"`
-	IdCategory  int             `json:"id_category"`
-	ProductName string          `json:"product_name"`
-	Price       decimal.Decimal `json:"price"`
-	Description string          `json:"description"`
-	PictureUrl  string          `json:"picture_url"`
-	Thumbnail   string          `json:"thumbnail"`
-	Stock       int             `json:"stock"`
-	FlagPromo   string          `json:"flag_promo"`
-	Percentage  decimal.Decimal `json:"discount_percentage"`
-	Nominal     decimal.Decimal `json:"discount_nominal"`
+	Id          string  `json:"id"`
+	IdCategory  int     `json:"id_category"`
+	ProductName string  `json:"product_name"`
+	Price       float64 `json:"price"`
+	Description string  `json:"description"`
+	PictureUrl  string  `json:"picture_url"`
+	Thumbnail   string  `json:"thumbnail"`
+	Stock       int     `json:"stock"`
+	FlagPromo   string  `json:"flag_promo"`
+	Percentage  float64 `json:"discount_percentage"`
+	Nominal     float64 `json:"discount_nominal"`
 }
 
 func ToFindProductResponses(products []entity.Product) (productResponses []FindProductResponse) {
