@@ -36,7 +36,8 @@ func NewCartController(configWebserver config.Webserver, cartServiceInterface se
 func (controller *CartControllerImplementation) FindCartByIdUser(c echo.Context) error {
 	requestId := ""
 	IdUser := middleware.TokenClaimsIdUser(c)
-	cartResponses := controller.CartServiceInterface.FindCartByIdUser(requestId, IdUser)
+	IdKelurahan := middleware.TokenClaimsIdKelurahan(c)
+	cartResponses := controller.CartServiceInterface.FindCartByIdUser(requestId, IdUser, IdKelurahan)
 	responses := response.Response{Code: 200, Mssg: "success", Data: cartResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

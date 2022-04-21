@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -64,6 +63,7 @@ func (service *UserServiceImplementation) Login(requestId string, authRequest *r
 
 	userModelService.Id = user.Id
 	userModelService.Username = user.Username
+	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
 
 	token, err := service.GenerateToken(userModelService)
 	exceptions.PanicIfError(err, requestId, service.Logger)
@@ -126,10 +126,10 @@ func (service *UserServiceImplementation) NewToken(requestId string, refreshToke
 
 func (service *UserServiceImplementation) GenerateToken(user modelService.User) (token string, err error) {
 	// Create the Claims
-	fmt.Println(time.Now())
 	claims := modelService.TokenClaims{
-		Id:       user.Id,
-		Username: user.Username,
+		Id:          user.Id,
+		Username:    user.Username,
+		IdKelurahan: user.IdKelurahan,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
 			Issuer:    "aether",

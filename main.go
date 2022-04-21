@@ -140,13 +140,15 @@ func main() {
 	productController := controllers.NewProductController(appConfig.Webserver, productService)
 	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
 
+	//  Cart
 	cartRepository := mysql.NewCartRepository(&appConfig.Database)
 	cartService := services.NewCartService(
 		appConfig.Webserver,
 		mysqlDBConnection,
 		validate,
 		logrusLogger,
-		cartRepository)
+		cartRepository,
+		kelurahanRepository)
 	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
 	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
 

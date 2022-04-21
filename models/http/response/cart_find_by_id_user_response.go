@@ -1,9 +1,6 @@
 package response
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 )
 
@@ -27,15 +24,11 @@ type CartItem struct {
 	FlagPromo   string  `json:"flag_promo"`
 }
 
-func ToFindCartByIdUserResponse(carts []entity.Cart) (cartResponse FindCartByIdUserResponse) {
+func ToFindCartByIdUserResponse(carts []entity.Cart, kelurahan entity.Kelurahan) (cartResponse FindCartByIdUserResponse) {
 
 	var cartItems []CartItem
-	var test CartItem
-	hasil, _ := json.Marshal(test)
-	fmt.Println(string(hasil))
 	var totalPricePerItem float64
-	var SubTotal float64
-	var shippingCost float64
+	var subTotal float64
 	for _, cart := range carts {
 		var cartItem CartItem
 		if cart.Product.ProductDiscount.FlagPromo == "true" {
@@ -55,14 +48,15 @@ func ToFindCartByIdUserResponse(carts []entity.Cart) (cartResponse FindCartByIdU
 		cartItem.Thumbnail = cart.Product.Thumbnail
 		cartItem.Qty = cart.Qty
 		cartItem.FlagPromo = cart.Product.ProductDiscount.FlagPromo
-		SubTotal = SubTotal + totalPricePerItem
+		subTotal = subTotal + totalPricePerItem
 
 		cartItems = append(cartItems, cartItem)
 	}
 
 	cartResponse.CartItems = cartItems
-	cartResponse.SubTotal = SubTotal
-	cartResponse.TotalBill = SubTotal + shippingCost
+	cartResponse.SubTotal = subTotal
+	cartResponse.ShippingCost = kelurahan.ServiceZonaArea.ShippingCost
+	cartResponse.TotalBill = subTotal + kelurahan.ServiceZonaArea.ShippingCost
 
 	return cartResponse
 }

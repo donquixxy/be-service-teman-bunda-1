@@ -35,7 +35,7 @@ func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user ent
 
 func (repository *UserRepositoryImplementation) FindUserByUsername(DB *gorm.DB, username string) (entity.User, error) {
 	var user entity.User
-	results := DB.Where("username = ?", username).First(&user)
+	results := DB.Where("users.username = ?", username).Joins("FamilyMembers").First(&user)
 	return user, results.Error
 }
 
