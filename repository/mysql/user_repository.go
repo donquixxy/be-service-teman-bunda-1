@@ -59,11 +59,9 @@ func (repository *UserRepositoryImplementation) FindUserByPhone(DB *gorm.DB, pho
 
 func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("JOIN family_members ON family_members.id = users.id_family_members").
-		Joins("JOIN family ON family.id = family_members.id_family").
-		Preload("FamilyMembers.Family").
+	results := DB.Where("users.id = ?", id).
+		Joins("FamilyMembers").
 		Joins("BalancePoint").
-		Where("users.id = ?", id).
 		Find(&user)
 	return user, results.Error
 }
