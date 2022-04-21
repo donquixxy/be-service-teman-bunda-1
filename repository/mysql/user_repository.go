@@ -13,6 +13,7 @@ type UserRepositoryInterface interface {
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
 	FindUserByReferal(DB *gorm.DB, referalCode string) (entity.User, error)
 	FindUserById(DB *gorm.DB, id string) (entity.User, error)
+	CountUserByRegistrationReferal(DB *gorm.DB, referal string) (userCount int, err error)
 	SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error)
 	FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error)
 }
@@ -65,6 +66,12 @@ func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id str
 		Where("users.id = ?", id).
 		Find(&user)
 	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) CountUserByRegistrationReferal(DB *gorm.DB, referalCode string) (countUser int, err error) {
+	var user entity.User
+	results := DB.Model(&entity.User{}).Where("registration_referal_code = ?", referalCode).Find(&user)
+	return int(results.RowsAffected), results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error) {

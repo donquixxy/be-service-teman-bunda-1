@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -199,6 +200,8 @@ func (service *UserServiceImplementation) FindUserByReferal(requestId string, re
 
 func (service *UserServiceImplementation) FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse) {
 	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, id)
+	userCount, _ := service.UserRepositoryInterface.CountUserByRegistrationReferal(service.DB, user.ReferalCode)
+	fmt.Println("Jumlah orang = ", userCount)
 	if user.Id == "" {
 		err := errors.New("user not found")
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)

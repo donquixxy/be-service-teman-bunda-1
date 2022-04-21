@@ -2,19 +2,10 @@ package routes
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/controllers"
 	authMiddlerware "github.com/tensuqiuwulu/be-service-teman-bunda/middleware"
-	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 )
-
-var configJwt = &config.Jwt{}
-
-var authMiddlewareJwt = middleware.JWTConfig{
-	Claims:     &modelService.TokenClaims{},
-	SigningKey: []byte(configJwt.Key),
-}
 
 // Provinsi Route
 func ProvinsiRoute(e *echo.Echo, configWebserver config.Webserver, configJWT config.Jwt, provinsiControllerInterface controllers.ProvinsiControllerInterface) {
@@ -78,4 +69,5 @@ func CartRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/cart", cartControllerInterface.AddProductToCart, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/cart/plus_qty", cartControllerInterface.CartPlusQtyProduct, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/cart/min_qty", cartControllerInterface.CartMinQtyProduct, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/cart/update_qty", cartControllerInterface.UpdateQtyProductInCart, authMiddlerware.Authentication(configurationJWT))
 }

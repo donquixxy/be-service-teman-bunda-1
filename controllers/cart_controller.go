@@ -17,6 +17,7 @@ type CartControllerInterface interface {
 	AddProductToCart(c echo.Context) error
 	CartPlusQtyProduct(c echo.Context) error
 	CartMinQtyProduct(c echo.Context) error
+	UpdateQtyProductInCart(c echo.Context) error
 }
 
 type CartControllerImplementation struct {
@@ -62,5 +63,13 @@ func (controller *CartControllerImplementation) CartMinQtyProduct(c echo.Context
 	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
 	cartResponseResult := controller.CartServiceInterface.CartMinQtyProduct(requestId, request)
 	response := response.Response{Code: 201, Mssg: "success reduce qty product", Data: cartResponseResult, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *CartControllerImplementation) UpdateQtyProductInCart(c echo.Context) error {
+	requestId := ""
+	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
+	cartResponseResult := controller.CartServiceInterface.UpdateQtyProductInCart(requestId, request)
+	response := response.Response{Code: 201, Mssg: "success update qty product", Data: cartResponseResult, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

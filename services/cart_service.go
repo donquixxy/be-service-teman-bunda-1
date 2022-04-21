@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -20,6 +21,7 @@ type CartServiceInterface interface {
 	FindCartByIdUser(requestId string, IdUser string) (cartResponses response.FindCartByIdUser)
 	CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
+	UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 }
 
 type CartServiceImplementation struct {
@@ -82,6 +84,24 @@ func (service *CartServiceImplementation) CartMinQtyProduct(requestId string, up
 		updateProductQtyInCartResponse = response.ToUpdateProductQtyInCartResponse(cartResult)
 		return updateProductQtyInCartResponse
 	}
+}
+
+func (service *CartServiceImplementation) UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse) {
+	request.ValidateUpdateQtyProductInCartRequest(service.Validate, updateQtyProductInCartRequest, requestId, service.Logger)
+	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, updateQtyProductInCartRequest.IdCart)
+
+	if cartProductExist.Id == "" {
+		err := errors.New("id cart not found")
+		exceptions.PanicIfRecordNotFound(err, requestId, []string{"id cart not found"}, service.Logger)
+	}
+
+	cartEntity := &entity.Cart{}
+	cartEntity.Id = updateQtyProductInCartRequest.IdCart
+	cartEntity.Qty = updateQtyProductInCartRequest.Qty
+	cartResult, err := service.CartRepositoryInterface.UpdateProductInCart(service.DB, updateQtyProductInCartRequest.IdCart, *cartEntity)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	updateProductQtyInCartResponse = response.ToUpdateProductQtyInCartResponse(cartResult)
+	return updateProductQtyInCartResponse
 }
 
 func (service *CartServiceImplementation) AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse) {
