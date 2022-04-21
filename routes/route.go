@@ -71,3 +71,9 @@ func CartRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.PUT("/cart/min_qty", cartControllerInterface.CartMinQtyProduct, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/cart/update_qty", cartControllerInterface.UpdateQtyProductInCart, authMiddlerware.Authentication(configurationJWT))
 }
+
+// Shipping Cost Route
+func ShippingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, shippingControllerInterface controllers.ShippingControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/shipping/cost", shippingControllerInterface.FindShippingCost, authMiddlerware.Authentication(configurationJWT))
+}
