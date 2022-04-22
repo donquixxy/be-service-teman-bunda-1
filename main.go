@@ -140,18 +140,6 @@ func main() {
 	productController := controllers.NewProductController(appConfig.Webserver, productService)
 	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
 
-	//  Cart
-	cartRepository := mysql.NewCartRepository(&appConfig.Database)
-	cartService := services.NewCartService(
-		appConfig.Webserver,
-		mysqlDBConnection,
-		validate,
-		logrusLogger,
-		cartRepository,
-		kelurahanRepository)
-	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
-	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
-
 	// Shipping
 	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
 	shippingService := services.NewShippingService(
@@ -162,6 +150,18 @@ func main() {
 		shippingRepository)
 	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
 	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
+
+	//  Cart
+	cartRepository := mysql.NewCartRepository(&appConfig.Database)
+	cartService := services.NewCartService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		cartRepository,
+		shippingRepository)
+	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
+	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
 
 	// Careful shutdown
 	go func() {

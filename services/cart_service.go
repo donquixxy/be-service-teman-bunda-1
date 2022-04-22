@@ -26,12 +26,12 @@ type CartServiceInterface interface {
 }
 
 type CartServiceImplementation struct {
-	ConfigWebserver              config.Webserver
-	DB                           *gorm.DB
-	Validate                     *validator.Validate
-	Logger                       *logrus.Logger
-	CartRepositoryInterface      mysql.CartRepositoryInterface
-	KelurahanRepositoryInterface mysql.KelurahanRepositoryInterface
+	ConfigWebserver             config.Webserver
+	DB                          *gorm.DB
+	Validate                    *validator.Validate
+	Logger                      *logrus.Logger
+	CartRepositoryInterface     mysql.CartRepositoryInterface
+	ShippingRepositoryInterface mysql.ShippingRepositoryInterface
 }
 
 func NewCartService(
@@ -40,22 +40,23 @@ func NewCartService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
-	kelurahanRepositoryInterface mysql.KelurahanRepositoryInterface) CartServiceInterface {
+	shippingRepositoryInterface mysql.ShippingRepositoryInterface) CartServiceInterface {
 	return &CartServiceImplementation{
-		ConfigWebserver:              configWebserver,
-		DB:                           DB,
-		Validate:                     validate,
-		Logger:                       logger,
-		CartRepositoryInterface:      cartRepositoryInterface,
-		KelurahanRepositoryInterface: kelurahanRepositoryInterface,
+		ConfigWebserver:             configWebserver,
+		DB:                          DB,
+		Validate:                    validate,
+		Logger:                      logger,
+		CartRepositoryInterface:     cartRepositoryInterface,
+		ShippingRepositoryInterface: shippingRepositoryInterface,
 	}
 }
 
 func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string, IdKelurahan int) (addProductToCartResponse response.FindCartByIdUserResponse) {
 	carts, _ := service.CartRepositoryInterface.FindCartByIdUser(service.DB, IdUser)
-	zonaKelurahan, err := service.KelurahanRepositoryInterface.FindKelurahanById(service.DB, IdKelurahan)
+	shippingCost, err := service.ShippingRepositoryInterface.GetShippingCostByIdKelurahan(service.DB, IdKelurahan)
+
 	exceptions.PanicIfError(err, requestId, service.Logger)
-	addProductToCartResponse = response.ToFindCartByIdUserResponse(carts, zonaKelurahan)
+	addProductToCartResponse = response.ToFindCartByIdUserResponse(carts, shippingCost.ShippingCost)
 	return addProductToCartResponse
 }
 

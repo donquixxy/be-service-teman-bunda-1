@@ -24,7 +24,7 @@ type CartItem struct {
 	FlagPromo   string  `json:"flag_promo"`
 }
 
-func ToFindCartByIdUserResponse(carts []entity.Cart, kelurahan entity.Kelurahan) (cartResponse FindCartByIdUserResponse) {
+func ToFindCartByIdUserResponse(carts []entity.Cart, shippingCost float64) (cartResponse FindCartByIdUserResponse) {
 
 	var cartItems []CartItem
 	var totalPricePerItem float64
@@ -55,8 +55,8 @@ func ToFindCartByIdUserResponse(carts []entity.Cart, kelurahan entity.Kelurahan)
 
 	cartResponse.CartItems = cartItems
 	cartResponse.SubTotal = subTotal
-	cartResponse.ShippingCost = kelurahan.ShippingCostArea.ShippingCost
-	cartResponse.TotalBill = subTotal + kelurahan.ShippingCostArea.ShippingCost
+	cartResponse.ShippingCost = shippingCost
+	cartResponse.TotalBill = subTotal + shippingCost
 
 	return cartResponse
 }

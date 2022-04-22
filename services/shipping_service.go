@@ -1,8 +1,6 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/go-playground/validator"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -40,7 +38,6 @@ func NewShippingService(
 
 func (service *ShippingServiceImplementation) GetShippingCostByIdKelurahan(requestId string, idKelurahan int) (shippingCostResponse response.GetShippingCostByIdKelurahanResponse) {
 	shippingCost, err := service.ShippingRepositoryInterface.GetShippingCostByIdKelurahan(service.DB, idKelurahan)
-	fmt.Println(shippingCost)
 	exceptions.PanicIfRecordNotFound(err, requestId, []string{"Data not found"}, service.Logger)
 	shippingCostResponse = response.ToGetShippingCostByIdKelurahanResponse(shippingCost)
 	return shippingCostResponse
