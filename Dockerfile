@@ -6,7 +6,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o be-service-teman-bunda .
 
 # generate clean, final image for end users
 FROM alpine
-COPY --from=builder /build/be-service-teman-bunda .
+COPY --from=builder /build .
 
 EXPOSE 9000
 
