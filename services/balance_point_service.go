@@ -22,17 +22,20 @@ type BalancePointServiceImplementation struct {
 	DB                              *gorm.DB
 	Logger                          *logrus.Logger
 	BalancePointRepositoryInterface mysql.BalancePointRepositoryInterface
+	SettingsRepositoryInterface     mysql.SettingsRepositoryInterface
 }
 
 func NewBalancePointService(configWebserver config.Webserver,
 	DB *gorm.DB,
 	logger *logrus.Logger,
-	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface) BalancePointServiceInterface {
+	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface,
+	settingsRepositoryInterface mysql.SettingsRepositoryInterface) BalancePointServiceInterface {
 	return &BalancePointServiceImplementation{
 		ConfigWebserver:                 configWebserver,
 		DB:                              DB,
 		Logger:                          logger,
 		BalancePointRepositoryInterface: balancePointRepositoryInterface,
+		SettingsRepositoryInterface:     settingsRepositoryInterface,
 	}
 }
 
@@ -57,11 +60,20 @@ func (service *BalancePointServiceImplementation) FindBalancePointByIdUser(reque
 }
 
 func (service *BalancePointServiceImplementation) BalancePointUseCheck(requestId string, IdUser string) (balancePointUseCheckResponse response.BalancePointUseCheck) {
+	//check balance point
 	balancePoint, _ := service.BalancePointRepositoryInterface.BalancePointUseCheck(service.DB, IdUser)
 	if balancePoint.IdUser == "" {
 		err := errors.New("user not found")
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)
 	}
+
+	//get limit order to use point value
+	settings, _ := service.SettingsRepositoryInterface.FindSettingsByName(service.DB, "limit_order")
+	if settings.SettingsName == "" {
+		err := errors.New("settings not found")
+		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)
+	}
+
 	balancePointUseCheckResponse = response.ToBalancePointUseCheck(balancePoint)
 	return balancePointUseCheckResponse
 }

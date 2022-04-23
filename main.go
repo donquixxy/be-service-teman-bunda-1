@@ -48,6 +48,9 @@ func main() {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 
+	// Settings
+	settingsRepository := mysql.NewSettingsRepository(&appConfig.Database)
+
 	// Provinsi
 	provinsiRepository := mysql.NewProvinsiRepository(&appConfig.Database)
 	provinsiService := services.NewProvinsiService(appConfig.Webserver,
@@ -95,7 +98,8 @@ func main() {
 	balancePointService := services.NewBalancePointService(appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
-		balancePointRepository)
+		balancePointRepository,
+		settingsRepository)
 	balancePointController := controllers.NewBalancePointController(appConfig.Webserver, logrusLogger, balancePointService)
 	routes.BalancePointRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointController)
 
