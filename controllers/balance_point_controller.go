@@ -14,6 +14,7 @@ import (
 type BalancePointControllerInterface interface {
 	FindBalancePointWithTxByIdUser(c echo.Context) error
 	FindBalancePointByIdUser(c echo.Context) error
+	BalancePointUseCheck(c echo.Context) error
 }
 
 type BalancePointControllerImplementation struct {
@@ -45,5 +46,13 @@ func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser
 	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointResponse := controller.BalancePointServiceInterface.FindBalancePointByIdUser(requestId, IdUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: balancePointResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *BalancePointControllerImplementation) BalancePointUseCheck(c echo.Context) error {
+	requestId := ""
+	idUser := middleware.TokenClaimsIdUser(c)
+	balancePointUseCheckResponse := controller.BalancePointServiceInterface.BalancePointUseCheck(requestId, idUser)
+	response := response.Response{Code: 200, Mssg: "success", Data: balancePointUseCheckResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

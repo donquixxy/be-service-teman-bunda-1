@@ -55,10 +55,12 @@ func (service *UserServiceImplementation) Login(requestId string, authRequest *r
 
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
-	user, err := service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
-	exceptions.PanicIfRecordNotFound(err, requestId, []string{"User not found"}, service.Logger)
+	user, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
+	if user.Id == "" {
+		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Invalid Credentials"}, service.Logger)
 
 	userModelService.Id = user.Id

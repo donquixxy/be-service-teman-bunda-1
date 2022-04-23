@@ -51,6 +51,7 @@ func BalancePointRoute(e *echo.Echo, configWebserver config.Webserver, configura
 	group := e.Group("api/v1")
 	group.GET("/balance_point_with_tx", balancePointControllerInterface.FindBalancePointWithTxByIdUser, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/balance_point", balancePointControllerInterface.FindBalancePointByIdUser, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/balance_point/use", balancePointControllerInterface.BalancePointUseCheck, authMiddlerware.Authentication(configurationJWT))
 }
 
 // Product Route
