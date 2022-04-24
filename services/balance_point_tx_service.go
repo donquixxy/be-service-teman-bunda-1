@@ -48,6 +48,7 @@ func (service *BalancePointTxServiceImplementation) FindBalancePointWithTxByIdBa
 	if len(balancePointTx) == 0 {
 		exceptions.PanicIfRecordNotFound(errors.New("data not found"), requestId, []string{"Data Not Found"}, service.Logger)
 	}
+
 	balancePointTxResponses = response.ToFindBalancePointTxByIdBalancePoint(balancePointTx)
 	return balancePointTxResponses
 }

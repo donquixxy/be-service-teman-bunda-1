@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -30,9 +31,14 @@ func (repository *BalancePointTxRepositoryImplementation) CreateBalancePointTx(D
 
 func (repository *BalancePointTxRepositoryImplementation) FindBalancePointTxByIdBalancePoint(DB *gorm.DB, date string, idBalancePoint string) ([]entity.BalancePointTx, error) {
 	var balancePointTx []entity.BalancePointTx
-	var dateStart = []string{date, "00:00:00"}
-	var dateEnd = []string{date, "23:59:59"}
-
-	results := DB.Where("id_balance_point = ?", idBalancePoint).Where("tx_date >= ?", strings.Join(dateStart, " ")).Where("tx_date <= ?", strings.Join(dateEnd, " ")).Find(&balancePointTx)
-	return balancePointTx, results.Error
+	fmt.Println("hasil = ", date)
+	if date != "" {
+		var dateStart = []string{date, "00:00:00"}
+		var dateEnd = []string{date, "23:59:59"}
+		results := DB.Where("id_balance_point = ?", idBalancePoint).Where("tx_date >= ?", strings.Join(dateStart, " ")).Where("tx_date <= ?", strings.Join(dateEnd, " ")).Find(&balancePointTx)
+		return balancePointTx, results.Error
+	} else {
+		results := DB.Where("id_balance_point = ?", idBalancePoint).Find(&balancePointTx)
+		return balancePointTx, results.Error
+	}
 }
