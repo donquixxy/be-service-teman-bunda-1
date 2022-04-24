@@ -105,6 +105,13 @@ func main() {
 
 	// Balance Point Tx
 	balancePointTxRepository := mysql.NewBalancePointTxRepository(&appConfig.Database)
+	balancePointTxService := services.NewBalancePointTxService(appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		balancePointTxRepository,
+		balancePointRepository)
+	balancePointTxController := controllers.NewBalancePointTxController(appConfig.Webserver, logrusLogger, balancePointTxService)
+	routes.BalancePointTxRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointTxController)
 
 	// User
 	userRepository := mysql.NewUserRepository(&appConfig.Database)

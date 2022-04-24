@@ -7,6 +7,7 @@ import (
 type BalancePointTx struct {
 	Id               string    `gorm:"primaryKey;column:id;"`
 	IdBalancePoint   string    `gorm:"column:id_balance_point;"`
+	NoOrder          string    `gorm:"column:no_order;"`
 	TxType           string    `gorm:"column:tx_type;"`
 	TxDate           time.Time `gorm:"column:tx_date;"`
 	TxNominal        float64   `gorm:"column:tx_nominal;"`

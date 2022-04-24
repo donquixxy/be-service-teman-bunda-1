@@ -54,6 +54,12 @@ func BalancePointRoute(e *echo.Echo, configWebserver config.Webserver, configura
 	group.GET("/balance_point/use", balancePointControllerInterface.BalancePointUseCheck, authMiddlerware.Authentication(configurationJWT))
 }
 
+// Balance Point Tx
+func BalancePointTxRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, balancePointTxControllerInterface controllers.BalancePointTxControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/balance_point_tx", balancePointTxControllerInterface.FindBalancePointTxByIdBalancePoint, authMiddlerware.Authentication(configurationJWT))
+}
+
 // Product Route
 func ProductRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, productControllerInterface controllers.ProductControllerInterface) {
 	group := e.Group("api/v1")

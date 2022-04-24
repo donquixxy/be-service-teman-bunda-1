@@ -152,19 +152,9 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	balancePoint, err := service.BalancePointRepositoryInterface.CreateBalancePoint(tx, *balancePointEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert balance point"}, service.Logger, tx)
 
-	// Create user balance points tx
-	balancePointTxEntity := &entity.BalancePointTx{}
-	balancePointTxEntity.Id = utilities.RandomUUID()
-	balancePointTxEntity.IdBalancePoint = balancePointEntity.Id
-	balancePointTxEntity.TxType = "Created Balance Point"
-	balancePointTxEntity.TxDate = time.Now()
-	balancePointTxEntity.CreatedDate = time.Now()
-	balancePointTx, err := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
-	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert balance point"}, service.Logger, tx)
-
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
-	userResponse = response.ToUserCreateUserResponse(user, family, familyMembers, balancePoint, balancePointTx)
+	userResponse = response.ToUserCreateUserResponse(user, family, familyMembers, balancePoint)
 
 	return userResponse
 }
