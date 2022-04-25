@@ -93,13 +93,40 @@ func main() {
 	// Family Members
 	familyMembersRepository := mysql.NewFamilyMembersRepository(&appConfig.Database)
 
+	// Shipping
+	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
+	shippingService := services.NewShippingService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		shippingRepository)
+	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
+	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
+
+	//  Cart
+	cartRepository := mysql.NewCartRepository(&appConfig.Database)
+	cartService := services.NewCartService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		cartRepository,
+		shippingRepository)
+	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
+	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
+
+	// Order Repository
+	orderRepository := mysql.NewOrderRepository(&appConfig.Database)
+
 	// Balance Point
 	balancePointRepository := mysql.NewBalancePointRepository(&appConfig.Database)
 	balancePointService := services.NewBalancePointService(appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		balancePointRepository,
-		settingsRepository)
+		settingsRepository,
+		orderRepository)
 	balancePointController := controllers.NewBalancePointController(appConfig.Webserver, logrusLogger, balancePointService)
 	routes.BalancePointRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointController)
 
@@ -151,28 +178,22 @@ func main() {
 	productController := controllers.NewProductController(appConfig.Webserver, productService)
 	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
 
-	// Shipping
-	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
-	shippingService := services.NewShippingService(
-		appConfig.Webserver,
-		mysqlDBConnection,
-		validate,
-		logrusLogger,
-		shippingRepository)
-	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
-	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
+	// Order Item
+	orderItemRepository := mysql.NewOrderItemRepository(&appConfig.Database)
 
-	//  Cart
-	cartRepository := mysql.NewCartRepository(&appConfig.Database)
-	cartService := services.NewCartService(
+	// Order Service
+	orderService := services.NewOrderService(
 		appConfig.Webserver,
 		mysqlDBConnection,
+		appConfig.Jwt,
 		validate,
 		logrusLogger,
+		orderRepository,
 		cartRepository,
-		shippingRepository)
-	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
-	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
+		userRepository,
+		orderItemRepository)
+	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
+	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 
 	// Careful shutdown
 	go func() {

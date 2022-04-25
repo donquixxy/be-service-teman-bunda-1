@@ -36,7 +36,7 @@ func PanicIfErrorWithRollback(err error, requestId string, errorString []string,
 
 func PanicIfBadRequest(err error, requestId string, errorString []string, logger *logrus.Logger) {
 	if err != nil {
-		out, errr := json.Marshal(ErrorStruct{Code: 400, Error: errorString})
+		out, errr := json.Marshal(ErrorStruct{Code: 400, Mssg: "Bad Request", Error: errorString})
 		PanicIfError(errr, requestId, logger)
 		logger.WithFields(logrus.Fields{"request_id": requestId}).Error(err)
 		panic(string(out))

@@ -84,3 +84,9 @@ func ShippingRoute(e *echo.Echo, configWebserver config.Webserver, configuration
 	group := e.Group("api/v1")
 	group.GET("/shipping/cost", shippingControllerInterface.GetShippingCostByIdKelurahan, authMiddlerware.Authentication(configurationJWT))
 }
+
+// Order Route
+func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, orderControllerInterface controllers.OrderControllerInterface) {
+	group := e.Group("api/v1")
+	group.POST("/order/create", orderControllerInterface.CreateOrder, authMiddlerware.Authentication(configurationJWT))
+}

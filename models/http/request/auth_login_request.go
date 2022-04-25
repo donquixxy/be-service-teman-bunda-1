@@ -25,10 +25,10 @@ func ReadFromAuthRequestBody(c echo.Context, requestId string, logger *logrus.Lo
 
 func ValidateAuth(validate *validator.Validate, authRequest *AuthRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
+	var errorString string
 	err := validate.Struct(authRequest)
 	if err != nil {
 		for _, errorValidation := range err.(validator.ValidationErrors) {
-			var errorString string
 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()
 			errorStrings = append(errorStrings, errorString)
 		}

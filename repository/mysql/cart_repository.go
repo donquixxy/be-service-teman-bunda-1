@@ -37,6 +37,10 @@ func (repository *CartRepositoryImplementation) FindCartByIdUser(DB *gorm.DB, Id
 		Joins("Product").
 		Preload("Product.ProductDiscount").
 		Find(&cart)
+	// results := DB.Joins("JOIN products on products.id = cart.id_product").
+	// 	Joins("JOIN products_discount on products_discount.id_product = products.id").
+	// 	Where("cart.id_user = ?", IdUser).
+	// 	Find(&cart)
 	return cart, results.Error
 }
 

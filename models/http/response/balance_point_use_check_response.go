@@ -3,15 +3,15 @@ package response
 import "github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 
 type BalancePointUseCheck struct {
-	Id            string  `json:"id"`
-	IdUser        string  `json:"id_user"`
-	BalancePoints float64 `json:"balance_points"`
+	Id             string  `json:"id"`
+	IdUser         string  `json:"id_user"`
+	UsePointAmount float64 `json:"use_point_amount"`
 }
 
-func ToBalancePointUseCheck(balancePoint entity.BalancePoint) (balancePointResponse BalancePointUseCheck) {
+func ToBalancePointUseCheck(balancePoint entity.BalancePoint, usePointAmount float64) (balancePointResponse BalancePointUseCheck) {
 	balancePointResponse.Id = balancePoint.Id
 	balancePointResponse.IdUser = balancePoint.IdUser
-	balancePointResponse.BalancePoints = balancePoint.BalancePoints
+	balancePointResponse.UsePointAmount = usePointAmount
 	return balancePointResponse
 }
 

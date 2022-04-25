@@ -23,10 +23,10 @@ func ReadFromAddProductToCartRequestBody(c echo.Context, requestId string, logge
 
 func ValidateAddProductToCartRequest(validate *validator.Validate, addProductToCart *AddProductToCartRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
+	var errorString string
 	err := validate.Struct(addProductToCart)
 	if err != nil {
 		for _, errorValidation := range err.(validator.ValidationErrors) {
-			var errorString string
 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()
 			errorStrings = append(errorStrings, errorString)
 		}

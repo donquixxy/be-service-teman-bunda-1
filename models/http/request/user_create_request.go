@@ -33,9 +33,9 @@ func ReadFromCreateUserRequestBody(c echo.Context, requestId string, logger *log
 func ValidateCreateUserRequest(validate *validator.Validate, createUser *CreateUserRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
 	err := validate.Struct(createUser)
+	var errorString string
 	if err != nil {
 		for _, errorValidation := range err.(validator.ValidationErrors) {
-			var errorString string
 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()
 			errorStrings = append(errorStrings, errorString)
 		}

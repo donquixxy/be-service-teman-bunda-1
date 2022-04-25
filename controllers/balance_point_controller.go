@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -52,7 +53,8 @@ func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser
 func (controller *BalancePointControllerImplementation) BalancePointUseCheck(c echo.Context) error {
 	requestId := ""
 	idUser := middleware.TokenClaimsIdUser(c)
-	balancePointUseCheckResponse := controller.BalancePointServiceInterface.BalancePointUseCheck(requestId, idUser)
+	amount, _ := strconv.ParseFloat(c.QueryParam("amount"), 64)
+	balancePointUseCheckResponse := controller.BalancePointServiceInterface.BalancePointUseCheck(requestId, idUser, amount)
 	response := response.Response{Code: 200, Mssg: "success", Data: balancePointUseCheckResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
