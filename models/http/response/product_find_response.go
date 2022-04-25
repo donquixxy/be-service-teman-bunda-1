@@ -46,6 +46,7 @@ func ToFindProductResponse(product entity.Product) (productResponse FindProductR
 	productResponse.PictureUrl = product.PictureUrl
 	productResponse.Thumbnail = product.Thumbnail
 	productResponse.Stock = product.Stock
+	productResponse.FlagPromo = product.ProductDiscount.FlagPromo
 	productResponse.Percentage = product.ProductDiscount.Percentage
 	productResponse.Nominal = product.ProductDiscount.Nominal
 	return productResponse

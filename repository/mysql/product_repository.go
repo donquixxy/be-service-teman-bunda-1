@@ -34,18 +34,18 @@ func (repository *ProductRepositoryImplementation) FindAllProducts(DB *gorm.DB, 
 
 func (repository *ProductRepositoryImplementation) FindProductsBySearch(DB *gorm.DB, productName string) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Where("product_name LIKE ?", "%"+productName+"%").Find(&products)
+	results := DB.Where("products.product_name LIKE ?", "%"+productName+"%").Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindProductById(DB *gorm.DB, id string) (entity.Product, error) {
 	var product entity.Product
-	results := DB.Where("id = ?", id).Find(&product)
+	results := DB.Where("products.id = ?", id).Joins("ProductDiscount").Find(&product)
 	return product, results.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Where("id_category = ?", idCategory).Find(&products)
+	results := DB.Where("products.id_category = ?", idCategory).Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }
