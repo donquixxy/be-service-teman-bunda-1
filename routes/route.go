@@ -89,4 +89,5 @@ func ShippingRoute(e *echo.Echo, configWebserver config.Webserver, configuration
 func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, orderControllerInterface controllers.OrderControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/order/create", orderControllerInterface.CreateOrder, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/order/test", orderControllerInterface.SendRequestToIpaymu)
 }

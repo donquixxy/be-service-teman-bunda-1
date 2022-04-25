@@ -14,6 +14,7 @@ import (
 
 type OrderControllerInterface interface {
 	CreateOrder(c echo.Context) error
+	SendRequestToIpaymu(c echo.Context) error
 }
 
 type OrderControllerImplementation struct {
@@ -38,5 +39,10 @@ func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) err
 	request := request.ReadFromCreateOrderRequestBody(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.CreateOrder(requestId, idUser, request)
 	response := response.Response{Code: 201, Mssg: "order created", Data: orderResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *OrderControllerImplementation) SendRequestToIpaymu(c echo.Context) error {
+	response := response.Response{Code: 201, Mssg: "order created", Data: nil, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

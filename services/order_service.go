@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -69,6 +68,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity := &entity.Order{}
 	orderEntity.Id = utilities.RandomUUID()
 	orderEntity.IdUser = user.Id
+	orderEntity.NumberOrder = "ORDER/334455"
 	orderEntity.FullName = user.FamilyMembers.FullName
 	orderEntity.Email = user.FamilyMembers.Email
 	orderEntity.Address = orderRequest.Address
@@ -116,16 +116,71 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItems = append(orderItems, *orderItemEntity)
 	}
 
-	fmt.Println("id", orderItems)
-
 	orderItem, err := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create order"}, service.Logger, tx)
 
 	// delete data item in cart
-	
+	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(service.DB, idUser, cartItems)
+	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+
+	// Send Request To Ipaymu
+
+	// ipaymuVa := "0000007762212544"
+	// ipaymuKey := "SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704"
+
+	// url, _ := url.Parse("https://sandbox.ipaymu.com/api/v2/payment")
+
+	// postBody, _ := json.Marshal(map[string]interface{}{
+	// 	"product":     []string{"Baju"},
+	// 	"qty":         []int8{1},
+	// 	"price":       []float64{25000},
+	// 	"returnUrl":   "http://mywebsite/thank-you-page",
+	// 	"cancelUrl":   "http://mywebsite/cancel-page",
+	// 	"notifyUrl":   "http://mywebsite/callback",
+	// 	"referenceId": orderEntity.NumberOrder,
+	// 	"buyerName":   orderEntity.FullName,
+	// 	"buyerEmail":  orderEntity.Email,
+	// 	"buyerPhone":  orderEntity.Phone,
+	// })
+
+	// bodyHash := sha256.Sum256([]byte(postBody))
+	// bodyHashToString := hex.EncodeToString(bodyHash[:])
+	// stringToSign := "POST:" + ipaymuVa + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymuKey
+
+	// h := hmac.New(sha256.New, []byte(ipaymuKey))
+	// h.Write([]byte(stringToSign))
+	// signature := hex.EncodeToString(h.Sum(nil))
+
+	// reqBody := ioutil.NopCloser(strings.NewReader(string(postBody)))
+
+	// req := &http.Request{
+	// 	Method: "POST",
+	// 	URL:    url,
+	// 	Header: map[string][]string{
+	// 		"Content-Type": {"application/json"},
+	// 		"va":           {ipaymuVa},
+	// 		"signature":    {signature},
+	// 	},
+	// 	Body: reqBody,
+	// }
+
+	// resp, err := http.DefaultClient.Do(req)
+
+	// if err != nil {
+	// 	log.Fatalf("An Error Occured %v", err)
+	// }
+	// defer resp.Body.Close()
+
+	// body, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+	// sb := string(body)
+	// log.Printf(sb)
+
 	orderResponse = response.ToCreateOrderResponse(order, orderItem)
 
 	return orderResponse

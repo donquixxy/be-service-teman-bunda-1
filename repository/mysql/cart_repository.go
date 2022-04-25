@@ -13,6 +13,7 @@ type CartRepositoryInterface interface {
 	UpdateProductInCart(DB *gorm.DB, IdCart string, cartEntity entity.Cart) (entity.Cart, error)
 	DeleteProductInCart(DB *gorm.DB, IdCart string) (err error)
 	FindCartById(DB *gorm.DB, IdCart string) (entity.Cart, error)
+	DeleteAllProductInCartByIdUser(DB *gorm.DB, idUser string, carts []entity.Cart) (err error)
 }
 
 type CartRepositoryImplementation struct {
@@ -68,5 +69,10 @@ func (repository *CartRepositoryImplementation) UpdateProductInCart(DB *gorm.DB,
 
 func (repository *CartRepositoryImplementation) DeleteProductInCart(DB *gorm.DB, IdCart string) (err error) {
 	result := DB.Where("id = ?", IdCart).Delete(&entity.Cart{})
+	return result.Error
+}
+
+func (repository *CartRepositoryImplementation) DeleteAllProductInCartByIdUser(DB *gorm.DB, idUser string, carts []entity.Cart) (err error) {
+	result := DB.Where("id_user LIKE ?", "%"+idUser+"%").Delete(carts)
 	return result.Error
 }
