@@ -68,7 +68,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity := &entity.Order{}
 	orderEntity.Id = utilities.RandomUUID()
 	orderEntity.IdUser = user.Id
-	orderEntity.NumberOrder = "ORDER/334455"
+	orderEntity.NumberOrder = utilities.RandomUUID()
 	orderEntity.FullName = user.FamilyMembers.FullName
 	orderEntity.Email = user.FamilyMembers.Email
 	orderEntity.Address = orderRequest.Address
