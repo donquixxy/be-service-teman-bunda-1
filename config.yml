@@ -32,3 +32,7 @@ log:
     - info
     - warn
     - error
+ipaymu:
+  ipaymu_va: 0000007762212544
+  ipaymu_key: SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704
+  ipaymu_url: https://sandbox.ipaymu.com/api/v2/payment/direct

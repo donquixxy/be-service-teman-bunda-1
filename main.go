@@ -188,6 +188,7 @@ func main() {
 		appConfig.Jwt,
 		validate,
 		logrusLogger,
+		&appConfig.Ipaymu,
 		orderRepository,
 		cartRepository,
 		userRepository,

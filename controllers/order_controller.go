@@ -14,6 +14,7 @@ import (
 
 type OrderControllerInterface interface {
 	CreateOrder(c echo.Context) error
+	UpdateStatusOrder(c echo.Context) error
 	SendRequestToIpaymu(c echo.Context) error
 }
 
@@ -39,6 +40,14 @@ func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) err
 	request := request.ReadFromCreateOrderRequestBody(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.CreateOrder(requestId, idUser, request)
 	response := response.Response{Code: 201, Mssg: "order created", Data: orderResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *OrderControllerImplementation) UpdateStatusOrder(c echo.Context) error {
+	requestId := ""
+	request := request.ReadFromCallBackIpaymuRequest(c, requestId, controller.Logger)
+	orderResponse := controller.OrderServiceInterface.UpdateStatusOrder(requestId, request)
+	response := response.Response{Code: 200, Mssg: "succes update status order", Data: orderResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

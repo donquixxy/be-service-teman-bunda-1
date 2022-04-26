@@ -9,11 +9,13 @@ import (
 
 type CreateOrderRequest struct {
 	TotalBill      float64 `json:"total_bill" form:"total_bill" validate:"required"`
-	PaymentMethod  string  `json:"payment_method" form:"payment_method" validate:"required"`
 	PaymentByPoint float64 `json:"payment_by_point" form:"payment_by_point"`
+	PaymentByCash  float64 `json:"payment_by_cash" form:"payment_by_cash"`
 	Address        string  `json:"address" form:"address" validate:"required"`
 	CourierNote    string  `json:"courier_note" form:"courier_note"`
 	ShippingCost   string  `json:"shipping_cost" form:"shipping_cost" validate:"required"`
+	PaymentMethod  string  `json:"payment_method" form:"payment_method" validate:"required"`
+	PaymentChannel string  `json:"payment_channel" form:"payment_channel" validate:"required"`
 }
 
 func ReadFromCreateOrderRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createOrder *CreateOrderRequest) {

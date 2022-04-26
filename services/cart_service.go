@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -100,8 +99,6 @@ func (service *CartServiceImplementation) UpdateQtyProductInCart(requestId strin
 		err := errors.New("id cart not found")
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"id cart not found"}, service.Logger)
 	}
-
-	fmt.Println("Qty = ", updateQtyProductInCartRequest.Qty)
 
 	if updateQtyProductInCartRequest.Qty == 0 {
 		err := service.CartRepositoryInterface.DeleteProductInCart(service.DB, cartProductExist.Id)

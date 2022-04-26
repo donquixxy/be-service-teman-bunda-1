@@ -47,6 +47,12 @@ type Log struct {
 	Levels []string `json:"Levels"`
 }
 
+type Ipaymu struct {
+	Va  string `yaml:"ipaymu_va"`
+	Key string `yaml:"ipaymu_key"`
+	Url string `yaml:"ipaymu_url"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -54,6 +60,7 @@ type ApplicationConfiguration struct {
 	Jwt         Jwt
 	Timezone    Timezone
 	Log         Log
+	Ipaymu      Ipaymu
 }
 
 var lock = sync.Mutex{}
