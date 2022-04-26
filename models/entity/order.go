@@ -20,6 +20,7 @@ type Order struct {
 	OrderSatus              string       `gorm:"column:order_status;"`
 	OrderedAt               time.Time    `gorm:"column:ordered_at;"`
 	PaymentMethod           string       `gorm:"column:payment_method;"`
+	PaymentChannel          string       `gorm:"column:payment_channel;"`
 	PaymentStatus           string       `gorm:"column:payment_status;"`
 	PaymentByPoint          float64      `gorm:"column:payment_by_point;"`
 	PaymentByCash           float64      `gorm:"column:payment_by_cash;"`

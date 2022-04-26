@@ -6,12 +6,15 @@ import (
 )
 
 type CreateOrderResponse struct {
-	IdOrder     string  `json:"id_order"`
-	ReferenceId string  `json:"reference_id"`
-	PaymentNo   string  `json:"payment_no"`
-	PaymentName string  `json:"payment_name"`
-	Total       float64 `json:"total"`
-	Expired     string  `json:"expired"`
+	IdOrder        string  `json:"id_order"`
+	ReferenceId    string  `json:"reference_id"`
+	PaymentNo      string  `json:"payment_no"`
+	PaymentName    string  `json:"payment_name"`
+	Total          float64 `json:"total"`
+	Expired        string  `json:"expired"`
+	PaymentMethod  string  `json:"payment_method"`
+	PaymentChannel string  `json:"payment_channel"`
+	PaymentStatus  string  `json:"payment_status"`
 }
 
 func ToCreateOrderResponse(order entity.Order, orderItems []entity.OrderItem, ipaymuData utilities.IpaymuDirectPaymentResponse) (orderResponse CreateOrderResponse) {
@@ -21,5 +24,9 @@ func ToCreateOrderResponse(order entity.Order, orderItems []entity.OrderItem, ip
 	orderResponse.PaymentName = ipaymuData.Data.PaymentName
 	orderResponse.Total = ipaymuData.Data.Total
 	orderResponse.Expired = ipaymuData.Data.Expired
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentChannel = order.PaymentChannel
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentStatus = order.PaymentStatus
 	return orderResponse
 }

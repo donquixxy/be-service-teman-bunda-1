@@ -76,25 +76,31 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 
 	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, orderRequest.ReferenceId)
 
-	if order.Id == "" {
-		err := errors.New("order not found")
-		exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
-	}
-
-	orderEntity := &entity.Order{}
-	orderEntity.OrderSatus = "Menunggu Konfirmasi"
-	if orderRequest.StatusCode == 1 {
-		orderEntity.PaymentStatus = "Sudah Dibayar"
+	if order.PaymentStatus == "Sudah Dibayar" {
+		orderResponse = response.ToUpdateOrderStatusResponse(order)
+		return orderResponse
 	} else {
-		orderEntity.PaymentStatus = "Pending"
+		if order.Id == "" {
+			err := errors.New("order not found")
+			exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
+		}
+
+		orderEntity := &entity.Order{}
+		orderEntity.OrderSatus = "Menunggu Konfirmasi"
+		if orderRequest.StatusCode == "1" {
+			orderEntity.PaymentStatus = "Sudah Dibayar"
+		} else {
+			orderEntity.PaymentStatus = "Pending"
+		}
+
+		orderEntity.PaymentSuccessAt.Time = time.Now()
+
+		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(service.DB, orderRequest.ReferenceId, *orderEntity)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+		orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
+		return orderResponse
 	}
 
-	orderEntity.PaymentSuccessAt.Time = time.Now()
-
-	orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(service.DB, orderRequest.ReferenceId, *orderEntity)
-	exceptions.PanicIfError(err, requestId, service.Logger)
-	orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
-	return orderResponse
 }
 
 func (service *OrderServiceImplementation) GenerateNumberOrder() (numberOrder string) {
@@ -102,9 +108,9 @@ func (service *OrderServiceImplementation) GenerateNumberOrder() (numberOrder st
 	orderEntity := &entity.Order{}
 	for {
 		rand.Seed(time.Now().Unix())
-		charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		charSet := "0123456789"
 		var output strings.Builder
-		length := 8
+		length := 7
 
 		for i := 0; i < length; i++ {
 			random := rand.Intn(len(charSet))
@@ -148,6 +154,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
 	orderEntity.OrderedAt = time.Now()
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
+	orderEntity.PaymentChannel = orderRequest.PaymentChannel
 	orderEntity.PaymentStatus = "Belum Dibayar"
 	orderEntity.PaymentByPoint = orderRequest.PaymentByPoint
 	orderEntity.PaymentByCash = orderRequest.PaymentByCash
@@ -203,7 +210,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		"name":           orderEntity.FullName,
 		"phone":          orderEntity.Phone,
 		"email":          orderEntity.Email,
-		"amount":         orderEntity.TotalBill,
+		"amount":         orderEntity.PaymentByCash,
 		"notifyUrl":      "http://117.53.44.216:9000/api/v1/order/update",
 		"expired":        24,
 		"expiredType":    "hours",
