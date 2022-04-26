@@ -25,7 +25,7 @@ type Order struct {
 	PaymentByPoint          float64      `gorm:"column:payment_by_point;"`
 	PaymentByCash           float64      `gorm:"column:payment_by_cash;"`
 	ShippingMethod          string       `gorm:"column:shipping_method;"`
-	ShippingCost            string       `gorm:"column:shipping_cost;"`
+	ShippingCost            float64      `gorm:"column:shipping_cost;"`
 	ShippingStatus          string       `gorm:"column:shipping_status;"`
 	Invoice                 string       `gorm:"column:invoice;"`
 	InvoiceDate             sql.NullTime `gorm:"column:invoice_date;"`
