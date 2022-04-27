@@ -125,6 +125,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
 
 			productEntityStockHistory.IdProduct = orderItem.IdProduct
+			productEntityStockHistory.TxDate = time.Now()
 			productEntityStockHistory.StockOpname = product.Stock
 			productEntityStockHistory.StockOutQty = orderItem.Qty
 			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
