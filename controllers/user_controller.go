@@ -35,7 +35,7 @@ func NewUserController(configurationWebserver config.Webserver,
 }
 
 func (controller *UserControllerImplementation) CreateUser(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromCreateUserRequestBody(c, requestId, controller.Logger)
 	userResponse := controller.UserServiceInterface.CreateUser(requestId, request)
 	response := response.Response{Code: 201, Mssg: "user created", Data: userResponse, Error: []string{}}
@@ -43,7 +43,7 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 }
 
 func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	referal := c.QueryParam("referal")
 	userResponse := controller.UserServiceInterface.FindUserByReferal(requestId, referal)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse.ReferalCode, Error: []string{}}
@@ -51,7 +51,7 @@ func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context
 }
 
 func (controller *UserControllerImplementation) FindUserById(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
 	userResponse := controller.UserServiceInterface.FindUserById(requestId, idUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse, Error: []string{}}

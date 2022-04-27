@@ -133,7 +133,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity := &entity.User{}
 	userEntity.Id = utilities.RandomUUID()
 	userEntity.IdFamilyMembers = familyMembers.Id
-	userEntity.IdLevelMember = "d92a3f70-b50d-11ec-b909-0242ac120002"
+	userEntity.IdLevelMember = 1
 	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
 	userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode

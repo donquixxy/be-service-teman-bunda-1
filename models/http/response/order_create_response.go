@@ -2,7 +2,7 @@ package response
 
 import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
-	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
+	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 )
 
 type CreateOrderResponse struct {
@@ -15,15 +15,53 @@ type CreateOrderResponse struct {
 	PaymentMethod  string  `json:"payment_method"`
 	PaymentChannel string  `json:"payment_channel"`
 	PaymentStatus  string  `json:"payment_status"`
+	BankName       string  `json:"bank_name"`
+	BankLogo       string  `json:"bank_logo"`
 }
 
-func ToCreateOrderResponse(order entity.Order, orderItems []entity.OrderItem, ipaymuData utilities.IpaymuDirectPaymentResponse) (orderResponse CreateOrderResponse) {
+func ToCreateOrderVaResponse(
+	order entity.Order,
+	orderItem []entity.OrderItem,
+	payment modelService.PaymentResponse,
+	bankVa entity.BankVa) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
-	orderResponse.ReferenceId = ipaymuData.Data.ReferenceId
-	orderResponse.PaymentNo = ipaymuData.Data.PaymentNo
-	orderResponse.PaymentName = ipaymuData.Data.PaymentName
-	orderResponse.Total = ipaymuData.Data.Total
-	orderResponse.Expired = ipaymuData.Data.Expired
+	orderResponse.ReferenceId = payment.Data.ReferenceId
+	orderResponse.PaymentNo = payment.Data.PaymentNo
+	orderResponse.PaymentName = payment.Data.PaymentName
+	orderResponse.Total = payment.Data.Total
+	orderResponse.Expired = payment.Data.Expired
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentChannel = order.PaymentChannel
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentStatus = order.PaymentStatus
+	orderResponse.BankName = bankVa.BankName
+	orderResponse.BankLogo = bankVa.BankLogo
+	return orderResponse
+}
+
+func ToCreateOrderTransferResponse(
+	order entity.Order,
+	orderItem []entity.OrderItem,
+	payment modelService.PaymentResponse,
+	bankTransfer entity.BankTransfer) (orderResponse CreateOrderResponse) {
+	orderResponse.IdOrder = order.Id
+	orderResponse.ReferenceId = payment.Data.ReferenceId
+	orderResponse.PaymentNo = payment.Data.PaymentNo
+	orderResponse.Total = payment.Data.Total
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentChannel = order.PaymentChannel
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentStatus = order.PaymentStatus
+	orderResponse.BankName = bankTransfer.BankName
+	orderResponse.PaymentName = bankTransfer.BankAn
+	orderResponse.BankLogo = bankTransfer.BankLogo
+	return orderResponse
+}
+
+func ToCreateOrderCodResponse(
+	order entity.Order,
+	orderItem []entity.OrderItem) (orderResponse CreateOrderResponse) {
+	orderResponse.IdOrder = order.Id
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod

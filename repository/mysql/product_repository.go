@@ -11,6 +11,7 @@ type ProductRepositoryInterface interface {
 	FindProductsBySearch(DB *gorm.DB, productName string) ([]entity.Product, error)
 	FindProductById(DB *gorm.DB, id string) (entity.Product, error)
 	FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error)
+	UpdateProductStock(DB *gorm.DB, idProduct string, product entity.Product) (entity.Product, error)
 }
 
 type ProductRepositoryImplementation struct {
@@ -21,6 +22,16 @@ func NewProductRepository(configDatabase *config.Database) ProductRepositoryInte
 	return &ProductRepositoryImplementation{
 		configurationDatabase: configDatabase,
 	}
+}
+
+func (repository *ProductRepositoryImplementation) UpdateProductStock(DB *gorm.DB, idProduct string, product entity.Product) (entity.Product, error) {
+	result := DB.
+		Model(entity.Product{}).
+		Where("id = ?", idProduct).
+		Updates(entity.Product{
+			Stock: product.Stock,
+		})
+	return product, result.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindAllProducts(DB *gorm.DB, limit int, page int) ([]entity.Product, error) {

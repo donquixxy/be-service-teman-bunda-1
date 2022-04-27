@@ -29,7 +29,7 @@ func NewKabupatenController(configWebserver config.Webserver, kabupatenServiceIn
 }
 
 func (controller *KabupatenControllerImplementation) FindAllKabupatenByIdProvinsi(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	id, _ := strconv.Atoi(c.QueryParam("idprop"))
 	kabupatenResponses := controller.KabupatenServiceInterface.FindAllKabupatenByIdProvinsi(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "success", Data: kabupatenResponses, Error: []string{}}

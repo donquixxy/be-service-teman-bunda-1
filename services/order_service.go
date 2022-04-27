@@ -22,6 +22,7 @@ import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
+	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
 	"gorm.io/gorm"
@@ -33,16 +34,19 @@ type OrderServiceInterface interface {
 }
 
 type OrderServiceImplementation struct {
-	ConfigurationWebserver       config.Webserver
-	DB                           *gorm.DB
-	ConfigJwt                    config.Jwt
-	Validate                     *validator.Validate
-	Logger                       *logrus.Logger
-	ConfigurationIpaymu          *config.Ipaymu
-	OrderRepositoryInterface     mysql.OrderRepositoryInterface
-	CartRepositoryInterface      mysql.CartRepositoryInterface
-	UserRepositoryInterface      mysql.UserRepositoryInterface
-	OrderItemRepositoryInterface mysql.OrderItemRepositoryInterface
+	ConfigurationWebserver          config.Webserver
+	DB                              *gorm.DB
+	ConfigJwt                       config.Jwt
+	Validate                        *validator.Validate
+	Logger                          *logrus.Logger
+	ConfigurationIpaymu             *config.Ipaymu
+	OrderRepositoryInterface        mysql.OrderRepositoryInterface
+	CartRepositoryInterface         mysql.CartRepositoryInterface
+	UserRepositoryInterface         mysql.UserRepositoryInterface
+	OrderItemRepositoryInterface    mysql.OrderItemRepositoryInterface
+	PaymentLogRepositoryInterface   mysql.PaymentLogRepositoryInterface
+	BankTransferRepositoryInterface mysql.BankTransferRepositoryInterface
+	BankVaRepositoryInterface       mysql.BankVaRepositoryInterface
 }
 
 func NewOrderService(
@@ -55,18 +59,24 @@ func NewOrderService(
 	orderRepositoryInterface mysql.OrderRepositoryInterface,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
 	userRepositoryInterface mysql.UserRepositoryInterface,
-	orderItemRepositoryInterface mysql.OrderItemRepositoryInterface) OrderServiceInterface {
+	orderItemRepositoryInterface mysql.OrderItemRepositoryInterface,
+	paymentLogRepositoryInterface mysql.PaymentLogRepositoryInterface,
+	bankTransferRepositoryInterface mysql.BankTransferRepositoryInterface,
+	bankVaRepositoryInterface mysql.BankVaRepositoryInterface) OrderServiceInterface {
 	return &OrderServiceImplementation{
-		ConfigurationWebserver:       configurationWebserver,
-		DB:                           DB,
-		ConfigJwt:                    configJwt,
-		Validate:                     validate,
-		Logger:                       logger,
-		ConfigurationIpaymu:          configIpaymu,
-		OrderRepositoryInterface:     orderRepositoryInterface,
-		CartRepositoryInterface:      cartRepositoryInterface,
-		UserRepositoryInterface:      userRepositoryInterface,
-		OrderItemRepositoryInterface: orderItemRepositoryInterface,
+		ConfigurationWebserver:          configurationWebserver,
+		DB:                              DB,
+		ConfigJwt:                       configJwt,
+		Validate:                        validate,
+		Logger:                          logger,
+		ConfigurationIpaymu:             configIpaymu,
+		OrderRepositoryInterface:        orderRepositoryInterface,
+		CartRepositoryInterface:         cartRepositoryInterface,
+		UserRepositoryInterface:         userRepositoryInterface,
+		OrderItemRepositoryInterface:    orderItemRepositoryInterface,
+		PaymentLogRepositoryInterface:   paymentLogRepositoryInterface,
+		BankTransferRepositoryInterface: bankTransferRepositoryInterface,
+		BankVaRepositoryInterface:       bankVaRepositoryInterface,
 	}
 }
 
@@ -85,6 +95,8 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 			exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
 		}
 
+		tx := service.DB.Begin()
+
 		orderEntity := &entity.Order{}
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
 		if orderRequest.StatusCode == "1" {
@@ -95,12 +107,12 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 
 		orderEntity.PaymentSuccessAt.Time = time.Now()
 
-		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(service.DB, orderRequest.ReferenceId, *orderEntity)
-		exceptions.PanicIfError(err, requestId, service.Logger)
+		orderResult, _ := service.OrderRepositoryInterface.UpdateOrderStatus(service.DB, orderRequest.ReferenceId, *orderEntity)
+		commit := tx.Commit()
+		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 		return orderResponse
 	}
-
 }
 
 func (service *OrderServiceImplementation) GenerateNumberOrder() (numberOrder string) {
@@ -192,75 +204,128 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItemEntity.CreatedAt = time.Now()
 		orderItems = append(orderItems, *orderItemEntity)
 	}
-
 	orderItem, err := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create order"}, service.Logger, tx)
 
 	// delete data item in cart
-	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
-	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+	//errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+	//exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
-	var ipaymu_va = "0000007762212544" //your ipaymu va
-	var ipaymu_key = "SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704"
+	switch orderRequest.PaymentMethod {
+	case "va", "qris":
+		// Send request to ipaymu
+		var ipaymu_va = "0000007762212544"
+		var ipaymu_key = "SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704"
 
-	// Send request to ipaymu
-	url, _ := url.Parse("https://sandbox.ipaymu.com/api/v2/payment/direct")
+		url, _ := url.Parse("https://sandbox.ipaymu.com/api/v2/payment/direct")
 
-	postBody, _ := json.Marshal(map[string]interface{}{
-		"name":           orderEntity.FullName,
-		"phone":          orderEntity.Phone,
-		"email":          orderEntity.Email,
-		"amount":         orderEntity.PaymentByCash,
-		"notifyUrl":      "http://117.53.44.216:9000/api/v1/order/update",
-		"expired":        24,
-		"expiredType":    "hours",
-		"referenceId":    orderEntity.NumberOrder,
-		"paymentMethod":  orderRequest.PaymentMethod,
-		"paymentChannel": orderRequest.PaymentChannel,
-	})
+		postBody, _ := json.Marshal(map[string]interface{}{
+			"name":           orderEntity.FullName,
+			"phone":          orderEntity.Phone,
+			"email":          orderEntity.Email,
+			"amount":         orderEntity.PaymentByCash,
+			"notifyUrl":      "http://117.53.44.216:9000/api/v1/order/update",
+			"expired":        24,
+			"expiredType":    "hours",
+			"referenceId":    orderEntity.NumberOrder,
+			"paymentMethod":  orderRequest.PaymentMethod,
+			"paymentChannel": orderRequest.PaymentChannel,
+		})
 
-	bodyHash := sha256.Sum256([]byte(postBody))
-	bodyHashToString := hex.EncodeToString(bodyHash[:])
-	stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
+		bodyHash := sha256.Sum256([]byte(postBody))
+		bodyHashToString := hex.EncodeToString(bodyHash[:])
+		stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
 
-	h := hmac.New(sha256.New, []byte(ipaymu_key))
-	h.Write([]byte(stringToSign))
-	signature := hex.EncodeToString(h.Sum(nil))
+		h := hmac.New(sha256.New, []byte(ipaymu_key))
+		h.Write([]byte(stringToSign))
+		signature := hex.EncodeToString(h.Sum(nil))
 
-	reqBody := ioutil.NopCloser(strings.NewReader(string(postBody)))
+		reqBody := ioutil.NopCloser(strings.NewReader(string(postBody)))
 
-	req := &http.Request{
-		Method: "POST",
-		URL:    url,
-		Header: map[string][]string{
-			"Content-Type": {"application/json"},
-			"va":           {ipaymu_va},
-			"signature":    {signature},
-		},
-		Body: reqBody,
-	}
+		req := &http.Request{
+			Method: "POST",
+			URL:    url,
+			Header: map[string][]string{
+				"Content-Type": {"application/json"},
+				"va":           {ipaymu_va},
+				"signature":    {signature},
+			},
+			Body: reqBody,
+		}
 
-	resp, err := http.DefaultClient.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 
-	if err != nil {
-		log.Fatalf("An Error Occured %v", err)
-	}
-	defer resp.Body.Close()
+		if err != nil {
+			log.Fatalf("An Error Occured %v", err)
+			exceptions.PanicIfError(err, requestId, service.Logger)
+		}
+		defer resp.Body.Close()
 
-	var dataResponseIpaymu utilities.IpaymuDirectPaymentResponse
+		var dataResponseIpaymu modelService.PaymentResponse
 
-	if err := json.NewDecoder(resp.Body).Decode(&dataResponseIpaymu); err != nil {
-		fmt.Println(err)
-	}
+		if err := json.NewDecoder(resp.Body).Decode(&dataResponseIpaymu); err != nil {
+			fmt.Println(err)
+			exceptions.PanicIfError(err, requestId, service.Logger)
+		}
 
-	if dataResponseIpaymu.Status != 200 {
-		exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
-	} else if dataResponseIpaymu.Status == 200 {
+		// get data bank
+		bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, orderRequest.PaymentChannel)
+
+		if dataResponseIpaymu.Status != 200 {
+			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
+		} else if dataResponseIpaymu.Status == 200 {
+			// make log
+			paymentLogEntity := &entity.PaymentLog{}
+			paymentLogEntity.Id = utilities.RandomUUID()
+			paymentLogEntity.IdOrder = orderEntity.Id
+			paymentLogEntity.NumberOrder = orderEntity.NumberOrder
+			paymentLogEntity.TypeLog = "Create Trx Ipaymu"
+			paymentLogEntity.PaymentMethod = orderRequest.PaymentMethod
+			paymentLogEntity.PaymentChannel = orderRequest.PaymentChannel
+			paymentLogEntity.Log = fmt.Sprintf("%+v\n", dataResponseIpaymu)
+
+			_, err := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
+			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create log"}, service.Logger, tx)
+
+			commit := tx.Commit()
+			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+		}
+
+		orderResponse = response.ToCreateOrderVaResponse(order, orderItem, dataResponseIpaymu, bankVa)
+		return orderResponse
+
+	case "trf":
+		// Get data bank by code
+		bankTransfer, _ := service.BankTransferRepositoryInterface.FindBankTransferByBankCode(service.DB, orderRequest.PaymentChannel)
+		if bankTransfer.Id == "" {
+			exceptions.PanicIfErrorWithRollback(errors.New("bank not found"), requestId, []string{"Bank not found"}, service.Logger, tx)
+		}
+
+		payment := &modelService.PaymentResponse{}
+
+		// buat 3 nomor acak
+		rand.Seed(time.Now().UnixNano())
+		min := 500
+		max := 999
+		randNumber := rand.Intn(max-min+1) + min
+		// hasil := orderRequest.PaymentByCash + float64(randNumber)
+
+		payment.Data.Total = orderRequest.PaymentByCash + float64(randNumber)
+		payment.Data.PaymentName = bankTransfer.BankName
+		payment.Data.PaymentNo = bankTransfer.NoAccount
+		payment.Data.ReferenceId = orderEntity.NumberOrder
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+
+		orderResponse = response.ToCreateOrderTransferResponse(order, orderItem, *payment, bankTransfer)
+		return orderResponse
+	case "cod":
+		orderResponse = response.ToCreateOrderCodResponse(order, orderItem)
+		return orderResponse
+	default:
+		exceptions.PanicIfErrorWithRollback(errors.New("payment method not found"), requestId, []string{"payment method not found"}, service.Logger, tx)
+		return
 	}
 
-	orderResponse = response.ToCreateOrderResponse(order, orderItem, dataResponseIpaymu)
-
-	return orderResponse
 }

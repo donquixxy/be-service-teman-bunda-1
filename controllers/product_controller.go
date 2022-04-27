@@ -32,7 +32,7 @@ func NewProductController(configWebserver config.Webserver, productServiceInterf
 }
 
 func (controller *ProductControllerImplementation) FindAllProducts(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	limit, _ := strconv.Atoi(c.QueryParam("limit"))
 	page, _ := strconv.Atoi(c.QueryParam("page"))
 	productResponses := controller.ProductServiceInterface.FindAllProducts(requestId, limit, page)
@@ -41,7 +41,7 @@ func (controller *ProductControllerImplementation) FindAllProducts(c echo.Contex
 }
 
 func (controller *ProductControllerImplementation) FindProductsBySearch(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	product := c.QueryParam("product")
 	productResponses := controller.ProductServiceInterface.FindProductsBySearch(requestId, product)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
@@ -49,7 +49,7 @@ func (controller *ProductControllerImplementation) FindProductsBySearch(c echo.C
 }
 
 func (controller *ProductControllerImplementation) FindProductById(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	id := c.QueryParam("id_product")
 	productResponses := controller.ProductServiceInterface.FindProductById(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
@@ -57,7 +57,7 @@ func (controller *ProductControllerImplementation) FindProductById(c echo.Contex
 }
 
 func (controller *ProductControllerImplementation) FindProductByIdCategory(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	id := c.QueryParam("id_category")
 	productResponses := controller.ProductServiceInterface.FindProductByIdCategory(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}

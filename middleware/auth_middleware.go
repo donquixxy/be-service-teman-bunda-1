@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"fmt"
+
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -10,9 +12,15 @@ import (
 
 func Authentication(configurationJWT config.Jwt) echo.MiddlewareFunc {
 	return middleware.JWTWithConfig(middleware.JWTConfig{
-		Claims:     &modelService.TokenClaims{},
-		SigningKey: []byte(configurationJWT.Key),
+		Claims:       &modelService.TokenClaims{},
+		SigningKey:   []byte(configurationJWT.Key),
+		ErrorHandler: ErrorHandler,
 	})
+}
+
+func ErrorHandler(err error) error {
+	fmt.Println(err)
+	return err
 }
 
 func TokenClaimsIdUser(c echo.Context) (id string) {

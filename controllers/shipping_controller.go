@@ -33,7 +33,7 @@ func NewShippingController(configurationWebserver config.Webserver,
 }
 
 func (controller *ShippingControllerImplementation) GetShippingCostByIdKelurahan(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idKelurahan := middleware.TokenClaimsIdKelurahan(c)
 	fmt.Println("id kelurahan", idKelurahan)
 	userResponse := controller.ShippingServiceInterface.GetShippingCostByIdKelurahan(requestId, idKelurahan)

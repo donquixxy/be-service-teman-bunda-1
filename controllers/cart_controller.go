@@ -34,7 +34,7 @@ func NewCartController(configWebserver config.Webserver, cartServiceInterface se
 }
 
 func (controller *CartControllerImplementation) FindCartByIdUser(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	IdUser := middleware.TokenClaimsIdUser(c)
 	IdKelurahan := middleware.TokenClaimsIdKelurahan(c)
 	cartResponses := controller.CartServiceInterface.FindCartByIdUser(requestId, IdUser, IdKelurahan)
@@ -43,7 +43,7 @@ func (controller *CartControllerImplementation) FindCartByIdUser(c echo.Context)
 }
 
 func (controller *CartControllerImplementation) AddProductToCart(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	IdUser := middleware.TokenClaimsIdUser(c)
 	request := request.ReadFromAddProductToCartRequestBody(c, requestId, controller.Logger)
 	cartResponse := controller.CartServiceInterface.AddProductToCart(requestId, IdUser, request)
@@ -52,7 +52,7 @@ func (controller *CartControllerImplementation) AddProductToCart(c echo.Context)
 }
 
 func (controller *CartControllerImplementation) CartPlusQtyProduct(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
 	cartResponseResult := controller.CartServiceInterface.CartPlusQtyProduct(requestId, request)
 	response := response.Response{Code: 201, Mssg: "success add qty product", Data: cartResponseResult, Error: []string{}}
@@ -60,7 +60,7 @@ func (controller *CartControllerImplementation) CartPlusQtyProduct(c echo.Contex
 }
 
 func (controller *CartControllerImplementation) CartMinQtyProduct(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
 	cartResponseResult := controller.CartServiceInterface.CartMinQtyProduct(requestId, request)
 	response := response.Response{Code: 201, Mssg: "success reduce qty product", Data: cartResponseResult, Error: []string{}}
@@ -68,7 +68,7 @@ func (controller *CartControllerImplementation) CartMinQtyProduct(c echo.Context
 }
 
 func (controller *CartControllerImplementation) UpdateQtyProductInCart(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromUpdateProductInCartRequestBody(c, requestId, controller.Logger)
 	cartResponseResult := controller.CartServiceInterface.UpdateQtyProductInCart(requestId, request)
 	response := response.Response{Code: 201, Mssg: "success update qty product", Data: cartResponseResult, Error: []string{}}

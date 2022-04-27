@@ -32,7 +32,7 @@ func NewBalancePointTxController(configWebserver config.Webserver,
 }
 
 func (controller *BalancePointTxControllerImplementation) FindBalancePointTxByIdBalancePoint(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
 	date := c.QueryParam("date")
 	balancePointWithTxResponse := controller.BalancePointTxServiceInterface.FindBalancePointWithTxByIdBalancePoint(requestId, date, idUser)

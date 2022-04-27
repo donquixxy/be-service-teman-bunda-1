@@ -16,7 +16,7 @@ type User struct {
 	ReferalCode             string        `gorm:"column:referal_code;"`
 	RegistrationReferalCode string        `gorm:"column:registration_referal_code;"`
 	IdRole                  string        `gorm:"column:id_role;"`
-	IdLevelMember           string        `gorm:"column:id_level_member;"`
+	IdLevelMember           int           `gorm:"column:id_level_member;"`
 	CreatedDate             time.Time     `gorm:"column:created_at;"`
 }
 

@@ -47,6 +47,7 @@ func main() {
 	}))
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler
+	e.Use(middleware.RequestID())
 
 	// Settings
 	settingsRepository := mysql.NewSettingsRepository(&appConfig.Database)
@@ -181,6 +182,15 @@ func main() {
 	// Order Item
 	orderItemRepository := mysql.NewOrderItemRepository(&appConfig.Database)
 
+	// Bank Transfer
+	bankTransferRepository := mysql.NewBankTransferRepository(&appConfig.Database)
+
+	// Bank VA
+	bankVaRepository := mysql.NewBankVaRepository(&appConfig.Database)
+
+	// Payment log
+	paymentLogRepository := mysql.NewPaymentLogRepository(&appConfig.Database)
+
 	// Order Service
 	orderService := services.NewOrderService(
 		appConfig.Webserver,
@@ -192,7 +202,10 @@ func main() {
 		orderRepository,
 		cartRepository,
 		userRepository,
-		orderItemRepository)
+		orderItemRepository,
+		paymentLogRepository,
+		bankTransferRepository,
+		bankVaRepository)
 	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
 	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 

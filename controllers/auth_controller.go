@@ -33,7 +33,7 @@ func NewAuthController(configurationWebserver config.Webserver,
 }
 
 func (controller *AuthControllerImplementation) Login(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromAuthRequestBody(c, requestId, controller.Logger)
 	loginResponse := controller.AuthServiceInterface.Login(requestId, request)
 	respon := response.Response{Code: 200, Mssg: "success", Data: loginResponse, Error: []string{}}
@@ -41,7 +41,7 @@ func (controller *AuthControllerImplementation) Login(c echo.Context) error {
 }
 
 func (controller *AuthControllerImplementation) NewToken(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	refreshToken := c.FormValue("refresh_token")
 	token := controller.AuthServiceInterface.NewToken(requestId, refreshToken)
 	respon := response.Response{Code: 200, Mssg: "success", Data: token, Error: []string{}}

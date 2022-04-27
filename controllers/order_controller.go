@@ -35,7 +35,7 @@ func NewOrderController(configurationWebserver config.Webserver,
 }
 
 func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
 	request := request.ReadFromCreateOrderRequestBody(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.CreateOrder(requestId, idUser, request)
@@ -44,7 +44,7 @@ func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) err
 }
 
 func (controller *OrderControllerImplementation) UpdateStatusOrder(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromCallBackIpaymuRequest(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.UpdateStatusOrder(requestId, request)
 	response := response.Response{Code: 200, Mssg: "succes update status order", Data: orderResponse, Error: []string{}}

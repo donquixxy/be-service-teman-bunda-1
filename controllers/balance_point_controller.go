@@ -35,7 +35,7 @@ func NewBalancePointController(configWebserver config.Webserver,
 }
 
 func (controller *BalancePointControllerImplementation) FindBalancePointWithTxByIdUser(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointWithTxResponse := controller.BalancePointServiceInterface.FindBalancePointWithTxByIdUser(requestId, IdUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: balancePointWithTxResponse, Error: []string{}}
@@ -43,7 +43,7 @@ func (controller *BalancePointControllerImplementation) FindBalancePointWithTxBy
 }
 
 func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	IdUser := middleware.TokenClaimsIdUser(c)
 	balancePointResponse := controller.BalancePointServiceInterface.FindBalancePointByIdUser(requestId, IdUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: balancePointResponse, Error: []string{}}
@@ -51,7 +51,7 @@ func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser
 }
 
 func (controller *BalancePointControllerImplementation) BalancePointUseCheck(c echo.Context) error {
-	requestId := ""
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
 	amount, _ := strconv.ParseFloat(c.QueryParam("amount"), 64)
 	balancePointUseCheckResponse := controller.BalancePointServiceInterface.BalancePointUseCheck(requestId, idUser, amount)
