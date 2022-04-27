@@ -47,6 +47,8 @@ type OrderServiceImplementation struct {
 	PaymentLogRepositoryInterface   mysql.PaymentLogRepositoryInterface
 	BankTransferRepositoryInterface mysql.BankTransferRepositoryInterface
 	BankVaRepositoryInterface       mysql.BankVaRepositoryInterface
+	ProductRepositoryInterface      mysql.ProductRepositoryInterface
+	ProductStockHistoryInterface    mysql.ProductStockHistoryRepositoryInterface
 }
 
 func NewOrderService(
@@ -62,7 +64,9 @@ func NewOrderService(
 	orderItemRepositoryInterface mysql.OrderItemRepositoryInterface,
 	paymentLogRepositoryInterface mysql.PaymentLogRepositoryInterface,
 	bankTransferRepositoryInterface mysql.BankTransferRepositoryInterface,
-	bankVaRepositoryInterface mysql.BankVaRepositoryInterface) OrderServiceInterface {
+	bankVaRepositoryInterface mysql.BankVaRepositoryInterface,
+	productRepositoryInterface mysql.ProductRepositoryInterface,
+	productStockHistoryRepositoryInterface mysql.ProductStockHistoryRepositoryInterface) OrderServiceInterface {
 	return &OrderServiceImplementation{
 		ConfigurationWebserver:          configurationWebserver,
 		DB:                              DB,
@@ -77,6 +81,8 @@ func NewOrderService(
 		PaymentLogRepositoryInterface:   paymentLogRepositoryInterface,
 		BankTransferRepositoryInterface: bankTransferRepositoryInterface,
 		BankVaRepositoryInterface:       bankVaRepositoryInterface,
+		ProductRepositoryInterface:      productRepositoryInterface,
+		ProductStockHistoryInterface:    productStockHistoryRepositoryInterface,
 	}
 }
 
@@ -107,7 +113,31 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 
 		orderEntity.PaymentSuccessAt.Time = time.Now()
 
-		orderResult, _ := service.OrderRepositoryInterface.UpdateOrderStatus(service.DB, orderRequest.ReferenceId, *orderEntity)
+		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, orderRequest.ReferenceId, *orderEntity)
+		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		//update product stock
+		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+		for _, orderItem := range orderItems {
+			productEntity := &entity.Product{}
+			productEntityStockHistory := &entity.ProductStockHistory{}
+			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+			productEntityStockHistory.IdProduct = orderItem.IdProduct
+			productEntityStockHistory.StockOpname = product.Stock
+			productEntityStockHistory.StockOutQty = orderItem.Qty
+			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
+			productEntityStockHistory.Description = "Pembelian " + orderResult.NumberOrder
+			productEntityStockHistory.CreatedAt = time.Now()
+			_, errAddProductStockHistory := service.ProductStockHistoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+			productEntity.Stock = product.Stock - orderItem.Qty
+			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+		}
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
@@ -185,6 +215,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItemEntity := &entity.OrderItem{}
 		orderItemEntity.Id = utilities.RandomUUID()
 		orderItemEntity.IdOrder = orderEntity.Id
+		orderItemEntity.IdProduct = cartItem.IdProduct
 		orderItemEntity.NoSku = cartItem.Product.NoSku
 		orderItemEntity.ProductName = cartItem.Product.ProductName
 		orderItemEntity.PictureUrl = cartItem.Product.PictureUrl

@@ -191,6 +191,9 @@ func main() {
 	// Payment log
 	paymentLogRepository := mysql.NewPaymentLogRepository(&appConfig.Database)
 
+	// Product Stock History
+	productStockHistoryRepository := mysql.NewProductStockHistoryRepository(&appConfig.Database)
+
 	// Order Service
 	orderService := services.NewOrderService(
 		appConfig.Webserver,
@@ -205,7 +208,9 @@ func main() {
 		orderItemRepository,
 		paymentLogRepository,
 		bankTransferRepository,
-		bankVaRepository)
+		bankVaRepository,
+		productRepository,
+		productStockHistoryRepository)
 	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
 	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 

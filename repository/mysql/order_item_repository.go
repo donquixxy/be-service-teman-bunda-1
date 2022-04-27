@@ -8,6 +8,7 @@ import (
 
 type OrderItemRepositoryInterface interface {
 	CreateOrderItems(DB *gorm.DB, order []entity.OrderItem) ([]entity.OrderItem, error)
+	FindOrderItemsByIdOrder(DB *gorm.DB, idOrder string) ([]entity.OrderItem, error)
 }
 
 type OrderItemRepositoryImplementation struct {
@@ -22,5 +23,11 @@ func NewOrderItemRepository(configDatabase *config.Database) OrderItemRepository
 
 func (repository *OrderItemRepositoryImplementation) CreateOrderItems(DB *gorm.DB, orderItems []entity.OrderItem) ([]entity.OrderItem, error) {
 	results := DB.Create(orderItems)
+	return orderItems, results.Error
+}
+
+func (repository *OrderItemRepositoryImplementation) FindOrderItemsByIdOrder(DB *gorm.DB, idOrder string) ([]entity.OrderItem, error) {
+	var orderItems []entity.OrderItem
+	results := DB.Where("id_order = ?", idOrder).Find(&orderItems)
 	return orderItems, results.Error
 }

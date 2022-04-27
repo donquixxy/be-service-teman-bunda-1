@@ -10,7 +10,7 @@ type ProductStockHistory struct {
 	StockOutQty int       `gorm:"column:stock_out_qty;"`
 	StockOpname int       `gorm:"column:stock_opname;"`
 	StockFinal  int       `gorm:"column:stock_final;"`
-	Description int       `gorm:"column:description;"`
+	Description string    `gorm:"column:description;"`
 	CreatedAt   time.Time `gorm:"column:created_at;"`
 }
 

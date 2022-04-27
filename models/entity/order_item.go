@@ -5,6 +5,7 @@ import "time"
 type OrderItem struct {
 	Id                  string    `gorm:"primaryKey;column:id;"`
 	IdOrder             string    `gorm:"column:id_order;"`
+	IdProduct           string    `gorm:"column:id_product;"`
 	NoSku               string    `gorm:"column:no_sku;"`
 	ProductName         string    `gorm:"column:product_name;"`
 	PictureUrl          string    `gorm:"column:picture_url;"`
