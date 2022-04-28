@@ -247,6 +247,7 @@ func (service *OrderServiceImplementation) GenerateNumberOrder() (numberOrder st
 
 func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser string, orderRequest *request.CreateOrderRequest) (orderResponse response.CreateOrderResponse) {
 
+	fmt.Println("waktu order = ", time.Now())
 	// Validate request
 	request.ValidateCreateOrderRequest(service.Validate, orderRequest, requestId, service.Logger)
 
