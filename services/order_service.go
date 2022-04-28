@@ -186,6 +186,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			balancePointTxEntity.TxNominal = order.PaymentByPoint - (order.PaymentByPoint * 2)
 			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
 			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
+			balancePointTxEntity.CreatedDate = time.Now()
 
 			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
