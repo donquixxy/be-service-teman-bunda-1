@@ -210,7 +210,9 @@ func main() {
 		bankTransferRepository,
 		bankVaRepository,
 		productRepository,
-		productStockHistoryRepository)
+		productStockHistoryRepository,
+		balancePointRepository,
+		balancePointTxRepository)
 	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
 	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 

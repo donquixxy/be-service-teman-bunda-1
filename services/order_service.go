@@ -36,21 +36,23 @@ type OrderServiceInterface interface {
 }
 
 type OrderServiceImplementation struct {
-	ConfigurationWebserver          config.Webserver
-	DB                              *gorm.DB
-	ConfigJwt                       config.Jwt
-	Validate                        *validator.Validate
-	Logger                          *logrus.Logger
-	ConfigurationIpaymu             *config.Ipaymu
-	OrderRepositoryInterface        mysql.OrderRepositoryInterface
-	CartRepositoryInterface         mysql.CartRepositoryInterface
-	UserRepositoryInterface         mysql.UserRepositoryInterface
-	OrderItemRepositoryInterface    mysql.OrderItemRepositoryInterface
-	PaymentLogRepositoryInterface   mysql.PaymentLogRepositoryInterface
-	BankTransferRepositoryInterface mysql.BankTransferRepositoryInterface
-	BankVaRepositoryInterface       mysql.BankVaRepositoryInterface
-	ProductRepositoryInterface      mysql.ProductRepositoryInterface
-	ProductStockHistoryInterface    mysql.ProductStockHistoryRepositoryInterface
+	ConfigurationWebserver                 config.Webserver
+	DB                                     *gorm.DB
+	ConfigJwt                              config.Jwt
+	Validate                               *validator.Validate
+	Logger                                 *logrus.Logger
+	ConfigurationIpaymu                    *config.Ipaymu
+	OrderRepositoryInterface               mysql.OrderRepositoryInterface
+	CartRepositoryInterface                mysql.CartRepositoryInterface
+	UserRepositoryInterface                mysql.UserRepositoryInterface
+	OrderItemRepositoryInterface           mysql.OrderItemRepositoryInterface
+	PaymentLogRepositoryInterface          mysql.PaymentLogRepositoryInterface
+	BankTransferRepositoryInterface        mysql.BankTransferRepositoryInterface
+	BankVaRepositoryInterface              mysql.BankVaRepositoryInterface
+	ProductRepositoryInterface             mysql.ProductRepositoryInterface
+	ProductStockHistoryRepositoryInterface mysql.ProductStockHistoryRepositoryInterface
+	BalancePointRepositoryInterface        mysql.BalancePointRepositoryInterface
+	BalancePointTxRepositoryInterface      mysql.BalancePointTxRepositoryInterface
 }
 
 func NewOrderService(
@@ -68,23 +70,27 @@ func NewOrderService(
 	bankTransferRepositoryInterface mysql.BankTransferRepositoryInterface,
 	bankVaRepositoryInterface mysql.BankVaRepositoryInterface,
 	productRepositoryInterface mysql.ProductRepositoryInterface,
-	productStockHistoryRepositoryInterface mysql.ProductStockHistoryRepositoryInterface) OrderServiceInterface {
+	productStockHistoryRepositoryInterface mysql.ProductStockHistoryRepositoryInterface,
+	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface,
+	balancePointTxRepositoryInterface mysql.BalancePointTxRepositoryInterface) OrderServiceInterface {
 	return &OrderServiceImplementation{
-		ConfigurationWebserver:          configurationWebserver,
-		DB:                              DB,
-		ConfigJwt:                       configJwt,
-		Validate:                        validate,
-		Logger:                          logger,
-		ConfigurationIpaymu:             configIpaymu,
-		OrderRepositoryInterface:        orderRepositoryInterface,
-		CartRepositoryInterface:         cartRepositoryInterface,
-		UserRepositoryInterface:         userRepositoryInterface,
-		OrderItemRepositoryInterface:    orderItemRepositoryInterface,
-		PaymentLogRepositoryInterface:   paymentLogRepositoryInterface,
-		BankTransferRepositoryInterface: bankTransferRepositoryInterface,
-		BankVaRepositoryInterface:       bankVaRepositoryInterface,
-		ProductRepositoryInterface:      productRepositoryInterface,
-		ProductStockHistoryInterface:    productStockHistoryRepositoryInterface,
+		ConfigurationWebserver:                 configurationWebserver,
+		DB:                                     DB,
+		ConfigJwt:                              configJwt,
+		Validate:                               validate,
+		Logger:                                 logger,
+		ConfigurationIpaymu:                    configIpaymu,
+		OrderRepositoryInterface:               orderRepositoryInterface,
+		CartRepositoryInterface:                cartRepositoryInterface,
+		UserRepositoryInterface:                userRepositoryInterface,
+		OrderItemRepositoryInterface:           orderItemRepositoryInterface,
+		PaymentLogRepositoryInterface:          paymentLogRepositoryInterface,
+		BankTransferRepositoryInterface:        bankTransferRepositoryInterface,
+		BankVaRepositoryInterface:              bankVaRepositoryInterface,
+		ProductRepositoryInterface:             productRepositoryInterface,
+		ProductStockHistoryRepositoryInterface: productStockHistoryRepositoryInterface,
+		BalancePointRepositoryInterface:        balancePointRepositoryInterface,
+		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 	}
 }
 
@@ -153,7 +159,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
 			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
 			productEntityStockHistory.CreatedAt = time.Now()
-			_, errAddProductStockHistory := service.ProductStockHistoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
 			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
 
 			productEntity.Stock = product.Stock - orderItem.Qty
@@ -161,6 +167,34 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		}
 
+		// Create Balance Point Tx
+		if order.PaymentByPoint != 0 {
+			// get data balance point
+			balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
+
+			// update balance point
+			balancePointEntity := &entity.BalancePoint{}
+			balancePointEntity.BalancePoints = balancePoint.BalancePoints - order.PaymentByPoint
+
+			// add balance point tx history
+			balancePointTxEntity := &entity.BalancePointTx{}
+			balancePointTxEntity.Id = utilities.RandomUUID()
+			balancePointTxEntity.IdBalancePoint = balancePoint.Id
+			balancePointTxEntity.NoOrder = order.NumberOrder
+			balancePointTxEntity.TxType = "Pembelian"
+			balancePointTxEntity.TxDate = time.Now()
+			balancePointTxEntity.TxNominal = order.PaymentByPoint - (order.PaymentByPoint * 2)
+			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
+
+			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
+			_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+			exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+		}
+
+		// Create response log
 		paymentLogEntity := &entity.PaymentLog{}
 		paymentLogEntity.Id = utilities.RandomUUID()
 		paymentLogEntity.IdOrder = order.Id

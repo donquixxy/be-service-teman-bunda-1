@@ -10,6 +10,7 @@ type BalancePointRepositoryInterface interface {
 	CreateBalancePoint(DB *gorm.DB, balancePoint entity.BalancePoint) (entity.BalancePoint, error)
 	FindBalancePointByIdUser(DB *gorm.DB, IdUser string) (entity.BalancePoint, error)
 	BalancePointUseCheck(DB *gorm.DB, IdUser string) (entity.BalancePoint, error)
+	UpdateBalancePoint(DB *gorm.DB, idUser string, balancePoint entity.BalancePoint) (entity.BalancePoint, error)
 }
 
 type BalancePointRepositoryImplementation struct {
@@ -37,4 +38,14 @@ func (repository *BalancePointRepositoryImplementation) BalancePointUseCheck(DB 
 	var balancePoint entity.BalancePoint
 	results := DB.Where("balance_point.id_user = ?", IdUser).Find(&balancePoint)
 	return balancePoint, results.Error
+}
+
+func (repository *BalancePointRepositoryImplementation) UpdateBalancePoint(DB *gorm.DB, idUser string, balancePoint entity.BalancePoint) (entity.BalancePoint, error) {
+	result := DB.
+		Model(entity.BalancePoint{}).
+		Where("id_user = ?", idUser).
+		Updates(entity.BalancePoint{
+			BalancePoints: balancePoint.BalancePoints,
+		})
+	return balancePoint, result.Error
 }
