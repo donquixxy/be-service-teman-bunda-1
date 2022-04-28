@@ -24,6 +24,7 @@ type UserServiceInterface interface {
 	CreateUser(requestId string, userRequest *request.CreateUserRequest) (userResponse response.CreateUserResponse)
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
+	// UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) (userResponse response.UpdateUserResponse)
 }
 
 type UserServiceImplementation struct {
@@ -65,6 +66,37 @@ func NewUserService(
 		BalancePointTxRepositoryInterface: balancePointTxRepositoryInterface,
 	}
 }
+
+// func (service *UserServiceImplementation) UpdateUser(requestId string, userRequest *request.UpdateUserRequest) (userResponse response.UpdateUserResponse) {
+
+// 	// Validate request
+// 	request.ValidateUpdateUserRequest(service.Validate, userRequest, requestId, service.Logger)
+
+// 	// Check username if exsict
+// 	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
+// 	if checkUsername.Id != "" {
+// 		err := errors.New("username already exist")
+// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username already exist"}, service.Logger)
+// 	}
+
+// 	// Check email if exsict
+// 	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
+// 	if checkEmail.Id != "" {
+// 		err := errors.New("email already exist")
+// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email already exist"}, service.Logger)
+// 	}
+
+// 	// Check phone if exsict
+// 	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
+// 	if checkPhone.Id != "" {
+// 		err := errors.New("phone already exist")
+// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone already exist"}, service.Logger)
+// 	}
+
+// 	// tx := service.DB.Begin()
+
+// 	return
+// }
 
 func (service *UserServiceImplementation) CreateUser(requestId string, userRequest *request.CreateUserRequest) (userResponse response.CreateUserResponse) {
 

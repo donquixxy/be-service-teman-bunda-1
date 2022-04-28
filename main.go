@@ -43,7 +43,7 @@ func main() {
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Skipper:      nil,
 		ErrorMessage: "Request Timeout",
-		Timeout:      5 * time.Second,
+		Timeout:      10 * time.Second,
 	}))
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler

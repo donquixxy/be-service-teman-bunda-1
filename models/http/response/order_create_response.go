@@ -21,7 +21,6 @@ type CreateOrderResponse struct {
 
 func ToCreateOrderVaResponse(
 	order entity.Order,
-	orderItem []entity.OrderItem,
 	payment modelService.PaymentResponse,
 	bankVa entity.BankVa) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
@@ -41,7 +40,6 @@ func ToCreateOrderVaResponse(
 
 func ToCreateOrderTransferResponse(
 	order entity.Order,
-	orderItem []entity.OrderItem,
 	payment modelService.PaymentResponse,
 	bankTransfer entity.BankTransfer) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
@@ -59,8 +57,7 @@ func ToCreateOrderTransferResponse(
 }
 
 func ToCreateOrderCodResponse(
-	order entity.Order,
-	orderItem []entity.OrderItem) (orderResponse CreateOrderResponse) {
+	order entity.Order) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel

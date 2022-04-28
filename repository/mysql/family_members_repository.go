@@ -8,6 +8,7 @@ import (
 
 type FamilyMembersRepositoryInterface interface {
 	CreateFamilyMembers(DB *gorm.DB, user entity.FamilyMembers) (entity.FamilyMembers, error)
+	UpdateFamilyMembers(DB *gorm.DB, idFamilyMembers string, familyMembers entity.FamilyMembers) (entity.FamilyMembers, error)
 }
 
 type FamilyMembersRepositoryImplementation struct {
@@ -23,4 +24,21 @@ func NewFamilyMembersRepository(configDatabase *config.Database) FamilyMembersRe
 func (repository *FamilyMembersRepositoryImplementation) CreateFamilyMembers(DB *gorm.DB, familyMembers entity.FamilyMembers) (entity.FamilyMembers, error) {
 	results := DB.Create(familyMembers)
 	return familyMembers, results.Error
+}
+
+func (repository *FamilyMembersRepositoryImplementation) UpdateFamilyMembers(DB *gorm.DB, idFamilyMembers string, familyMembers entity.FamilyMembers) (entity.FamilyMembers, error) {
+	result := DB.
+		Model(entity.FamilyMembers{}).
+		Where("id = ?", idFamilyMembers).
+		Updates(entity.FamilyMembers{
+			FullName:    familyMembers.FullName,
+			Address:     familyMembers.Address,
+			Phone:       familyMembers.Phone,
+			Email:       familyMembers.Email,
+			IdProvinsi:  familyMembers.IdProvinsi,
+			IdKabupaten: familyMembers.IdKabupaten,
+			IdKecamatan: familyMembers.IdKecamatan,
+			IdKelurahan: familyMembers.IdKelurahan,
+		})
+	return familyMembers, result.Error
 }

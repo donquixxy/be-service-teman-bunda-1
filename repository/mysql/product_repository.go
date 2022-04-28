@@ -38,25 +38,26 @@ func (repository *ProductRepositoryImplementation) FindAllProducts(DB *gorm.DB, 
 	var products []entity.Product
 	results := DB.Joins("ProductDiscount").
 		Limit(limit).
-		Offset(page - 1).
+		Offset(page-1).
+		Where("products.published = ?", "1").
 		Find(&products)
 	return products, results.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindProductsBySearch(DB *gorm.DB, productName string) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Where("products.product_name LIKE ?", "%"+productName+"%").Joins("ProductDiscount").Find(&products)
+	results := DB.Where("products.product_name LIKE ?", "%"+productName+"%").Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindProductById(DB *gorm.DB, id string) (entity.Product, error) {
 	var product entity.Product
-	results := DB.Where("products.id = ?", id).Joins("ProductDiscount").Find(&product)
+	results := DB.Where("products.id = ?", id).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&product)
 	return product, results.Error
 }
 
 func (repository *ProductRepositoryImplementation) FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Where("products.id_category = ?", idCategory).Joins("ProductDiscount").Find(&products)
+	results := DB.Where("products.id_category = ?", idCategory).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }

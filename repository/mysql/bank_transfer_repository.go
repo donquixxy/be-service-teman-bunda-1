@@ -22,6 +22,6 @@ func NewBankTransferRepository(configDatabase *config.Database) BankTransferRepo
 
 func (repository *BankTransferRepositoryImplementation) FindBankTransferByBankCode(DB *gorm.DB, bankCode string) (entity.BankTransfer, error) {
 	var bankTransfer entity.BankTransfer
-	results := DB.Where("bank_code = ?", bankCode).Find(&bankTransfer)
+	results := DB.Where("bank_code = ?", bankCode).First(&bankTransfer)
 	return bankTransfer, results.Error
 }

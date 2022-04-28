@@ -86,11 +86,12 @@ func NewOrderService(
 	}
 }
 
-func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, orderRequest *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse) {
-	// validate request
-	request.ValidateCallBackIpaymuRequest(service.Validate, orderRequest, requestId, service.Logger)
+func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, paymentRequestCallback *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse) {
 
-	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, orderRequest.ReferenceId)
+	// validate request
+	request.ValidateCallBackIpaymuRequest(service.Validate, paymentRequestCallback, requestId, service.Logger)
+
+	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, paymentRequestCallback.ReferenceId)
 
 	if order.PaymentStatus == "Sudah Dibayar" {
 		orderResponse = response.ToUpdateOrderStatusResponse(order)
@@ -105,7 +106,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 
 		orderEntity := &entity.Order{}
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
-		if orderRequest.StatusCode == "1" {
+		if paymentRequestCallback.StatusCode == "1" {
 			orderEntity.PaymentStatus = "Sudah Dibayar"
 		} else {
 			orderEntity.PaymentStatus = "Pending"
@@ -113,7 +114,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 
 		orderEntity.PaymentSuccessAt.Time = time.Now()
 
-		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, orderRequest.ReferenceId, *orderEntity)
+		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
 
 		//update product stock
@@ -129,7 +130,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 			productEntityStockHistory.StockOpname = product.Stock
 			productEntityStockHistory.StockOutQty = orderItem.Qty
 			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
-			productEntityStockHistory.Description = "Pembelian " + orderResult.NumberOrder
+			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
 			productEntityStockHistory.CreatedAt = time.Now()
 			_, errAddProductStockHistory := service.ProductStockHistoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
 			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
@@ -138,6 +139,22 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, o
 			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		}
+
+		paymentLogEntity := &entity.PaymentLog{}
+		paymentLogEntity.Id = utilities.RandomUUID()
+		paymentLogEntity.IdOrder = order.Id
+		paymentLogEntity.NumberOrder = order.NumberOrder
+		paymentLogEntity.TypeLog = "Respon Success Ipaymu"
+		paymentLogEntity.PaymentMethod = order.PaymentMethod
+		paymentLogEntity.PaymentChannel = order.PaymentChannel
+		paymentLogEntity.Log = fmt.Sprintf("%+v\n", paymentRequestCallback)
+		paymentLogEntity.CreatedAt = time.Now()
+
+		s := fmt.Sprintf("%+v\n", paymentRequestCallback)
+		fmt.Println(s)
+
+		//_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *orderRequest)
+		//exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -180,10 +197,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	// Get data user
 	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, idUser)
 
-	// Create Order
 	tx := service.DB.Begin()
 	exceptions.PanicIfError(tx.Error, requestId, service.Logger)
 
+	// Create Order
 	orderEntity := &entity.Order{}
 	orderEntity.Id = utilities.RandomUUID()
 	orderEntity.IdUser = user.Id
@@ -236,13 +253,15 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItemEntity.CreatedAt = time.Now()
 		orderItems = append(orderItems, *orderItemEntity)
 	}
-	orderItem, err := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
-	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create order"}, service.Logger, tx)
+
+	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
+	exceptions.PanicIfErrorWithRollback(errCreateOrderItem, requestId, []string{"Error create order"}, service.Logger, tx)
 
 	// delete data item in cart
-	//errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
-	//exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
+	// chose metode pembayaran
 	switch orderRequest.PaymentMethod {
 	case "va", "qris":
 		// Send request to ipaymu
@@ -293,15 +312,15 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		}
 		defer resp.Body.Close()
 
+		// get data bank
+		bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, orderRequest.PaymentChannel)
+
 		var dataResponseIpaymu modelService.PaymentResponse
 
 		if err := json.NewDecoder(resp.Body).Decode(&dataResponseIpaymu); err != nil {
 			fmt.Println(err)
 			exceptions.PanicIfError(err, requestId, service.Logger)
 		}
-
-		// get data bank
-		bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, orderRequest.PaymentChannel)
 
 		if dataResponseIpaymu.Status != 200 {
 			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
@@ -315,6 +334,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			paymentLogEntity.PaymentMethod = orderRequest.PaymentMethod
 			paymentLogEntity.PaymentChannel = orderRequest.PaymentChannel
 			paymentLogEntity.Log = fmt.Sprintf("%+v\n", dataResponseIpaymu)
+			paymentLogEntity.CreatedAt = time.Now()
 
 			_, err := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
 			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create log"}, service.Logger, tx)
@@ -323,7 +343,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		}
 
-		orderResponse = response.ToCreateOrderVaResponse(order, orderItem, dataResponseIpaymu, bankVa)
+		orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu, bankVa)
 		return orderResponse
 
 	case "trf":
@@ -340,7 +360,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		min := 500
 		max := 999
 		randNumber := rand.Intn(max-min+1) + min
-		// hasil := orderRequest.PaymentByCash + float64(randNumber)
 
 		payment.Data.Total = orderRequest.PaymentByCash + float64(randNumber)
 		payment.Data.PaymentName = bankTransfer.BankName
@@ -350,14 +369,13 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
-		orderResponse = response.ToCreateOrderTransferResponse(order, orderItem, *payment, bankTransfer)
+		orderResponse = response.ToCreateOrderTransferResponse(order, *payment, bankTransfer)
 		return orderResponse
 	case "cod":
-		orderResponse = response.ToCreateOrderCodResponse(order, orderItem)
+		orderResponse = response.ToCreateOrderCodResponse(order)
 		return orderResponse
 	default:
 		exceptions.PanicIfErrorWithRollback(errors.New("payment method not found"), requestId, []string{"payment method not found"}, service.Logger, tx)
 		return
 	}
-
 }

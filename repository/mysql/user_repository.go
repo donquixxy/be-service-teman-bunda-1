@@ -8,6 +8,7 @@ import (
 
 type UserRepositoryInterface interface {
 	CreateUser(DB *gorm.DB, user entity.User) (entity.User, error)
+	UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
@@ -26,6 +27,16 @@ func NewUserRepository(configDatabase *config.Database) UserRepositoryInterface 
 	return &UserRepositoryImplementation{
 		configurationDatabase: configDatabase,
 	}
+}
+
+func (repository *UserRepositoryImplementation) UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			Password: user.Password,
+		})
+	return user, result.Error
 }
 
 func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user entity.User) (entity.User, error) {
@@ -62,7 +73,7 @@ func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id str
 	results := DB.Where("users.id = ?", id).
 		Joins("FamilyMembers").
 		Joins("BalancePoint").
-		Find(&user)
+		First(&user)
 	return user, results.Error
 }
 

@@ -7,7 +7,7 @@ import (
 )
 
 type OrderItemRepositoryInterface interface {
-	CreateOrderItems(DB *gorm.DB, order []entity.OrderItem) ([]entity.OrderItem, error)
+	CreateOrderItems(DB *gorm.DB, order []entity.OrderItem) error
 	FindOrderItemsByIdOrder(DB *gorm.DB, idOrder string) ([]entity.OrderItem, error)
 }
 
@@ -21,9 +21,9 @@ func NewOrderItemRepository(configDatabase *config.Database) OrderItemRepository
 	}
 }
 
-func (repository *OrderItemRepositoryImplementation) CreateOrderItems(DB *gorm.DB, orderItems []entity.OrderItem) ([]entity.OrderItem, error) {
+func (repository *OrderItemRepositoryImplementation) CreateOrderItems(DB *gorm.DB, orderItems []entity.OrderItem) error {
 	results := DB.Create(orderItems)
-	return orderItems, results.Error
+	return results.Error
 }
 
 func (repository *OrderItemRepositoryImplementation) FindOrderItemsByIdOrder(DB *gorm.DB, idOrder string) ([]entity.OrderItem, error) {

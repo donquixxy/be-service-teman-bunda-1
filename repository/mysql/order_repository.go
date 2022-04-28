@@ -35,7 +35,7 @@ func (repository *OrderRepositoryImplementation) FindOrderByDate(DB *gorm.DB, id
 
 func (repository *OrderRepositoryImplementation) FindOrderByNumberOrder(DB *gorm.DB, numberOrder string) (entity.Order, error) {
 	var order entity.Order
-	results := DB.Where("orders_transaction.number_order = ?", numberOrder).Find(&order)
+	results := DB.Where("orders_transaction.number_order = ?", numberOrder).First(&order)
 	return order, results.Error
 }
 

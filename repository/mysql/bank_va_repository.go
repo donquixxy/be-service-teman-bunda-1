@@ -22,6 +22,6 @@ func NewBankVaRepository(configDatabase *config.Database) BankVaRepositoryInterf
 
 func (repository *BankVaRepositoryImplementation) FindBankVaByBankCode(DB *gorm.DB, bankCode string) (entity.BankVa, error) {
 	var bankVa entity.BankVa
-	results := DB.Where("bank_code = ?", bankCode).Find(&bankVa)
+	results := DB.Where("bank_code = ?", bankCode).First(&bankVa)
 	return bankVa, results.Error
 }
