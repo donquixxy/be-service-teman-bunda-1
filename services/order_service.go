@@ -270,6 +270,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.TotalBill = orderRequest.TotalBill
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
 	orderEntity.OrderedAt = time.Now()
+	fmt.Println("waktu order 2 = ", orderEntity.OrderedAt)
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
 	orderEntity.PaymentStatus = "Belum Dibayar"
