@@ -214,6 +214,17 @@ func main() {
 	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
 	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 
+	// Payment Channel
+	paymentChannelService := services.NewPaymentChannelService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		bankVaRepository,
+		bankTransferRepository,
+	)
+	paymentChannelController := controllers.NewPaymentChannelController(appConfig.Webserver, logrusLogger, paymentChannelService)
+	routes.PaymentChannelRoute(e, appConfig.Webserver, appConfig.Jwt, paymentChannelController)
+
 	// Careful shutdown
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(int(appConfig.Webserver.Port))); err != nil && err != http.ErrServerClosed {

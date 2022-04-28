@@ -16,6 +16,8 @@ type ProductControllerInterface interface {
 	FindProductsBySearch(c echo.Context) error
 	FindProductById(c echo.Context) error
 	FindProductByIdCategory(c echo.Context) error
+	FindProductByIdSubCategory(c echo.Context) error
+	FindProductByIdBrand(c echo.Context) error
 }
 
 type ProductControllerImplementation struct {
@@ -60,6 +62,22 @@ func (controller *ProductControllerImplementation) FindProductByIdCategory(c ech
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	id := c.QueryParam("id_category")
 	productResponses := controller.ProductServiceInterface.FindProductByIdCategory(requestId, id)
+	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *ProductControllerImplementation) FindProductByIdSubCategory(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	id := c.QueryParam("id_sub_category")
+	productResponses := controller.ProductServiceInterface.FindProductByIdSubCategory(requestId, id)
+	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *ProductControllerImplementation) FindProductByIdBrand(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	id := c.QueryParam("id_brand")
+	productResponses := controller.ProductServiceInterface.FindProductByIdBrand(requestId, id)
 	responses := response.Response{Code: 200, Mssg: "Success", Data: productResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

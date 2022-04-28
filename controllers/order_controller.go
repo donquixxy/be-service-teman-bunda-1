@@ -16,6 +16,8 @@ type OrderControllerInterface interface {
 	CreateOrder(c echo.Context) error
 	UpdateStatusOrder(c echo.Context) error
 	SendRequestToIpaymu(c echo.Context) error
+	FindOrderByUser(c echo.Context) error
+	FindOrderById(c echo.Context) error
 }
 
 type OrderControllerImplementation struct {
@@ -32,6 +34,23 @@ func NewOrderController(configurationWebserver config.Webserver,
 		Logger:                 logger,
 		OrderServiceInterface:  orderServiceInterface,
 	}
+}
+
+func (controller *OrderControllerImplementation) FindOrderByUser(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	orderStatus := c.QueryParam("order_status")
+	orderResponse := controller.OrderServiceInterface.FindOrderByUser(requestId, idUser, orderStatus)
+	response := response.Response{Code: 200, Mssg: "success", Data: orderResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *OrderControllerImplementation) FindOrderById(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idOrder := c.QueryParam("id_order")
+	orderResponse := controller.OrderServiceInterface.FindOrderById(requestId, idOrder)
+	response := response.Response{Code: 200, Mssg: "success", Data: orderResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
 }
 
 func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) error {

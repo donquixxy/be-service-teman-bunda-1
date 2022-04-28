@@ -8,6 +8,7 @@ import (
 
 type BankTransferRepositoryInterface interface {
 	FindBankTransferByBankCode(DB *gorm.DB, bankCode string) (entity.BankTransfer, error)
+	FindAllBankTransfer(Db *gorm.DB) ([]entity.BankTransfer, error)
 }
 
 type BankTransferRepositoryImplementation struct {
@@ -24,4 +25,10 @@ func (repository *BankTransferRepositoryImplementation) FindBankTransferByBankCo
 	var bankTransfer entity.BankTransfer
 	results := DB.Where("bank_code = ?", bankCode).First(&bankTransfer)
 	return bankTransfer, results.Error
+}
+
+func (repository *BankTransferRepositoryImplementation) FindAllBankTransfer(DB *gorm.DB) ([]entity.BankTransfer, error) {
+	var bankTransfers []entity.BankTransfer
+	results := DB.Find(&bankTransfers)
+	return bankTransfers, results.Error
 }

@@ -49,9 +49,9 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 // Balance Point Route
 func BalancePointRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, balancePointControllerInterface controllers.BalancePointControllerInterface) {
 	group := e.Group("api/v1")
-	group.GET("/balance_point_with_tx", balancePointControllerInterface.FindBalancePointWithTxByIdUser, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/balance_point", balancePointControllerInterface.FindBalancePointByIdUser, authMiddlerware.Authentication(configurationJWT))
-	group.GET("/balance_point/use", balancePointControllerInterface.BalancePointUseCheck, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/balance_point/check/amount", balancePointControllerInterface.BalancePointCheckAmount, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/balance_point/check/order_tx", balancePointControllerInterface.BalancePointCheckOrderTx, authMiddlerware.Authentication(configurationJWT))
 }
 
 // Balance Point Tx
@@ -67,6 +67,8 @@ func ProductRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 	group.GET("/products/search", productControllerInterface.FindProductsBySearch, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/product/id", productControllerInterface.FindProductById, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/products/category", productControllerInterface.FindProductByIdCategory, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/products/sub_category", productControllerInterface.FindProductByIdSubCategory, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/products/brand", productControllerInterface.FindProductByIdBrand, authMiddlerware.Authentication(configurationJWT))
 }
 
 // Cart Route
@@ -90,4 +92,12 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 	group := e.Group("api/v1")
 	group.POST("/order/create", orderControllerInterface.CreateOrder, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/order/update", orderControllerInterface.UpdateStatusOrder)
+	group.GET("/order", orderControllerInterface.FindOrderByUser, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/order/detail/id", orderControllerInterface.FindOrderById, authMiddlerware.Authentication(configurationJWT))
+}
+
+// List Payment
+func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentChannelControllerInterface controllers.PaymentChannelControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/payment/list", paymentChannelControllerInterface.FindListPaymentChannel, authMiddlerware.Authentication(configurationJWT))
 }

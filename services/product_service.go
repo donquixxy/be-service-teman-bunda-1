@@ -16,6 +16,8 @@ type ProductServiceInterface interface {
 	FindProductsBySearch(requestId string, productName string) (productsResponses []response.FindProductResponse)
 	FindProductById(requestId string, id string) (productsResponse response.FindProductResponse)
 	FindProductByIdCategory(requestId string, idCategory string) (productsResponses []response.FindProductResponse)
+	FindProductByIdSubCategory(requestId string, idSubCategory string) (productsResponses []response.FindProductResponse)
+	FindProductByIdBrand(requestId string, idBrand string) (productsResponses []response.FindProductResponse)
 }
 
 type ProductServiceImplementation struct {
@@ -65,3 +67,16 @@ func (service *ProductServiceImplementation) FindProductByIdCategory(requestId s
 	return productResponses
 }
 
+func (service *ProductServiceImplementation) FindProductByIdSubCategory(requestId string, idSubCategory string) (productResponses []response.FindProductResponse) {
+	products, err := service.ProductRepositoryInterface.FindProductByIdSubCategory(service.DB, idSubCategory)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	productResponses = response.ToFindProductResponses(products)
+	return productResponses
+}
+
+func (service *ProductServiceImplementation) FindProductByIdBrand(requestId string, idBrand string) (productResponses []response.FindProductResponse) {
+	products, err := service.ProductRepositoryInterface.FindProductByIdBrand(service.DB, idBrand)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	productResponses = response.ToFindProductResponses(products)
+	return productResponses
+}

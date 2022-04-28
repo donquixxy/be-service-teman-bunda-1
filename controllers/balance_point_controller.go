@@ -13,9 +13,9 @@ import (
 )
 
 type BalancePointControllerInterface interface {
-	FindBalancePointWithTxByIdUser(c echo.Context) error
 	FindBalancePointByIdUser(c echo.Context) error
-	BalancePointUseCheck(c echo.Context) error
+	BalancePointCheckAmount(c echo.Context) error
+	BalancePointCheckOrderTx(c echo.Context) error
 }
 
 type BalancePointControllerImplementation struct {
@@ -34,14 +34,6 @@ func NewBalancePointController(configWebserver config.Webserver,
 	}
 }
 
-func (controller *BalancePointControllerImplementation) FindBalancePointWithTxByIdUser(c echo.Context) error {
-	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	IdUser := middleware.TokenClaimsIdUser(c)
-	balancePointWithTxResponse := controller.BalancePointServiceInterface.FindBalancePointWithTxByIdUser(requestId, IdUser)
-	response := response.Response{Code: 200, Mssg: "success", Data: balancePointWithTxResponse, Error: []string{}}
-	return c.JSON(http.StatusOK, response)
-}
-
 func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	IdUser := middleware.TokenClaimsIdUser(c)
@@ -50,11 +42,19 @@ func (controller *BalancePointControllerImplementation) FindBalancePointByIdUser
 	return c.JSON(http.StatusOK, response)
 }
 
-func (controller *BalancePointControllerImplementation) BalancePointUseCheck(c echo.Context) error {
+func (controller *BalancePointControllerImplementation) BalancePointCheckAmount(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
 	amount, _ := strconv.ParseFloat(c.QueryParam("amount"), 64)
-	balancePointUseCheckResponse := controller.BalancePointServiceInterface.BalancePointUseCheck(requestId, idUser, amount)
-	response := response.Response{Code: 200, Mssg: "success", Data: balancePointUseCheckResponse, Error: []string{}}
+	balancePointCheckResponse := controller.BalancePointServiceInterface.BalancePointCheckAmount(requestId, idUser, amount)
+	response := response.Response{Code: 200, Mssg: "success", Data: balancePointCheckResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *BalancePointControllerImplementation) BalancePointCheckOrderTx(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	balancePointCheckResponse := controller.BalancePointServiceInterface.BalancePointCheckOrderTx(requestId, idUser)
+	response := response.Response{Code: 200, Mssg: "success", Data: balancePointCheckResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

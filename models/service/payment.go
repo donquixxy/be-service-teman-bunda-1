@@ -18,3 +18,10 @@ type Data struct {
 	Fee           float64
 	Expired       string
 }
+
+type ListPaymentChannelPayment struct {
+	PaymentMethod string
+	BankCode      string
+	BankName      string
+	BankLogo      string
+}

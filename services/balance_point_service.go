@@ -12,9 +12,9 @@ import (
 )
 
 type BalancePointServiceInterface interface {
-	FindBalancePointWithTxByIdUser(requestId string, IdUser string) (balancePointWithTxResponses response.FindBalancePointWithTxByIdUser)
 	FindBalancePointByIdUser(requestId string, IdUser string) (balancePointResponses response.FindBalancePointByIdUser)
-	BalancePointUseCheck(requestId string, IdUser string, amount float64) (balancePointUseCheckResponse response.BalancePointUseCheck)
+	BalancePointCheckAmount(requestId string, IdUser string, amount float64) string
+	BalancePointCheckOrderTx(requestId string, IdUser string) string
 }
 
 type BalancePointServiceImplementation struct {
@@ -42,16 +42,6 @@ func NewBalancePointService(configWebserver config.Webserver,
 	}
 }
 
-func (service *BalancePointServiceImplementation) FindBalancePointWithTxByIdUser(requestId string, IdUser string) (balancePointWithTxResponse response.FindBalancePointWithTxByIdUser) {
-	balancePointWithTx, _ := service.BalancePointRepositoryInterface.FindBalancePointWithTxByIdUser(service.DB, IdUser)
-	if balancePointWithTx.IdUser == "" {
-		err := errors.New("user not found")
-		exceptions.PanicIfRecordNotFound(err, requestId, []string{"Not Found"}, service.Logger)
-	}
-	balancePointWithTxResponse = response.ToFindBalancePointWithTxByIdUser(balancePointWithTx)
-	return balancePointWithTxResponse
-}
-
 func (service *BalancePointServiceImplementation) FindBalancePointByIdUser(requestId string, IdUser string) (balancePointResponse response.FindBalancePointByIdUser) {
 	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, IdUser)
 	if balancePoint.IdUser == "" {
@@ -62,16 +52,7 @@ func (service *BalancePointServiceImplementation) FindBalancePointByIdUser(reque
 	return balancePointResponse
 }
 
-func (service *BalancePointServiceImplementation) BalancePointUseCheck(requestId string, IdUser string, amount float64) (balancePointUseCheckResponse response.BalancePointUseCheck) {
-	//check balance point
-	balancePoint, _ := service.BalancePointRepositoryInterface.BalancePointUseCheck(service.DB, IdUser)
-	if balancePoint.IdUser == "" {
-		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"Not Found"}, service.Logger)
-	}
-
-	if amount > balancePoint.BalancePoints {
-		exceptions.PanicIfBadRequest(errors.New("point not enough"), requestId, []string{"point not enough"}, service.Logger)
-	}
+func (service *BalancePointServiceImplementation) BalancePointCheckOrderTx(requestId string, idUser string) string {
 
 	// get limit order to use point value
 	settings, _ := service.SettingsRepositoryInterface.FindSettingsByName(service.DB, "limit_order")
@@ -82,7 +63,7 @@ func (service *BalancePointServiceImplementation) BalancePointUseCheck(requestId
 	// cek apakah jumlah order bulan ini sudah sesuai dengan limit order untuk menggunakan point
 	// Get data order bulan ini
 
-	orders, _ := service.OrderRepositoryInterface.FindOrderByDate(service.DB, IdUser)
+	orders, _ := service.OrderRepositoryInterface.FindOrderByDate(service.DB, idUser)
 	var totalOrderAcumulate float64
 	for _, order := range orders {
 		totalOrderAcumulate = totalOrderAcumulate + order.TotalBill
@@ -92,6 +73,19 @@ func (service *BalancePointServiceImplementation) BalancePointUseCheck(requestId
 		exceptions.PanicIfBadRequest(errors.New("cant use point"), requestId, []string{"akumulasi total belanja kurang"}, service.Logger)
 	}
 
-	balancePointUseCheckResponse = response.ToBalancePointUseCheck(balancePoint, amount)
-	return balancePointUseCheckResponse
+	return "ok"
+}
+
+func (service *BalancePointServiceImplementation) BalancePointCheckAmount(requestId string, idUser string, amount float64) string {
+	//check balance point
+	balancePoint, _ := service.BalancePointRepositoryInterface.BalancePointUseCheck(service.DB, idUser)
+	if balancePoint.IdUser == "" {
+		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"Not Found"}, service.Logger)
+	}
+
+	if amount > balancePoint.BalancePoints {
+		exceptions.PanicIfBadRequest(errors.New("point not enough"), requestId, []string{"point not enough"}, service.Logger)
+	}
+
+	return "ok"
 }

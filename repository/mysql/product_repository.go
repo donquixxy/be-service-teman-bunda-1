@@ -11,6 +11,8 @@ type ProductRepositoryInterface interface {
 	FindProductsBySearch(DB *gorm.DB, productName string) ([]entity.Product, error)
 	FindProductById(DB *gorm.DB, id string) (entity.Product, error)
 	FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error)
+	FindProductByIdSubCategory(DB *gorm.DB, idSubCategory string) ([]entity.Product, error)
+	FindProductByIdBrand(DB *gorm.DB, idBrand string) ([]entity.Product, error)
 	UpdateProductStock(DB *gorm.DB, idProduct string, product entity.Product) (entity.Product, error)
 }
 
@@ -59,5 +61,17 @@ func (repository *ProductRepositoryImplementation) FindProductById(DB *gorm.DB, 
 func (repository *ProductRepositoryImplementation) FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error) {
 	var products []entity.Product
 	results := DB.Where("products.id_category = ?", idCategory).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
+	return products, results.Error
+}
+
+func (repository *ProductRepositoryImplementation) FindProductByIdSubCategory(DB *gorm.DB, idSubCategory string) ([]entity.Product, error) {
+	var products []entity.Product
+	results := DB.Where("products.id_sub_category = ?", idSubCategory).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
+	return products, results.Error
+}
+
+func (repository *ProductRepositoryImplementation) FindProductByIdBrand(DB *gorm.DB, idBrand string) ([]entity.Product, error) {
+	var products []entity.Product
+	results := DB.Where("products.id_brand = ?", idBrand).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }

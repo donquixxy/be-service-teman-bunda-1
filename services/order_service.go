@@ -31,6 +31,8 @@ import (
 type OrderServiceInterface interface {
 	CreateOrder(requestId string, idUser string, orderRequest *request.CreateOrderRequest) (orderResponse response.CreateOrderResponse)
 	UpdateStatusOrder(requestId string, orderRequest *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse)
+	FindOrderByUser(requestId string, idUser string, orderStatus string) (orderResponses []response.FindOrderByUserResponse)
+	FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByNumberOrderResponse)
 }
 
 type OrderServiceImplementation struct {
@@ -84,6 +86,25 @@ func NewOrderService(
 		ProductRepositoryInterface:      productRepositoryInterface,
 		ProductStockHistoryInterface:    productStockHistoryRepositoryInterface,
 	}
+}
+
+func (service *OrderServiceImplementation) FindOrderByUser(requestId string, numberOrder string, orderStatus string) (orderResponses []response.FindOrderByUserResponse) {
+	orders, err := service.OrderRepositoryInterface.FindOrderByUser(service.DB, numberOrder, orderStatus)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	orderResponses = response.ToFindOrderByUserResponse(orders)
+	return orderResponses
+}
+
+func (service *OrderServiceImplementation) FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByNumberOrderResponse) {
+	order, err := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
+	fmt.Println("order = ", order.ShippingCost)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	orderItems, err := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, idOrder)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	orderResponse = response.ToFindOrderByNumberOrder(order, orderItems)
+	return orderResponse
 }
 
 func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, paymentRequestCallback *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse) {
@@ -150,11 +171,11 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		paymentLogEntity.Log = fmt.Sprintf("%+v\n", paymentRequestCallback)
 		paymentLogEntity.CreatedAt = time.Now()
 
-		s := fmt.Sprintf("%+v\n", paymentRequestCallback)
-		fmt.Println(s)
+		// s := fmt.Sprintf("%+v\n", paymentRequestCallback)
+		// fmt.Println(s)
 
-		//_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *orderRequest)
-		//exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
+		_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
+		exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
