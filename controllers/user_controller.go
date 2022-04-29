@@ -64,7 +64,7 @@ func (controller *UserControllerImplementation) FindUserById(c echo.Context) err
 func (controller *UserControllerImplementation) SendVerifyEmail(c echo.Context) error {
 	err := controller.UserServiceInterface.SendEmail()
 	if err == nil {
-		return c.JSON(http.StatusOK, "ok")
+		return c.JSON(http.StatusOK, "ok doki")
 	} else {
 		exceptions.PanicIfBadRequest(errors.New("gagal kirim email"), "1", []string{"hahahah"}, controller.Logger)
 		return nil
