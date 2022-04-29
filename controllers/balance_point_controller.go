@@ -54,7 +54,8 @@ func (controller *BalancePointControllerImplementation) BalancePointCheckAmount(
 func (controller *BalancePointControllerImplementation) BalancePointCheckOrderTx(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
-	balancePointCheckResponse := controller.BalancePointServiceInterface.BalancePointCheckOrderTx(requestId, idUser)
+	totalBill, _ := strconv.ParseFloat(c.QueryParam("total_bill"), 64)
+	balancePointCheckResponse := controller.BalancePointServiceInterface.BalancePointCheckOrderTx(requestId, idUser, totalBill)
 	response := response.Response{Code: 200, Mssg: "success", Data: balancePointCheckResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

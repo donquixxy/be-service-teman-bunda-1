@@ -14,7 +14,7 @@ import (
 type BalancePointServiceInterface interface {
 	FindBalancePointByIdUser(requestId string, IdUser string) (balancePointResponses response.FindBalancePointByIdUser)
 	BalancePointCheckAmount(requestId string, IdUser string, amount float64) string
-	BalancePointCheckOrderTx(requestId string, IdUser string) string
+	BalancePointCheckOrderTx(requestId string, IdUser string, totalBill float64) string
 }
 
 type BalancePointServiceImplementation struct {
@@ -52,7 +52,7 @@ func (service *BalancePointServiceImplementation) FindBalancePointByIdUser(reque
 	return balancePointResponse
 }
 
-func (service *BalancePointServiceImplementation) BalancePointCheckOrderTx(requestId string, idUser string) string {
+func (service *BalancePointServiceImplementation) BalancePointCheckOrderTx(requestId string, idUser string, totalBill float64) string {
 
 	// get limit order to use point value
 	settings, _ := service.SettingsRepositoryInterface.FindSettingsByName(service.DB, "limit_order")
@@ -62,12 +62,12 @@ func (service *BalancePointServiceImplementation) BalancePointCheckOrderTx(reque
 
 	// cek apakah jumlah order bulan ini sudah sesuai dengan limit order untuk menggunakan point
 	// Get data order bulan ini
-
 	orders, _ := service.OrderRepositoryInterface.FindOrderByDate(service.DB, idUser)
 	var totalOrderAcumulate float64
 	for _, order := range orders {
 		totalOrderAcumulate = totalOrderAcumulate + order.TotalBill
 	}
+	totalOrderAcumulate = totalOrderAcumulate + totalBill
 
 	if totalOrderAcumulate < settings.Value {
 		exceptions.PanicIfBadRequest(errors.New("cant use point"), requestId, []string{"akumulasi total belanja kurang"}, service.Logger)
