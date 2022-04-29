@@ -2,7 +2,9 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
+	"net/smtp"
 	"strings"
 	"time"
 
@@ -25,6 +27,7 @@ type UserServiceInterface interface {
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
 	// UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) (userResponse response.UpdateUserResponse)
+	SendEmail() error
 }
 
 type UserServiceImplementation struct {
@@ -232,4 +235,27 @@ func (service *UserServiceImplementation) FindUserById(requestId string, id stri
 	userCount, _ := service.UserRepositoryInterface.CountUserByRegistrationReferal(service.DB, user.ReferalCode)
 	userResponse = response.ToUserFindByIdResponse(user, userCount)
 	return userResponse
+}
+
+func (service *UserServiceImplementation) SendEmail() error {
+	fromEmail := "service.simole@gmail.com"
+	fromPasswordEmail := "TensuHost10498"
+
+	toEmail := "tensu104qiuwulu98@gmail.com"
+	to := []string{toEmail}
+
+	host := "smtp.gmail.com"
+	port := "587"
+	address := host + ":" + port
+
+	subject := "Subject: Email Verification Code\r\n\r\n"
+	verCode := "1234"
+	body := "verfication code: " + verCode
+	message := []byte(subject + body)
+
+	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
+	fmt.Println("message : ", string(message))
+	err := smtp.SendMail(address, auth, fromEmail, to, message)
+	fmt.Println(err)
+	return err
 }

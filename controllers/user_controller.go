@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
@@ -16,6 +18,7 @@ type UserControllerInterface interface {
 	CreateUser(c echo.Context) error
 	FindUserByReferal(c echo.Context) error
 	FindUserById(c echo.Context) error
+	SendVerifyEmail(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -56,4 +59,14 @@ func (controller *UserControllerImplementation) FindUserById(c echo.Context) err
 	userResponse := controller.UserServiceInterface.FindUserById(requestId, idUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *UserControllerImplementation) SendVerifyEmail(c echo.Context) error {
+	err := controller.UserServiceInterface.SendEmail()
+	if err == nil {
+		return c.JSON(http.StatusOK, "ok")
+	} else {
+		exceptions.PanicIfBadRequest(errors.New("gagal kirim email"), "1", []string{"hahahah"}, controller.Logger)
+		return nil
+	}
 }

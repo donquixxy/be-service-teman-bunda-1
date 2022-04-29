@@ -37,6 +37,7 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/user/create", userControllerInterface.CreateUser)
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
+	group.POST("/user/verifyemail", userControllerInterface.SendVerifyEmail)
 }
 
 // Auth Route
