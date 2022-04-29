@@ -32,7 +32,7 @@ type OrderServiceInterface interface {
 	CreateOrder(requestId string, idUser string, orderRequest *request.CreateOrderRequest) (orderResponse response.CreateOrderResponse)
 	UpdateStatusOrder(requestId string, orderRequest *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse)
 	FindOrderByUser(requestId string, idUser string, orderStatus string) (orderResponses []response.FindOrderByUserResponse)
-	FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByNumberOrderResponse)
+	FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByIdOrderResponse)
 }
 
 type OrderServiceImplementation struct {
@@ -101,15 +101,14 @@ func (service *OrderServiceImplementation) FindOrderByUser(requestId string, num
 	return orderResponses
 }
 
-func (service *OrderServiceImplementation) FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByNumberOrderResponse) {
+func (service *OrderServiceImplementation) FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByIdOrderResponse) {
 	order, err := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
-	fmt.Println("order = ", order.ShippingCost)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 
 	orderItems, err := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, idOrder)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 
-	orderResponse = response.ToFindOrderByNumberOrder(order, orderItems)
+	orderResponse = response.ToFindOrderByIdOrder(order, orderItems)
 	return orderResponse
 }
 
@@ -247,7 +246,6 @@ func (service *OrderServiceImplementation) GenerateNumberOrder() (numberOrder st
 
 func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser string, orderRequest *request.CreateOrderRequest) (orderResponse response.CreateOrderResponse) {
 
-	fmt.Println("waktu order = ", time.Now())
 	// Validate request
 	request.ValidateCreateOrderRequest(service.Validate, orderRequest, requestId, service.Logger)
 
@@ -270,7 +268,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.TotalBill = orderRequest.TotalBill
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
 	orderEntity.OrderedAt = time.Now()
-	fmt.Println("waktu order 2 = ", orderEntity.OrderedAt)
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
 	orderEntity.PaymentStatus = "Belum Dibayar"
@@ -299,6 +296,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItemEntity.Weight = cartItem.Product.Weight
 		orderItemEntity.Volume = cartItem.Product.Volume
 		orderItemEntity.Qty = cartItem.Qty
+		orderItemEntity.FlagPromo = cartItem.Product.ProductDiscount.FlagPromo
+		orderItemEntity.Thumbnail = cartItem.Product.Thumbnail
 		if cartItem.Product.ProductDiscount.FlagPromo == "true" {
 			orderItemEntity.Price = cartItem.Product.ProductDiscount.Nominal
 			totalPriceProduct = cartItem.Product.ProductDiscount.Nominal

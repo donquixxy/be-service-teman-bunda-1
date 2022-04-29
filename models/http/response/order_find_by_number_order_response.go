@@ -2,7 +2,7 @@ package response
 
 import "github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 
-type FindOrderByNumberOrderResponse struct {
+type FindOrderByIdOrderResponse struct {
 	ShippingCost   float64             `json:"shipping_cost"`
 	TotalBill      float64             `json:"total_bill"`
 	SubTotal       float64             `json:"sub_total"`
@@ -25,7 +25,7 @@ type OrderItemResponse struct {
 	FlagPromo   string  `json:"flag_promo"`
 }
 
-func ToFindOrderByNumberOrder(order entity.Order, orderItems []entity.OrderItem) (orderResponse FindOrderByNumberOrderResponse) {
+func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (orderResponse FindOrderByIdOrderResponse) {
 
 	var totalPricePerItem float64
 	var orderItemsResponses []OrderItemResponse
@@ -38,6 +38,8 @@ func ToFindOrderByNumberOrder(order entity.Order, orderItems []entity.OrderItem)
 		orderItemResponse.Description = orderItem.Description
 		orderItemResponse.PictureUrl = orderItem.PictureUrl
 		orderItemResponse.Qty = orderItem.Qty
+		orderItemResponse.Thumbnail = orderItem.Thumbnail
+		orderItemResponse.FlagPromo = orderItem.FlagPromo
 		totalPricePerItem = totalPricePerItem + (orderItem.Price * float64(orderItem.Qty))
 		orderItemsResponses = append(orderItemsResponses, orderItemResponse)
 	}

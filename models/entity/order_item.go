@@ -9,6 +9,8 @@ type OrderItem struct {
 	NoSku               string    `gorm:"column:no_sku;"`
 	ProductName         string    `gorm:"column:product_name;"`
 	PictureUrl          string    `gorm:"column:picture_url;"`
+	Thumbnail           string    `gorm:"column:thumbnail;"`
+	FlagPromo           string    `gorm:"column:flag_promo;"`
 	Description         string    `gorm:"column:description;"`
 	Weight              float64   `gorm:"column:weight;"`
 	Volume              float64   `gorm:"column:volume;"`
