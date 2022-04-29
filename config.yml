@@ -32,3 +32,13 @@ log:
     - info
     - warn
     - error
+payment:
+  ipaymukey: SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704
+  ipaymuva: "0000007762212544"
+  ipaymuurl: https://sandbox.ipaymu.com/api/v2/payment/direct
+  ipaymucallbackurl: http://117.53.44.216:9000/api/v1/order/update
+email:
+  fromemail: service.simole@gmail.com
+  formemailpassword: TensuHost10498
+  host: smtp.gmail.com
+  port: 587j

@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -25,18 +26,32 @@ type ProductServiceImplementation struct {
 	DB                         *gorm.DB
 	Logger                     *logrus.Logger
 	ProductRepositoryInterface mysql.ProductRepositoryInterface
+	ConfigPayment              config.Payment
 }
 
-func NewProductService(configWebserver config.Webserver, DB *gorm.DB, logger *logrus.Logger, productRepositoryInterface mysql.ProductRepositoryInterface) ProductServiceInterface {
+func NewProductService(
+	configWebserver config.Webserver,
+	DB *gorm.DB, logger *logrus.Logger,
+	productRepositoryInterface mysql.ProductRepositoryInterface,
+	configPayment config.Payment) ProductServiceInterface {
 	return &ProductServiceImplementation{
 		ConfigWebserver:            configWebserver,
 		DB:                         DB,
 		Logger:                     logger,
 		ProductRepositoryInterface: productRepositoryInterface,
+		ConfigPayment:              configPayment,
 	}
 }
 
 func (service *ProductServiceImplementation) FindAllProducts(requestId string, limit int, page int) (productResponses []response.FindProductResponse) {
+	IpaymuVa := service.ConfigPayment.IpaymuVa
+	fmt.Println("va = ", IpaymuVa)
+	IpaymuKey := service.ConfigPayment.IpaymuKey
+	fmt.Println("key = ", IpaymuKey)
+	IpaymuUrl := service.ConfigPayment.IpaymuUrl
+	fmt.Println("url = ", IpaymuUrl)
+	NotifyUrl := service.ConfigPayment.IpaymuCallbackUrl
+	fmt.Println("notif = ", NotifyUrl)
 	products, err := service.ProductRepositoryInterface.FindAllProducts(service.DB, limit, page)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	productResponses = response.ToFindProductResponses(products)

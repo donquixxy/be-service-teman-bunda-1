@@ -41,7 +41,7 @@ type OrderServiceImplementation struct {
 	ConfigJwt                              config.Jwt
 	Validate                               *validator.Validate
 	Logger                                 *logrus.Logger
-	ConfigurationIpaymu                    *config.Ipaymu
+	ConfigPayment                          config.Payment
 	OrderRepositoryInterface               mysql.OrderRepositoryInterface
 	CartRepositoryInterface                mysql.CartRepositoryInterface
 	UserRepositoryInterface                mysql.UserRepositoryInterface
@@ -61,7 +61,7 @@ func NewOrderService(
 	configJwt config.Jwt,
 	validate *validator.Validate,
 	logger *logrus.Logger,
-	configIpaymu *config.Ipaymu,
+	configPayment config.Payment,
 	orderRepositoryInterface mysql.OrderRepositoryInterface,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
 	userRepositoryInterface mysql.UserRepositoryInterface,
@@ -79,7 +79,7 @@ func NewOrderService(
 		ConfigJwt:                              configJwt,
 		Validate:                               validate,
 		Logger:                                 logger,
-		ConfigurationIpaymu:                    configIpaymu,
+		ConfigPayment:                          configPayment,
 		OrderRepositoryInterface:               orderRepositoryInterface,
 		CartRepositoryInterface:                cartRepositoryInterface,
 		UserRepositoryInterface:                userRepositoryInterface,
@@ -322,17 +322,20 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	switch orderRequest.PaymentMethod {
 	case "va", "qris":
 		// Send request to ipaymu
-		var ipaymu_va = "0000007762212544"
-		var ipaymu_key = "SANDBOXBA640645-B4FF-488B-A540-7F866791E73E-20220425110704"
+		var ipaymu_va = string(service.ConfigPayment.IpaymuVa)
+		var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
+		fmt.Println("va = ", ipaymu_va)
+		fmt.Println("key = ", ipaymu_key)
+		fmt.Println("url = ", string(service.ConfigPayment.IpaymuCallbackUrl))
 
-		url, _ := url.Parse("https://sandbox.ipaymu.com/api/v2/payment/direct")
+		url, _ := url.Parse(string(service.ConfigPayment.IpaymuUrl))
 
 		postBody, _ := json.Marshal(map[string]interface{}{
 			"name":           orderEntity.FullName,
 			"phone":          orderEntity.Phone,
 			"email":          orderEntity.Email,
 			"amount":         orderEntity.PaymentByCash,
-			"notifyUrl":      "http://117.53.44.216:9000/api/v1/order/update",
+			"notifyUrl":      string(service.ConfigPayment.IpaymuCallbackUrl),
 			"expired":        24,
 			"expiredType":    "hours",
 			"referenceId":    orderEntity.NumberOrder,
@@ -343,6 +346,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		bodyHash := sha256.Sum256([]byte(postBody))
 		bodyHashToString := hex.EncodeToString(bodyHash[:])
 		stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
+
+		fmt.Println("url = ", url)
 
 		h := hmac.New(sha256.New, []byte(ipaymu_key))
 		h.Write([]byte(stringToSign))
@@ -378,6 +383,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			fmt.Println(err)
 			exceptions.PanicIfError(err, requestId, service.Logger)
 		}
+		s := fmt.Sprintf("%+v\n", dataResponseIpaymu)
+		fmt.Println(s)
 
 		if dataResponseIpaymu.Status != 200 {
 			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)

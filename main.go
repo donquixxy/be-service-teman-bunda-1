@@ -175,7 +175,8 @@ func main() {
 		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
-		productRepository)
+		productRepository,
+		appConfig.Payment)
 	productController := controllers.NewProductController(appConfig.Webserver, productService)
 	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
 
@@ -201,7 +202,7 @@ func main() {
 		appConfig.Jwt,
 		validate,
 		logrusLogger,
-		&appConfig.Ipaymu,
+		appConfig.Payment,
 		orderRepository,
 		cartRepository,
 		userRepository,
