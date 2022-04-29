@@ -2,7 +2,8 @@
 FROM golang:1.18.1-alpine as builder
 WORKDIR /build
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o be-service-teman-bunda .
+RUN apk add git && CGO_ENABLED=0 GOOS=linux go build -o be-service-teman-bunda .
+# RUN go build -o be-service-teman-bunda .
 
 # generate clean, final image for end users
 FROM alpine
