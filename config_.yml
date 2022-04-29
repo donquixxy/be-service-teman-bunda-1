@@ -8,21 +8,20 @@ webserver:
 database:
   tipe: core
   driver: mysql
-  address: 117.53.44.216
+  address: ${{ secrets.IP_DATABASE_DEV }}
   #  address: localhost
-  username: thebest
-  password: thebest!@#$
+  username: ${{ secrets.DB_USERNAME_DEV }}
+  password: ${{ secrets.DB_PASSWORD_DEV }}
   port: 3306
-  name: dev_aether
+  name: ${{ secrets.DB_NAME_DEV }}
   maxidle: 10
   maxopen: 10
   maxidletime: 5
   maxlifetime: 10
   timeout: 5 # in second
 jwt:
-  key: secret # key untuk development
-  # key: bss$%host&@! key untuk production
-  tokenexpiredtime: 900 # in minute
+  key: ${{ secrets.JWT_SECRET_DEV }} 
+  tokenexpiredtime: 360 # in minute
   refreshtokenexpiredtime: 365 # in days
 timezone:
   timezone: Asia/Makassar # Asia/Jakarta, Asia/Makassar, Asia/Jayapura
