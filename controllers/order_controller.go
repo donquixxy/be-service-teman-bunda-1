@@ -18,6 +18,8 @@ type OrderControllerInterface interface {
 	SendRequestToIpaymu(c echo.Context) error
 	FindOrderByUser(c echo.Context) error
 	FindOrderById(c echo.Context) error
+	CancelOrderById(c echo.Context) error
+	CompleteOrderById(c echo.Context) error
 }
 
 type OrderControllerImplementation struct {
@@ -67,6 +69,22 @@ func (controller *OrderControllerImplementation) UpdateStatusOrder(c echo.Contex
 	request := request.ReadFromCallBackIpaymuRequest(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.UpdateStatusOrder(requestId, request)
 	response := response.Response{Code: 200, Mssg: "succes update status order", Data: orderResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *OrderControllerImplementation) CancelOrderById(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idOrder := c.QueryParam("id_order")
+	err := controller.OrderServiceInterface.CancelOrderById(requestId, idOrder)
+	response := response.Response{Code: 201, Mssg: "succes cancel order", Data: err, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *OrderControllerImplementation) CompleteOrderById(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idOrder := c.QueryParam("id_order")
+	err := controller.OrderServiceInterface.CompleteOrderById(requestId, idOrder)
+	response := response.Response{Code: 201, Mssg: "succes compelte order", Data: err, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

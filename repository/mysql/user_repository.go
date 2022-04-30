@@ -17,6 +17,7 @@ type UserRepositoryInterface interface {
 	CountUserByRegistrationReferal(DB *gorm.DB, referal string) (userCount int, err error)
 	SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error)
 	FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error)
+	FindUserByReferalCode(DB *gorm.DB, referalCode string) (entity.User, error)
 }
 
 type UserRepositoryImplementation struct {
@@ -73,6 +74,17 @@ func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id str
 	results := DB.Where("users.id = ?", id).
 		Joins("FamilyMembers").
 		Joins("BalancePoint").
+		Joins("UserLevelMember").
+		First(&user)
+	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) FindUserByReferalCode(DB *gorm.DB, referalCode string) (entity.User, error) {
+	var user entity.User
+	results := DB.Where("users.referal_code = ?", referalCode).
+		Joins("FamilyMembers").
+		Joins("BalancePoint").
+		Joins("UserLevelMember").
 		First(&user)
 	return user, results.Error
 }

@@ -5,19 +5,20 @@ import (
 )
 
 type User struct {
-	Id                      string        `gorm:"primaryKey;column:id;"`
-	IdFamilyMembers         string        `gorm:"column:id_family_members;"`
-	FamilyMembers           FamilyMembers `gorm:"foreignKey:IdFamilyMembers"`
-	BalancePoint            BalancePoint  `gorm:"foreignKey:IdUser"`
-	Username                string        `gorm:"column:username;"`
-	Password                string        `gorm:"column:password;"`
-	RefreshToken            string        `gorm:"column:refresh_token;"`
-	IsActive                string        `gorm:"column:is_active;"`
-	ReferalCode             string        `gorm:"column:referal_code;"`
-	RegistrationReferalCode string        `gorm:"column:registration_referal_code;"`
-	IdRole                  string        `gorm:"column:id_role;"`
-	IdLevelMember           int           `gorm:"column:id_level_member;"`
-	CreatedDate             time.Time     `gorm:"column:created_at;"`
+	Id                      string          `gorm:"primaryKey;column:id;"`
+	IdFamilyMembers         string          `gorm:"column:id_family_members;"`
+	FamilyMembers           FamilyMembers   `gorm:"foreignKey:IdFamilyMembers"`
+	BalancePoint            BalancePoint    `gorm:"foreignKey:IdUser"`
+	Username                string          `gorm:"column:username;"`
+	Password                string          `gorm:"column:password;"`
+	RefreshToken            string          `gorm:"column:refresh_token;"`
+	IsActive                string          `gorm:"column:is_active;"`
+	ReferalCode             string          `gorm:"column:referal_code;"`
+	RegistrationReferalCode string          `gorm:"column:registration_referal_code;"`
+	IdRole                  string          `gorm:"column:id_role;"`
+	IdLevelMember           int             `gorm:"column:id_level_member;"`
+	UserLevelMember         UserLevelMember `gorm:"foreignKey:IdLevelMember"`
+	CreatedDate             time.Time       `gorm:"column:created_at;"`
 }
 
 func (User) TableName() string {

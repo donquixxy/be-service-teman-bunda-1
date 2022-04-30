@@ -33,6 +33,7 @@ type Order struct {
 	ProcessedAt             sql.NullTime `gorm:"column:processed_at;"`
 	DeliveryDueDate         sql.NullTime `gorm:"column:delivery_due_date;"`
 	DeliveredAt             sql.NullTime `gorm:"column:delivered_at;"`
+	CanceledAt              sql.NullTime `gorm:"column:delivered_at;"`
 	CompletedAt             sql.NullTime `gorm:"column:completed_at;"`
 }
 

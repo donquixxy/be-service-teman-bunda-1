@@ -195,6 +195,9 @@ func main() {
 	// Product Stock History
 	productStockHistoryRepository := mysql.NewProductStockHistoryRepository(&appConfig.Database)
 
+	// User Level Member
+	userLevelMemberRepository := mysql.NewUserLevelMemberRepository(&appConfig.Database)
+
 	// Order Service
 	orderService := services.NewOrderService(
 		appConfig.Webserver,
@@ -213,7 +216,8 @@ func main() {
 		productRepository,
 		productStockHistoryRepository,
 		balancePointRepository,
-		balancePointTxRepository)
+		balancePointTxRepository,
+		userLevelMemberRepository)
 	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
 	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 
