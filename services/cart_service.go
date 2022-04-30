@@ -17,8 +17,8 @@ import (
 )
 
 type CartServiceInterface interface {
-	AddProductToCart(requestId string, IdUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse)
-	FindCartByIdUser(requestId string, IdUser string, IdKelurahan int) (cartResponses response.FindCartByIdUserResponse)
+	AddProductToCart(requestId string, idUser string, addProductToCartRequest *request.AddProductToCartRequest) (addProductToCartResponse response.AddProductToCartResponse)
+	FindCartByIdUser(requestId string, idUser string, IdKelurahan int) (cartResponses response.FindCartByIdUserResponse)
 	CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)

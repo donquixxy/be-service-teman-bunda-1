@@ -1,13 +1,12 @@
 package controllers
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
-	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/middleware"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
@@ -16,9 +15,10 @@ import (
 
 type UserControllerInterface interface {
 	CreateUser(c echo.Context) error
+	UpdateUser(c echo.Context) error
 	FindUserByReferal(c echo.Context) error
 	FindUserById(c echo.Context) error
-	SendVerifyEmail(c echo.Context) error
+	UpdateStatusActiveUser(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -45,6 +45,25 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 	return c.JSON(http.StatusOK, response)
 }
 
+func (controller *UserControllerImplementation) UpdateUser(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	request := request.ReadFromUpdateUserRequestBody(c, requestId, controller.Logger)
+	userResponse := controller.UserServiceInterface.UpdateUser(requestId, idUser, request)
+	response := response.Response{Code: 201, Mssg: "user updated", Data: userResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Context) error {
+	// requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	fmt.Println("IdUser = ", idUser)
+	// userResponse := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, idUser)
+	// response := response.Response{Code: 201, Mssg: "user updated", Data: userResponse, Error: []string{}}
+	// return c.JSON(http.StatusOK, response)
+	return nil
+}
+
 func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	referal := c.QueryParam("referal")
@@ -59,14 +78,4 @@ func (controller *UserControllerImplementation) FindUserById(c echo.Context) err
 	userResponse := controller.UserServiceInterface.FindUserById(requestId, idUser)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
-}
-
-func (controller *UserControllerImplementation) SendVerifyEmail(c echo.Context) error {
-	err := controller.UserServiceInterface.SendEmail()
-	if err == nil {
-		return c.JSON(http.StatusOK, "ok doki a")
-	} else {
-		exceptions.PanicIfBadRequest(errors.New("gagal kirim email"), "1", []string{"hahahah"}, controller.Logger)
-		return nil
-	}
 }

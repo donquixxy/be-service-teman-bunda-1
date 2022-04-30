@@ -37,7 +37,12 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/user/create", userControllerInterface.CreateUser)
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
-	group.POST("/user/verifyemail", userControllerInterface.SendVerifyEmail)
+	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
+}
+
+func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
+	e.GET("/user/email/verify", userControllerInterface.UpdateStatusActiveUser, authMiddlerware.Authentication(configurationJWT))
 }
 
 // Auth Route
@@ -103,4 +108,16 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentChannelControllerInterface controllers.PaymentChannelControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/payment/list", paymentChannelControllerInterface.FindListPaymentChannel, authMiddlerware.Authentication(configurationJWT))
+}
+
+// List Payment
+func BannerRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, bannerControllerInterface controllers.BannerControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/banner", bannerControllerInterface.FindAllBanner, authMiddlerware.Authentication(configurationJWT))
+}
+
+// Product Brand
+func ProductBrandRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, productBrandControllerInterface controllers.ProductBrandControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/productbrand", productBrandControllerInterface.FindAllProductBrand, authMiddlerware.Authentication(configurationJWT))
 }

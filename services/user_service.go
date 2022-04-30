@@ -16,6 +16,7 @@ import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
+	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
 	"golang.org/x/crypto/bcrypt"
@@ -26,8 +27,8 @@ type UserServiceInterface interface {
 	CreateUser(requestId string, userRequest *request.CreateUserRequest) (userResponse response.CreateUserResponse)
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
-	// UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) (userResponse response.UpdateUserResponse)
-	SendEmail() error
+	UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error
+	// UpdateStatusActiveUser(requestId string, idUser string) error
 }
 
 type UserServiceImplementation struct {
@@ -36,6 +37,7 @@ type UserServiceImplementation struct {
 	ConfigJwt                         config.Jwt
 	Validate                          *validator.Validate
 	Logger                            *logrus.Logger
+	ConfigEmail                       config.Email
 	UserRepositoryInterface           mysql.UserRepositoryInterface
 	ProvinsiRepositoryInterface       mysql.ProvinsiRepositoryInterface
 	FamilyRepositoryInterface         mysql.FamilyRepositoryInterface
@@ -49,6 +51,7 @@ func NewUserService(
 	DB *gorm.DB, configJwt config.Jwt,
 	validate *validator.Validate,
 	logger *logrus.Logger,
+	configEmail config.Email,
 	userRepositoryInterface mysql.UserRepositoryInterface,
 	provinsiRepositoryInterface mysql.ProvinsiRepositoryInterface,
 	familyRepositoryInterface mysql.FamilyRepositoryInterface,
@@ -61,6 +64,7 @@ func NewUserService(
 		ConfigJwt:                         configJwt,
 		Validate:                          validate,
 		Logger:                            logger,
+		ConfigEmail:                       configEmail,
 		UserRepositoryInterface:           userRepositoryInterface,
 		ProvinsiRepositoryInterface:       provinsiRepositoryInterface,
 		FamilyRepositoryInterface:         familyRepositoryInterface,
@@ -70,36 +74,74 @@ func NewUserService(
 	}
 }
 
-// func (service *UserServiceImplementation) UpdateUser(requestId string, userRequest *request.UpdateUserRequest) (userResponse response.UpdateUserResponse) {
+func (service *UserServiceImplementation) UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error {
 
-// 	// Validate request
-// 	request.ValidateUpdateUserRequest(service.Validate, userRequest, requestId, service.Logger)
+	// Validate request
+	request.ValidateUpdateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
-// 	// Check username if exsict
-// 	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
-// 	if checkUsername.Id != "" {
-// 		err := errors.New("username already exist")
-// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username already exist"}, service.Logger)
-// 	}
+	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, idUser)
 
-// 	// Check email if exsict
-// 	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
-// 	if checkEmail.Id != "" {
-// 		err := errors.New("email already exist")
-// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email already exist"}, service.Logger)
-// 	}
+	if userRequest.Username != user.Username {
+		// Check username if exsict
+		checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
+		if checkUsername.Id != "" {
+			err := errors.New("username already exist")
+			exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username already exist"}, service.Logger)
+		}
+	}
 
-// 	// Check phone if exsict
-// 	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
-// 	if checkPhone.Id != "" {
-// 		err := errors.New("phone already exist")
-// 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone already exist"}, service.Logger)
-// 	}
+	if userRequest.Email != user.FamilyMembers.Email {
+		// Check email if exsict
+		checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
+		if checkEmail.Id != "" {
+			err := errors.New("email already exist")
+			exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email already exist"}, service.Logger)
+		}
+	}
 
-// 	// tx := service.DB.Begin()
+	if userRequest.Phone != user.FamilyMembers.Phone {
+		// Check phone if exsict
+		checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
+		if checkPhone.Id != "" {
+			err := errors.New("phone already exist")
+			exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone already exist"}, service.Logger)
+		}
+	}
 
-// 	return
-// }
+	tx := service.DB.Begin()
+
+	// Generate Password
+	password := userRequest.Password
+	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
+
+	// Create family members profile
+	familyMembersEntity := &entity.FamilyMembers{}
+	familyMembersEntity.FullName = userRequest.FullName
+	familyMembersEntity.Email = userRequest.Email
+	familyMembersEntity.Address = userRequest.Address
+	familyMembersEntity.Phone = userRequest.Phone
+	familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
+	familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
+	familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
+	familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
+	familyMembers, errUpdateFamilyMembers := service.FamilyMembersRepositoryInterface.UpdateFamilyMembers(tx, user.IdFamilyMembers, *familyMembersEntity)
+	exceptions.PanicIfErrorWithRollback(errUpdateFamilyMembers, requestId, []string{"Error update family members"}, service.Logger, tx)
+
+	// Crate user profile
+	userEntity := &entity.User{}
+	userEntity.IdFamilyMembers = familyMembers.Id
+	userEntity.Username = userRequest.Username
+	if userRequest.Password != "" {
+		userEntity.Password = string(bcryptPassword)
+	}
+	_, errUpdateUser := service.UserRepositoryInterface.UpdateUser(tx, idUser, *userEntity)
+	exceptions.PanicIfErrorWithRollback(errUpdateUser, requestId, []string{"Error update user"}, service.Logger, tx)
+
+	commit := tx.Commit()
+	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+	return nil
+}
 
 func (service *UserServiceImplementation) CreateUser(requestId string, userRequest *request.CreateUserRequest) (userResponse response.CreateUserResponse) {
 
@@ -186,6 +228,16 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	balancePoint, err := service.BalancePointRepositoryInterface.CreateBalancePoint(tx, *balancePointEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert balance point"}, service.Logger, tx)
 
+	var userModelService modelService.User
+	userModelService.Id = user.Id
+	userModelService.Username = user.Username
+	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
+
+	token, err := service.GenerateToken(userModelService)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	service.SendEmail(userRequest.Email, userEntity.Id, token)
+
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 	userResponse = response.ToUserCreateUserResponse(user, family, familyMembers, balancePoint)
@@ -237,11 +289,10 @@ func (service *UserServiceImplementation) FindUserById(requestId string, id stri
 	return userResponse
 }
 
-func (service *UserServiceImplementation) SendEmail() error {
-	fromEmail := "service.simole@gmail.com"
-	fromPasswordEmail := "TensuHost10498"
+func (service *UserServiceImplementation) SendEmail(toEmail string, idUser string, token string) error {
+	fromEmail := string(service.ConfigEmail.FromEmail)
+	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
 
-	toEmail := "tensu104qiuwulu98@gmail.com"
 	to := []string{toEmail}
 
 	host := "smtp.gmail.com"
@@ -249,8 +300,8 @@ func (service *UserServiceImplementation) SendEmail() error {
 	address := host + ":" + port
 
 	subject := "Subject: Email Verification Code\r\n\r\n"
-	verCode := "1234"
-	body := "verfication code: " + verCode
+	body := "Silakan klik link berikut untuk melakukan verifikasi \n" +
+		"Link : " + service.ConfigEmail.LinkVerifyEmail + token
 	message := []byte(subject + body)
 
 	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)

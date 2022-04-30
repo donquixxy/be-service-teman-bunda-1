@@ -143,12 +143,13 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 	balancePointTxEntity.Id = utilities.RandomUUID()
 	balancePointTxEntity.IdBalancePoint = balancePoint.Id
 	balancePointTxEntity.NoOrder = order.NumberOrder
-	balancePointTxEntity.TxType = "Bonus Dari Pembelian"
+	balancePointTxEntity.TxType = "debit"
 	balancePointTxEntity.TxDate = time.Now()
 	balancePointTxEntity.TxNominal = bonusPoint
 	balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
 	balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + bonusPoint
 	balancePointTxEntity.CreatedDate = time.Now()
+	balancePointTxEntity.Description = "Bonus Dari Pembelian"
 
 	_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
 	exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
@@ -171,7 +172,7 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 		balancePointTxEntity.Id = utilities.RandomUUID()
 		balancePointTxEntity.IdBalancePoint = balancePointReferal.Id
 		balancePointTxEntity.NoOrder = order.NumberOrder
-		balancePointTxEntity.TxType = "Bonus Dari Teman Bunda"
+		balancePointTxEntity.TxType = "referal"
 		balancePointTxEntity.TxDate = time.Now()
 		balancePointTxEntity.TxNominal = bonusPoint
 		balancePointTxEntity.LastPointBalance = balancePointReferal.BalancePoints
@@ -281,9 +282,9 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			balancePointTxEntity.Id = utilities.RandomUUID()
 			balancePointTxEntity.IdBalancePoint = balancePoint.Id
 			balancePointTxEntity.NoOrder = order.NumberOrder
-			balancePointTxEntity.TxType = "Pembelian"
+			balancePointTxEntity.TxType = "credit"
 			balancePointTxEntity.TxDate = time.Now()
-			balancePointTxEntity.TxNominal = order.PaymentByPoint - (order.PaymentByPoint * 2)
+			balancePointTxEntity.TxNominal = order.PaymentByPoint
 			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
 			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
 			balancePointTxEntity.CreatedDate = time.Now()
@@ -444,8 +445,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		bodyHash := sha256.Sum256([]byte(postBody))
 		bodyHashToString := hex.EncodeToString(bodyHash[:])
 		stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
-
-		fmt.Println("url = ", url)
 
 		h := hmac.New(sha256.New, []byte(ipaymu_key))
 		h.Write([]byte(stringToSign))

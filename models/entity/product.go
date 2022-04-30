@@ -12,6 +12,7 @@ type Product struct {
 	Thumbnail       string          `gorm:"column:thumbnail;"`
 	Stock           int             `gorm:"column:stock;"`
 	IdCategory      int             `gorm:"column:id_category;"`
+	IdSubCategory   int             `gorm:"column:id_sub_category;"`
 	ProductCategory ProductCategory `gorm:"foreignKey:IdCategory"`
 	ProductDiscount ProductDiscount `gorm:"foreignKey:IdProduct"`
 }

@@ -54,6 +54,12 @@ type Payment struct {
 	IpaymuCallbackUrl string `yaml:"ipaymucallbackurl"`
 }
 
+type Email struct {
+	FromEmail         string `yaml:"fromemail"`
+	FromEmailPassword string `yaml:"fromemailpassword"`
+	LinkVerifyEmail   string `yaml:"linkverifyemail"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -62,6 +68,7 @@ type ApplicationConfiguration struct {
 	Timezone    Timezone
 	Log         Log
 	Payment     Payment
+	Email       Email
 }
 
 var lock = sync.Mutex{}

@@ -5,17 +5,18 @@ import (
 )
 
 type FindProductResponse struct {
-	Id          string  `json:"id"`
-	IdCategory  int     `json:"id_category"`
-	ProductName string  `json:"product_name"`
-	Price       float64 `json:"price"`
-	Description string  `json:"description"`
-	PictureUrl  string  `json:"picture_url"`
-	Thumbnail   string  `json:"thumbnail"`
-	Stock       int     `json:"stock"`
-	FlagPromo   string  `json:"flag_promo"`
-	Percentage  float64 `json:"discount_percentage"`
-	Nominal     float64 `json:"discount_nominal"`
+	Id            string  `json:"id"`
+	IdCategory    int     `json:"id_category"`
+	IdSubCategory int     `json:"id_sub_category"`
+	ProductName   string  `json:"product_name"`
+	Price         float64 `json:"price"`
+	Description   string  `json:"description"`
+	PictureUrl    string  `json:"picture_url"`
+	Thumbnail     string  `json:"thumbnail"`
+	Stock         int     `json:"stock"`
+	FlagPromo     string  `json:"flag_promo"`
+	Percentage    float64 `json:"discount_percentage"`
+	Nominal       float64 `json:"discount_nominal"`
 }
 
 func ToFindProductResponses(products []entity.Product) (productResponses []FindProductResponse) {
@@ -23,6 +24,7 @@ func ToFindProductResponses(products []entity.Product) (productResponses []FindP
 		var productResponse FindProductResponse
 		productResponse.Id = product.Id
 		productResponse.IdCategory = product.IdCategory
+		productResponse.IdSubCategory = product.IdSubCategory
 		productResponse.ProductName = product.ProductName
 		productResponse.Price = product.Price
 		productResponse.Description = product.Description
@@ -40,6 +42,7 @@ func ToFindProductResponses(products []entity.Product) (productResponses []FindP
 func ToFindProductResponse(product entity.Product) (productResponse FindProductResponse) {
 	productResponse.Id = product.Id
 	productResponse.IdCategory = product.IdCategory
+	productResponse.IdSubCategory = product.IdSubCategory
 	productResponse.ProductName = product.ProductName
 	productResponse.Price = product.Price
 	productResponse.Description = product.Description

@@ -43,7 +43,7 @@ func main() {
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Skipper:      nil,
 		ErrorMessage: "Request Timeout",
-		Timeout:      10 * time.Second,
+		Timeout:      20 * time.Second,
 	}))
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler
@@ -149,6 +149,7 @@ func main() {
 		appConfig.Jwt,
 		validate,
 		logrusLogger,
+		appConfig.Email,
 		userRepository,
 		provinsiRepository,
 		familyRepository,
@@ -231,6 +232,26 @@ func main() {
 	)
 	paymentChannelController := controllers.NewPaymentChannelController(appConfig.Webserver, logrusLogger, paymentChannelService)
 	routes.PaymentChannelRoute(e, appConfig.Webserver, appConfig.Jwt, paymentChannelController)
+
+	// Banner
+	bannerRepository := mysql.NewBannerRepository(&appConfig.Database)
+	bannerService := services.NewBannerService(appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		bannerRepository)
+	bannerController := controllers.NewBannerController(appConfig.Webserver, bannerService)
+	routes.BannerRoute(e, appConfig.Webserver, appConfig.Jwt, bannerController)
+
+	// Product Brand
+	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
+	productBrandService := services.NewProductBrandService(appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		productBrandRepository)
+	productBrandController := controllers.NewProductBrandController(appConfig.Webserver, productBrandService)
+	routes.ProductBrandRoute(e, appConfig.Webserver, appConfig.Jwt, productBrandController)
+
+	routes.VerifyEmailRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
 
 	// Careful shutdown
 	go func() {
