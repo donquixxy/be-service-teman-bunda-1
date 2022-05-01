@@ -40,6 +40,8 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/password/request/code", userControllerInterface.PasswordCodeRequest)
+	group.POST("/password/code/verify", userControllerInterface.PasswordResetCodeVerify)
+	group.POST("/user/update/password", userControllerInterface.UpdateUserPassword)
 }
 
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {

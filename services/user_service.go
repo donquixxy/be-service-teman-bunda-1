@@ -31,6 +31,8 @@ type UserServiceInterface interface {
 	UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error
 	UpdateStatusActiveUser(requestId string, accessToken string) error
 	PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error
+	PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error
+	UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error
 }
 
 type UserServiceImplementation struct {
@@ -76,9 +78,24 @@ func NewUserService(
 	}
 }
 
+func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error {
+	// Validate request
+	request.ValidatePasswordResetCodeVerifyRequest(service.Validate, passwordResetCodeVerifyRequest, requestId, service.Logger)
+
+	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordResetCodeVerifyRequest.Email)
+
+	if user.PasswordResetCode == passwordResetCodeVerifyRequest.Code {
+		return nil
+	} else {
+		err := errors.New("email and code not match")
+		exceptions.PanicIfBadRequest(err, requestId, []string{"email and code not match"}, service.Logger)
+		return err
+	}
+}
+
 func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error {
 	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordRequest.Email)
-	fmt.Println(user)
+
 	if user.Id == "" {
 		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
 	}
@@ -135,6 +152,26 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 		exceptions.PanicIfBadRequest(err, requestId, []string{"no claims"}, service.Logger)
 		return nil
 	}
+}
+
+func (service *UserServiceImplementation) UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error {
+	// Validate request
+	request.ValidateUpdateUserPasswordRequest(service.Validate, updateUserPasswordRequest, requestId, service.Logger)
+
+	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, updateUserPasswordRequest.Email)
+
+	if user.PasswordResetCode == updateUserPasswordRequest.Code {
+		userEntity := &entity.User{}
+		userEntity.Password = updateUserPasswordRequest.Password
+		userEntity.PasswordResetCode = " "
+		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
+		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
+	} else {
+		err := errors.New("email and code not match")
+		exceptions.PanicIfBadRequest(err, requestId, []string{"email and code not match"}, service.Logger)
+	}
+
+	return nil
 }
 
 func (service *UserServiceImplementation) UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error {

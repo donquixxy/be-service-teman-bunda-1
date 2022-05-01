@@ -20,6 +20,8 @@ type UserControllerInterface interface {
 	FindUserById(c echo.Context) error
 	UpdateStatusActiveUser(c echo.Context) error
 	PasswordCodeRequest(c echo.Context) error
+	PasswordResetCodeVerify(c echo.Context) error
+	UpdateUserPassword(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -55,11 +57,27 @@ func (controller *UserControllerImplementation) UpdateUser(c echo.Context) error
 	return c.JSON(http.StatusOK, response)
 }
 
+func (controller *UserControllerImplementation) UpdateUserPassword(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromUpdateUserPasswordRequestBody(c, requestId, controller.Logger)
+	userResponse := controller.UserServiceInterface.UpdateUserPassword(requestId, request)
+	response := response.Response{Code: 201, Mssg: "user password updated", Data: userResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *UserControllerImplementation) PasswordResetCodeVerify(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromPasswordResetCodeVerifyBody(c, requestId, controller.Logger)
+	controller.UserServiceInterface.PasswordResetCodeVerify(requestId, request)
+	response := response.Response{Code: 200, Mssg: "verification success"}
+	return c.JSON(http.StatusOK, response)
+}
+
 func (controller *UserControllerImplementation) PasswordCodeRequest(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromPasswordCodeRequestBody(c, requestId, controller.Logger)
 	controller.UserServiceInterface.PasswordCodeRequest(requestId, request)
-	response := response.VerifyEmailResponse{Mssg: "email sent"}
+	response := response.Response{Code: 200, Mssg: "email sent"}
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -70,8 +88,7 @@ func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Co
 	fmt.Println(accessToken)
 	err := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, accessToken)
 	if err == nil {
-		response := response.VerifyEmailResponse{Mssg: "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA"}
-		return c.JSON(http.StatusOK, response)
+		return c.JSON(http.StatusOK, "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA")
 	} else {
 		return nil
 	}
