@@ -19,6 +19,7 @@ type UserControllerInterface interface {
 	FindUserByReferal(c echo.Context) error
 	FindUserById(c echo.Context) error
 	UpdateStatusActiveUser(c echo.Context) error
+	PasswordCodeRequest(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -54,14 +55,26 @@ func (controller *UserControllerImplementation) UpdateUser(c echo.Context) error
 	return c.JSON(http.StatusOK, response)
 }
 
+func (controller *UserControllerImplementation) PasswordCodeRequest(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromPasswordCodeRequestBody(c, requestId, controller.Logger)
+	controller.UserServiceInterface.PasswordCodeRequest(requestId, request)
+	response := response.VerifyEmailResponse{Mssg: "email sent"}
+	return c.JSON(http.StatusOK, response)
+}
+
 func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Context) error {
-	// requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	idUser := middleware.TokenClaimsIdUser(c)
-	fmt.Println("IdUser = ", idUser)
-	// userResponse := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, idUser)
-	// response := response.Response{Code: 201, Mssg: "user updated", Data: userResponse, Error: []string{}}
-	// return c.JSON(http.StatusOK, response)
-	return nil
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	// idUser := middleware.TokenClaimsIdUser(c)
+	accessToken := c.QueryParam("access_token")
+	fmt.Println(accessToken)
+	err := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, accessToken)
+	if err == nil {
+		response := response.VerifyEmailResponse{Mssg: "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA"}
+		return c.JSON(http.StatusOK, response)
+	} else {
+		return nil
+	}
 }
 
 func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context) error {

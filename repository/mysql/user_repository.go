@@ -10,6 +10,7 @@ type UserRepositoryInterface interface {
 	CreateUser(DB *gorm.DB, user entity.User) (entity.User, error)
 	UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateStatusActiveUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
@@ -48,6 +49,16 @@ func (repository *UserRepositoryImplementation) UpdateStatusActiveUser(DB *gorm.
 		Where("id = ?", idUser).
 		Updates(entity.User{
 			IsActive: user.IsActive,
+		})
+	return user, result.Error
+}
+
+func (repository *UserRepositoryImplementation) UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			PasswordResetCode: user.PasswordResetCode,
 		})
 	return user, result.Error
 }

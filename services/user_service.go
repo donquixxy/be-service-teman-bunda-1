@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator"
+	"github.com/golang-jwt/jwt"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
@@ -28,7 +29,8 @@ type UserServiceInterface interface {
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
 	UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error
-	// UpdateStatusActiveUser(requestId string, idUser string) error
+	UpdateStatusActiveUser(requestId string, accessToken string) error
+	PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error
 }
 
 type UserServiceImplementation struct {
@@ -71,6 +73,67 @@ func NewUserService(
 		FamilyMembersRepositoryInterface:  familyMembersRepositoryInterface,
 		BalancePointRepositoryInterface:   balancePointRepositoryInterface,
 		BalancePointTxRepositoryInterface: balancePointTxRepositoryInterface,
+	}
+}
+
+func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error {
+	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordRequest.Email)
+	fmt.Println(user)
+	if user.Id == "" {
+		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
+	}
+
+	rand.Seed(time.Now().Unix())
+	charSet := "1234567890"
+	var output strings.Builder
+	length := 6
+
+	for i := 0; i < length; i++ {
+		random := rand.Intn(len(charSet))
+		randomChar := charSet[random]
+		output.WriteString(string(randomChar))
+	}
+
+	userEntity := &entity.User{}
+	userEntity.PasswordResetCode = output.String()
+
+	_, errUpdateUser := service.UserRepositoryInterface.UpdatePasswordResetCodeUser(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
+
+	service.SendEmailPasswordResetCode(user.FamilyMembers.Email, userEntity.PasswordResetCode)
+
+	return nil
+}
+
+func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId string, accessToken string) error {
+	tokenParse, err := jwt.ParseWithClaims(accessToken, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(service.ConfigJwt.VerifyKey), nil
+	})
+
+	if !tokenParse.Valid {
+		exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		}
+	}
+
+	if claims, ok := tokenParse.Claims.(*modelService.TokenClaims); ok && tokenParse.Valid {
+		user, _ := service.UserRepositoryInterface.FindUserById(service.DB, claims.Id)
+		userEntity := &entity.User{}
+		userEntity.IsActive = 1
+
+		_, errUpdateUser := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
+		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
+		return nil
+	} else {
+		err := errors.New("no claims")
+		exceptions.PanicIfBadRequest(err, requestId, []string{"no claims"}, service.Logger)
+		return nil
 	}
 }
 
@@ -233,7 +296,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userModelService.Username = user.Username
 	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
 
-	token, err := service.GenerateToken(userModelService)
+	token, err := service.GenerateTokenVerify(userModelService)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 
 	service.SendEmail(userRequest.Email, userEntity.Id, token)
@@ -299,9 +362,31 @@ func (service *UserServiceImplementation) SendEmail(toEmail string, idUser strin
 	port := "587"
 	address := host + ":" + port
 
-	subject := "Subject: Email Verification Code\r\n\r\n"
+	subject := "Subject: Email Verification\r\n\r\n"
 	body := "Silakan klik link berikut untuk melakukan verifikasi \n" +
 		"Link : " + service.ConfigEmail.LinkVerifyEmail + token
+	message := []byte(subject + body)
+
+	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
+	fmt.Println("message : ", string(message))
+	err := smtp.SendMail(address, auth, fromEmail, to, message)
+	fmt.Println(err)
+	return err
+}
+
+func (service *UserServiceImplementation) SendEmailPasswordResetCode(toEmail string, code string) error {
+	fromEmail := string(service.ConfigEmail.FromEmail)
+	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
+
+	to := []string{toEmail}
+
+	host := "smtp.gmail.com"
+	port := "587"
+	address := host + ":" + port
+
+	subject := "Subject: Reset Password Code\r\n\r\n"
+	body := "Berikut merupakan code untuk reset password \n" +
+		"CODE : " + code
 	message := []byte(subject + body)
 
 	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)

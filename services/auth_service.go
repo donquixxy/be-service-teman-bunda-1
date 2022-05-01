@@ -60,25 +60,30 @@ func (service *UserServiceImplementation) Login(requestId string, authRequest *r
 		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
-	exceptions.PanicIfBadRequest(err, requestId, []string{"Invalid Credentials"}, service.Logger)
+	if user.IsActive == 1 {
+		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
+		exceptions.PanicIfBadRequest(err, requestId, []string{"Invalid Credentials"}, service.Logger)
 
-	userModelService.Id = user.Id
-	userModelService.Username = user.Username
-	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
+		userModelService.Id = user.Id
+		userModelService.Username = user.Username
+		userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
 
-	token, err := service.GenerateToken(userModelService)
-	exceptions.PanicIfError(err, requestId, service.Logger)
+		token, err := service.GenerateToken(userModelService)
+		exceptions.PanicIfError(err, requestId, service.Logger)
 
-	refreshToken, err := service.GenerateRefreshToken(userModelService)
-	exceptions.PanicIfError(err, requestId, service.Logger)
+		refreshToken, err := service.GenerateRefreshToken(userModelService)
+		exceptions.PanicIfError(err, requestId, service.Logger)
 
-	_, err = service.UserRepositoryInterface.SaveUserRefreshToken(service.DB, userModelService.Id, refreshToken)
-	exceptions.PanicIfError(err, requestId, service.Logger)
+		_, err = service.UserRepositoryInterface.SaveUserRefreshToken(service.DB, userModelService.Id, refreshToken)
+		exceptions.PanicIfError(err, requestId, service.Logger)
 
-	authResponse = response.ToAuthResponse(userModelService.Id, userModelService.Username, token, refreshToken)
+		authResponse = response.ToAuthResponse(userModelService.Id, userModelService.Username, token, refreshToken)
 
-	return authResponse
+		return authResponse
+	} else {
+		exceptions.PanicIfUnauthorized(errors.New("account is not active"), requestId, []string{"not active"}, service.Logger)
+		return nil
+	}
 
 }
 
@@ -140,6 +145,25 @@ func (service *UserServiceImplementation) GenerateToken(user modelService.User) 
 
 	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.Key))
+	if err != nil {
+		return "", err
+	}
+	return token, err
+}
+
+func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.User) (token string, err error) {
+	// Create the Claims
+	claims := modelService.TokenClaims{
+		Id:       user.Id,
+		Username: user.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
+			Issuer:    "ayaka",
+		},
+	}
+
+	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.VerifyKey))
 	if err != nil {
 		return "", err
 	}

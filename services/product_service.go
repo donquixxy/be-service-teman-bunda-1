@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -44,14 +43,6 @@ func NewProductService(
 }
 
 func (service *ProductServiceImplementation) FindAllProducts(requestId string, limit int, page int) (productResponses []response.FindProductResponse) {
-	IpaymuVa := service.ConfigPayment.IpaymuVa
-	fmt.Println("va = ", IpaymuVa)
-	IpaymuKey := service.ConfigPayment.IpaymuKey
-	fmt.Println("key = ", IpaymuKey)
-	IpaymuUrl := service.ConfigPayment.IpaymuUrl
-	fmt.Println("url = ", IpaymuUrl)
-	NotifyUrl := service.ConfigPayment.IpaymuCallbackUrl
-	fmt.Println("notif = ", NotifyUrl)
 	products, err := service.ProductRepositoryInterface.FindAllProducts(service.DB, limit, page)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	productResponses = response.ToFindProductResponses(products)

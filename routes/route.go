@@ -39,10 +39,11 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
+	group.POST("/password/request/code", userControllerInterface.PasswordCodeRequest)
 }
 
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
-	e.GET("/user/email/verify", userControllerInterface.UpdateStatusActiveUser, authMiddlerware.Authentication(configurationJWT))
+	e.GET("/user/email/verify", userControllerInterface.UpdateStatusActiveUser)
 }
 
 // Auth Route
