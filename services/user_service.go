@@ -160,9 +160,13 @@ func (service *UserServiceImplementation) UpdateUserPassword(requestId string, u
 
 	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, updateUserPasswordRequest.Email)
 
+	password := updateUserPasswordRequest.Password
+	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
+
 	if user.PasswordResetCode == updateUserPasswordRequest.Code {
 		userEntity := &entity.User{}
-		userEntity.Password = updateUserPasswordRequest.Password
+		userEntity.Password = string(bcryptPassword)
 		userEntity.PasswordResetCode = " "
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
