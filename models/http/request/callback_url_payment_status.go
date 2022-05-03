@@ -8,7 +8,7 @@ import (
 )
 
 type CallBackIpaymuRequest struct {
-	TrxId       string `json:"trx_id" form:"trx_id" validate:"required"`
+	TrxId       int    `json:"trx_id" form:"trx_id" validate:"required"`
 	Status      string `json:"status" form:"status" validate:"required"`
 	StatusCode  string `json:"status_code" form:"status_code" validate:"required"`
 	ReferenceId string `json:"reference_id" form:"reference_id" validate:"required"`

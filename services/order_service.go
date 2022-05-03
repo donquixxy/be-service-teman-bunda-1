@@ -450,13 +450,18 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			"phone":          orderEntity.Phone,
 			"email":          orderEntity.Email,
 			"amount":         orderEntity.PaymentByCash,
-			"notifyUrl":      string(service.ConfigPayment.IpaymuCallbackUrl),
+			"notifyUrl":      service.ConfigPayment.IpaymuCallbackUrl,
 			"expired":        24,
 			"expiredType":    "hours",
 			"referenceId":    orderEntity.NumberOrder,
 			"paymentMethod":  orderRequest.PaymentMethod,
 			"paymentChannel": orderRequest.PaymentChannel,
 		})
+
+		notifuUrl := service.ConfigPayment.IpaymuCallbackUrl
+		test := "test"
+		fmt.Println("notif url =", notifuUrl)
+		fmt.Println("test =", test)
 
 		bodyHash := sha256.Sum256([]byte(postBody))
 		bodyHashToString := hex.EncodeToString(bodyHash[:])
