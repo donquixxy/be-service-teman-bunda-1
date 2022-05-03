@@ -15,6 +15,7 @@ type OrderRepositoryInterface interface {
 	FindOrderById(DB *gorm.DB, idOrder string) (entity.Order, error)
 	CreateOrder(DB *gorm.DB, order entity.Order) (entity.Order, error)
 	UpdateOrderStatus(DB *gorm.DB, numberOrder string, order entity.Order) (entity.Order, error)
+	UpdateOrderPayment(DB *gorm.DB, numberOrder string, order entity.Order) (entity.Order, error)
 }
 
 type OrderRepositoryImplementation struct {
@@ -71,6 +72,18 @@ func (repository *OrderRepositoryImplementation) UpdateOrderStatus(DB *gorm.DB, 
 			PaymentStatus:    order.PaymentStatus,
 			OrderSatus:       order.OrderSatus,
 			PaymentSuccessAt: order.PaymentSuccessAt,
+		})
+	return order, result.Error
+}
+
+func (repository *OrderRepositoryImplementation) UpdateOrderPayment(DB *gorm.DB, NumberOrder string, order entity.Order) (entity.Order, error) {
+	result := DB.
+		Model(entity.Order{}).
+		Where("number_order = ?", NumberOrder).
+		Updates(entity.Order{
+			PaymentNo:      order.PaymentNo,
+			PaymentExpired: order.PaymentExpired,
+			PaymentName:    order.PaymentName,
 		})
 	return order, result.Error
 }

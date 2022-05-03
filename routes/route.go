@@ -105,6 +105,7 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 	group.GET("/order/detail/id", orderControllerInterface.FindOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/order/cancel/id", orderControllerInterface.CancelOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/order/complete/id", orderControllerInterface.CompleteOrderById, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/order/payment/check", orderControllerInterface.OrderCheckPayment, authMiddlerware.Authentication(configurationJWT))
 }
 
 // List Payment

@@ -35,6 +35,7 @@ type OrderServiceInterface interface {
 	FindOrderById(requestId string, idOrder string) (orderResponse response.FindOrderByIdOrderResponse)
 	CancelOrderById(requestId string, idOrder string) error
 	CompleteOrderById(requestId string, idOrder string) error
+	OrderCheckPayment(requestId string, idOrder string) (orderCheckPaymentResponse response.OrderCheckPayment)
 }
 
 type OrderServiceImplementation struct {
@@ -97,6 +98,20 @@ func NewOrderService(
 		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 		UserLevelRepositoryInterface:           userLevelMemberRepositoryInterface,
 	}
+}
+
+func (service *OrderServiceImplementation) OrderCheckPayment(requestId string, idOrder string) (orderCheckPaymentResponse response.OrderCheckPayment) {
+	order, err := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	if order.PaymentMethod == "va" {
+		bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, order.PaymentChannel)
+		orderCheckPaymentResponse = response.ToOrderCheckVaPaymentResponse(order, bankVa)
+	} else if order.PaymentMethod == "trf" {
+		bankTransfer, _ := service.BankTransferRepositoryInterface.FindBankTransferByBankCode(service.DB, order.PaymentChannel)
+		orderCheckPaymentResponse = response.ToOrderCheckTransferPaymentResponse(order, bankTransfer)
+	}
+	return orderCheckPaymentResponse
 }
 
 func (service *OrderServiceImplementation) FindOrderByUser(requestId string, numberOrder string, orderStatus string) (orderResponses []response.FindOrderByUserResponse) {
@@ -216,6 +231,7 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 
 func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, paymentRequestCallback *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse) {
 
+	fmt.Println("masuk ke update order status")
 	// validate request
 	request.ValidateCallBackIpaymuRequest(service.Validate, paymentRequestCallback, requestId, service.Logger)
 
@@ -500,6 +516,14 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			_, err := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
 			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create log"}, service.Logger, tx)
 
+			orderEntity := &entity.Order{}
+			orderEntity.PaymentNo = dataResponseIpaymu.Data.PaymentNo
+			orderEntity.PaymentExpired = dataResponseIpaymu.Data.Expired
+			orderEntity.PaymentName = dataResponseIpaymu.Data.PaymentName
+
+			_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		}
@@ -526,6 +550,14 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		payment.Data.PaymentName = bankTransfer.BankName
 		payment.Data.PaymentNo = bankTransfer.NoAccount
 		payment.Data.ReferenceId = orderEntity.NumberOrder
+
+		orderEntity := &entity.Order{}
+		orderEntity.PaymentNo = bankTransfer.NoAccount
+		orderEntity.PaymentExpired = ""
+		orderEntity.PaymentName = bankTransfer.BankName
+
+		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
