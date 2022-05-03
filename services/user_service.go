@@ -256,21 +256,21 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
 	if checkUsername.Id != "" {
 		err := errors.New("username already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username already exist"}, service.Logger)
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
 	}
 
 	// Check email if exsict
 	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
 	if checkEmail.Id != "" {
 		err := errors.New("email already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email already exist"}, service.Logger)
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
 	}
 
 	// Check phone if exsict
 	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
 	if checkPhone.Id != "" {
 		err := errors.New("phone already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone already exist"}, service.Logger)
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone sudah digunakan"}, service.Logger)
 	}
 
 	// Begin Transcation
