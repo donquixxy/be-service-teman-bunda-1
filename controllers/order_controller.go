@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -74,6 +75,7 @@ func (controller *OrderControllerImplementation) CreateOrder(c echo.Context) err
 }
 
 func (controller *OrderControllerImplementation) UpdateStatusOrder(c echo.Context) error {
+	fmt.Println("Log Ada Request Ke Sini")
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromCallBackIpaymuRequest(c, requestId, controller.Logger)
 	orderResponse := controller.OrderServiceInterface.UpdateStatusOrder(requestId, request)
