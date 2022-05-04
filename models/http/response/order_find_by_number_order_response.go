@@ -11,6 +11,8 @@ type FindOrderByIdOrderResponse struct {
 	OrderStatus    string              `json:"order_status"`
 	PaymentByPoint float64             `json:"payment_by_point"`
 	PaymentByCash  float64             `json:"payment_by_cash"`
+	PaymentMethod  string              `json:"payment_method"`
+	PaymentChannel string              `json:"payment_channel"`
 	OrderItems     []OrderItemResponse `json:"order_items"`
 }
 
@@ -48,6 +50,8 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 
 	orderResponse.IdOrder = order.Id
 	orderResponse.TrxId = order.TrxId
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.OrderItems = orderItemsResponses
 	if order.PaymentMethod == "point" {
 		orderResponse.TotalBill = 0
