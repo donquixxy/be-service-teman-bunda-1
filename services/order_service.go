@@ -214,15 +214,61 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 
 func (service *OrderServiceImplementation) CancelOrderById(requestId string, idOrder string) error {
 	order, _ := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
-
+	orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+	// get data balance point
+	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 	tx := service.DB.Begin()
+
+	// Add to point history
+	balancePointTxEntity := &entity.BalancePointTx{}
+	balancePointTxEntity.Id = utilities.RandomUUID()
+	balancePointTxEntity.IdBalancePoint = balancePoint.Id
+	balancePointTxEntity.NoOrder = order.NumberOrder
+	balancePointTxEntity.TxType = "debit"
+	balancePointTxEntity.TxDate = time.Now()
+	balancePointTxEntity.TxNominal = order.PaymentByPoint
+	balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+	balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + order.PaymentByPoint
+	balancePointTxEntity.CreatedDate = time.Now()
+	balancePointTxEntity.Description = "Pengembalian Point"
+
+	_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+	exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
 
 	orderEntity := &entity.Order{}
 	orderEntity.OrderSatus = "Dibatalkan"
 	orderEntity.CanceledAt.Time = time.Now()
 
+	balancePointEntity := &entity.BalancePoint{}
+	balancePointEntity.BalancePoints = balancePoint.BalancePoints + order.PaymentByPoint
+
+	_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+	exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
 	_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
+
+	// Pengembalian stock
+	for _, orderItem := range orderItems {
+		productEntity := &entity.Product{}
+		productEntityStockHistory := &entity.ProductStockHistory{}
+		product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+		exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+		productEntityStockHistory.IdProduct = orderItem.IdProduct
+		productEntityStockHistory.TxDate = time.Now()
+		productEntityStockHistory.StockOpname = product.Stock
+		productEntityStockHistory.StockInQty = orderItem.Qty
+		productEntityStockHistory.StockFinal = product.Stock + orderItem.Qty
+		productEntityStockHistory.Description = "Pengembalian " + order.NumberOrder
+		productEntityStockHistory.CreatedAt = time.Now()
+		_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+		exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+		productEntity.Stock = product.Stock + orderItem.Qty
+		_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+	}
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -622,6 +668,27 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
 		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+
+		for _, orderItem := range orderItems {
+			productEntity := &entity.Product{}
+			productEntityStockHistory := &entity.ProductStockHistory{}
+			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+			productEntityStockHistory.IdProduct = orderItem.IdProduct
+			productEntityStockHistory.TxDate = time.Now()
+			productEntityStockHistory.StockOpname = product.Stock
+			productEntityStockHistory.StockOutQty = orderItem.Qty
+			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
+			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
+			productEntityStockHistory.CreatedAt = time.Now()
+			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+			productEntity.Stock = product.Stock - orderItem.Qty
+			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+		}
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
