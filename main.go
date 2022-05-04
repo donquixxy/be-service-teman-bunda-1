@@ -253,6 +253,21 @@ func main() {
 
 	routes.VerifyEmailRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
 
+	// Payment Status
+	paymentService := services.NewPaymentService(appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		appConfig.Payment,
+		orderRepository,
+		orderItemRepository,
+		productRepository,
+		productStockHistoryRepository,
+		paymentLogRepository,
+	)
+	paymentController := controllers.NewPaymentController(appConfig.Webserver, logrusLogger, paymentService)
+	routes.PaymentRoute(e, appConfig.Webserver, appConfig.Jwt, paymentController)
+
 	// Careful shutdown
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(int(appConfig.Webserver.Port))); err != nil && err != http.ErrServerClosed {

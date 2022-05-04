@@ -8,6 +8,7 @@ import (
 type Order struct {
 	Id                      string       `gorm:"primaryKey;column:id;"`
 	NumberOrder             string       `gorm:"column:number_order;"`
+	TrxId                   int          `gorm:"column:trx_id;"`
 	IdUser                  string       `gorm:"column:id_user;"`
 	FullName                string       `gorm:"column:full_name;"`
 	Email                   string       `gorm:"column:email;"`

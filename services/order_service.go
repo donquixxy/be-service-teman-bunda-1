@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -284,33 +285,33 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		}
 
-		// Create Balance Point Tx
-		if order.PaymentByPoint != 0 {
-			// get data balance point
-			balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
+		// // Create Balance Point Tx
+		// if order.PaymentByPoint != 0 {
+		// 	// get data balance point
+		// 	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 
-			// update balance point
-			balancePointEntity := &entity.BalancePoint{}
-			balancePointEntity.BalancePoints = balancePoint.BalancePoints - order.PaymentByPoint
+		// 	// update balance point
+		// 	balancePointEntity := &entity.BalancePoint{}
+		// 	balancePointEntity.BalancePoints = balancePoint.BalancePoints - order.PaymentByPoint
 
-			// add balance point tx history
-			balancePointTxEntity := &entity.BalancePointTx{}
-			balancePointTxEntity.Id = utilities.RandomUUID()
-			balancePointTxEntity.IdBalancePoint = balancePoint.Id
-			balancePointTxEntity.NoOrder = order.NumberOrder
-			balancePointTxEntity.TxType = "credit"
-			balancePointTxEntity.TxDate = time.Now()
-			balancePointTxEntity.TxNominal = order.PaymentByPoint
-			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
-			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
-			balancePointTxEntity.CreatedDate = time.Now()
+		// 	// add balance point tx history
+		// 	balancePointTxEntity := &entity.BalancePointTx{}
+		// 	balancePointTxEntity.Id = utilities.RandomUUID()
+		// 	balancePointTxEntity.IdBalancePoint = balancePoint.Id
+		// 	balancePointTxEntity.NoOrder = order.NumberOrder
+		// 	balancePointTxEntity.TxType = "credit"
+		// 	balancePointTxEntity.TxDate = time.Now()
+		// 	balancePointTxEntity.TxNominal = order.PaymentByPoint
+		// 	balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+		// 	balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
+		// 	balancePointTxEntity.CreatedDate = time.Now()
 
-			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
-			exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+		// 	_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+		// 	exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
 
-			_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
-			exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
-		}
+		// 	_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+		// 	exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+		// }
 
 		// Create response log
 		paymentLogEntity := &entity.PaymentLog{}
@@ -385,6 +386,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.CourierNote = orderRequest.CourierNote
 	orderEntity.TotalBill = orderRequest.TotalBill
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
+
 	orderEntity.OrderedAt = time.Now()
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
@@ -398,6 +400,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 	// Get data cart
 	cartItems, _ := service.CartRepositoryInterface.FindCartByIdUser(service.DB, idUser)
+	if len(cartItems) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("data not found"), requestId, []string{"Keranjang Kosong"}, service.Logger)
+	}
 
 	// Create order items
 	var totalPriceProduct float64
@@ -450,18 +455,13 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			"phone":          orderEntity.Phone,
 			"email":          orderEntity.Email,
 			"amount":         orderEntity.PaymentByCash,
-			"notifyUrl":      service.ConfigPayment.IpaymuCallbackUrl,
+			"notifyUrl":      string(service.ConfigPayment.IpaymuCallbackUrl),
 			"expired":        24,
 			"expiredType":    "hours",
 			"referenceId":    orderEntity.NumberOrder,
 			"paymentMethod":  orderRequest.PaymentMethod,
 			"paymentChannel": orderRequest.PaymentChannel,
 		})
-
-		notifuUrl := service.ConfigPayment.IpaymuCallbackUrl
-		test := "test"
-		fmt.Println("notif url =", notifuUrl)
-		fmt.Println("test =", test)
 
 		bodyHash := sha256.Sum256([]byte(postBody))
 		bodyHashToString := hex.EncodeToString(bodyHash[:])
@@ -484,7 +484,11 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			Body: reqBody,
 		}
 
+		// reqDump, _ := httputil.DumpRequestOut(req, true)
+
 		resp, err := http.DefaultClient.Do(req)
+
+		// fmt.Printf("REQUEST:\n%s", string(reqDump))
 
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
@@ -501,8 +505,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			fmt.Println(err)
 			exceptions.PanicIfError(err, requestId, service.Logger)
 		}
-		s := fmt.Sprintf("%+v\n", dataResponseIpaymu)
-		fmt.Println(s)
+		// ss := fmt.Sprintf("%+v\n", dataResponseIpaymu)
+		// fmt.Println(ss)
 
 		if dataResponseIpaymu.Status != 200 {
 			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
@@ -525,6 +529,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			orderEntity.PaymentNo = dataResponseIpaymu.Data.PaymentNo
 			orderEntity.PaymentExpired = dataResponseIpaymu.Data.Expired
 			orderEntity.PaymentName = dataResponseIpaymu.Data.PaymentName
+			orderEntity.TrxId = dataResponseIpaymu.Data.TransactionId
 
 			_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -533,7 +538,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		}
 
-		orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu, bankVa)
+		orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu.Data.TransactionId, dataResponseIpaymu, bankVa)
 		return orderResponse
 
 	case "trf":
@@ -547,11 +552,17 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		// buat 3 nomor acak
 		rand.Seed(time.Now().UnixNano())
-		min := 500
-		max := 999
+		min := 200
+		max := 800
 		randNumber := rand.Intn(max-min+1) + min
 
-		payment.Data.Total = orderRequest.PaymentByCash + float64(randNumber)
+		sisaPembagi := math.Mod(orderRequest.PaymentByCash, 1000)
+		if sisaPembagi < 100 {
+			payment.Data.Total = orderRequest.PaymentByCash + float64(randNumber)
+		} else if sisaPembagi > 100 {
+			payment.Data.Total = orderRequest.PaymentByCash
+		}
+
 		payment.Data.PaymentName = bankTransfer.BankName
 		payment.Data.PaymentNo = bankTransfer.NoAccount
 		payment.Data.ReferenceId = orderEntity.NumberOrder
@@ -570,7 +581,52 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderResponse = response.ToCreateOrderTransferResponse(order, *payment, bankTransfer)
 		return orderResponse
 	case "cod":
+		orderEntity := &entity.Order{}
+		orderEntity.OrderSatus = "Menunggu Konfirmasi"
+		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		commit := tx.Commit()
+		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+
 		orderResponse = response.ToCreateOrderCodResponse(order)
+		return orderResponse
+	case "point":
+		orderEntity := &entity.Order{}
+		orderEntity.OrderSatus = "Menunggu Konfirmasi"
+		orderEntity.PaymentStatus = "Sudah Dibayar"
+		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		// get data balance point
+		balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
+
+		// update balance point
+		balancePointEntity := &entity.BalancePoint{}
+		balancePointEntity.BalancePoints = balancePoint.BalancePoints - order.PaymentByPoint
+
+		// add balance point tx history
+		balancePointTxEntity := &entity.BalancePointTx{}
+		balancePointTxEntity.Id = utilities.RandomUUID()
+		balancePointTxEntity.IdBalancePoint = balancePoint.Id
+		balancePointTxEntity.NoOrder = order.NumberOrder
+		balancePointTxEntity.TxType = "credit"
+		balancePointTxEntity.TxDate = time.Now()
+		balancePointTxEntity.TxNominal = order.PaymentByPoint
+		balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+		balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
+		balancePointTxEntity.CreatedDate = time.Now()
+
+		_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
+		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+
+		commit := tx.Commit()
+		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+
+		orderResponse = response.ToCreateOrderFullPointResponse(order)
 		return orderResponse
 	default:
 		exceptions.PanicIfErrorWithRollback(errors.New("payment method not found"), requestId, []string{"payment method not found"}, service.Logger, tx)

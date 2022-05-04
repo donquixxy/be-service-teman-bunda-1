@@ -115,6 +115,12 @@ func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configu
 }
 
 // List Payment
+func PaymentRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentControllerInterface controllers.PaymentControllerInterface) {
+	group := e.Group("api/v1")
+	group.POST("/payment/status", paymentControllerInterface.PaymentStatus, authMiddlerware.Authentication(configurationJWT))
+}
+
+// List Payment
 func BannerRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, bannerControllerInterface controllers.BannerControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/banner", bannerControllerInterface.FindAllBanner, authMiddlerware.Authentication(configurationJWT))

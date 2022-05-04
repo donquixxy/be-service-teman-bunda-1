@@ -49,10 +49,11 @@ type Log struct {
 }
 
 type Payment struct {
-	IpaymuVa          string `yaml:"ipaymuva"`
-	IpaymuKey         string `yaml:"ipaymukey"`
-	IpaymuUrl         string `yaml:"ipaymuurl"`
-	IpaymuCallbackUrl string `yaml:"ipaymucallbackurl"`
+	IpaymuVa             string `yaml:"ipaymuva"`
+	IpaymuKey            string `yaml:"ipaymukey"`
+	IpaymuUrl            string `yaml:"ipaymuurl"`
+	IpaymuCallbackUrl    string `yaml:"ipaymucallbackurl"`
+	IpaymuTranscationUrl string `yaml:"ipaymutranscationurl"`
 }
 
 type Email struct {

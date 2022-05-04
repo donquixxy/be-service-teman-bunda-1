@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -61,10 +62,14 @@ func (repository *OrderRepositoryImplementation) FindOrderById(DB *gorm.DB, idOr
 
 func (repository *OrderRepositoryImplementation) CreateOrder(DB *gorm.DB, order entity.Order) (entity.Order, error) {
 	results := DB.Create(order)
+	// results := DB.Exec("INSERT INTO orders_transaction", order)
 	return order, results.Error
 }
 
 func (repository *OrderRepositoryImplementation) UpdateOrderStatus(DB *gorm.DB, NumberOrder string, order entity.Order) (entity.Order, error) {
+	var test entity.Order
+	fmt.Println("waktu 2", test.PaymentSuccessAt.Time)
+
 	result := DB.
 		Model(entity.Order{}).
 		Where("number_order = ?", NumberOrder).
@@ -84,6 +89,7 @@ func (repository *OrderRepositoryImplementation) UpdateOrderPayment(DB *gorm.DB,
 			PaymentNo:      order.PaymentNo,
 			PaymentExpired: order.PaymentExpired,
 			PaymentName:    order.PaymentName,
+			TrxId:          order.TrxId,
 		})
 	return order, result.Error
 }

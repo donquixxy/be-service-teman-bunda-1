@@ -3,6 +3,8 @@ package response
 import "github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 
 type FindOrderByIdOrderResponse struct {
+	IdOrder        string              `json:"id_order"`
+	TrxId          int                 `json:"trx_id"`
 	ShippingCost   float64             `json:"shipping_cost"`
 	TotalBill      float64             `json:"total_bill"`
 	SubTotal       float64             `json:"sub_total"`
@@ -44,6 +46,8 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 		orderItemsResponses = append(orderItemsResponses, orderItemResponse)
 	}
 
+	orderResponse.IdOrder = order.Id
+	orderResponse.TrxId = order.TrxId
 	orderResponse.OrderItems = orderItemsResponses
 	orderResponse.TotalBill = order.TotalBill
 	orderResponse.PaymentByPoint = order.PaymentByPoint
