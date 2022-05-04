@@ -7,6 +7,7 @@ import (
 
 type CreateOrderResponse struct {
 	IdOrder        string  `json:"id_order"`
+	TrxId          int     `json:"trx_id"`
 	ReferenceId    string  `json:"reference_id"`
 	PaymentNo      string  `json:"payment_no"`
 	PaymentName    string  `json:"payment_name"`
@@ -21,9 +22,11 @@ type CreateOrderResponse struct {
 
 func ToCreateOrderVaResponse(
 	order entity.Order,
+	TrxId int,
 	payment modelService.PaymentResponse,
 	bankVa entity.BankVa) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
+	orderResponse.TrxId = TrxId
 	orderResponse.ReferenceId = payment.Data.ReferenceId
 	orderResponse.PaymentNo = payment.Data.PaymentNo
 	orderResponse.PaymentName = payment.Data.PaymentName
@@ -63,5 +66,11 @@ func ToCreateOrderCodResponse(
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentStatus = order.PaymentStatus
+	return orderResponse
+}
+
+func ToCreateOrderFullPointResponse(
+	order entity.Order) (orderResponse CreateOrderResponse) {
+	orderResponse.IdOrder = order.Id
 	return orderResponse
 }
