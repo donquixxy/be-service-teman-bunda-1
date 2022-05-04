@@ -37,7 +37,7 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 		var orderItemResponse OrderItemResponse
 		orderItemResponse.Id = orderItem.Id
 		orderItemResponse.IdProduct = orderItem.IdProduct
-		orderItemResponse.Price = orderItem.Price
+		orderItemResponse.Price = orderItem.Price * float64(orderItem.Qty)
 		orderItemResponse.ProductName = orderItem.ProductName
 		orderItemResponse.Description = orderItem.Description
 		orderItemResponse.PictureUrl = orderItem.PictureUrl
