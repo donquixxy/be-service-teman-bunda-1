@@ -54,6 +54,10 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 	orderResponse.PaymentByCash = order.PaymentByCash
 	orderResponse.OrderStatus = order.OrderSatus
 	orderResponse.ShippingCost = order.ShippingCost
-	orderResponse.SubTotal = totalPricePerItem
+	if order.PaymentMethod == "point" {
+		orderResponse.SubTotal = 0
+	} else {
+		orderResponse.SubTotal = totalPricePerItem
+	}
 	return orderResponse
 }
