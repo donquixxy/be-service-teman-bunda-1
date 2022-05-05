@@ -318,7 +318,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
 	if userRequest.RegistrationReferalCode == "" {
-		userEntity.RegistrationReferalCode = ""
+		userEntity.RegistrationReferalCode = "0X0ROQIBA"
 	} else {
 		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
 	}
