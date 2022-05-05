@@ -157,8 +157,8 @@ func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.
 		Id:       user.Id,
 		Username: user.Username,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
-			Issuer:    "ayaka",
+			// ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
+			Issuer: "ayaka",
 		},
 	}
 

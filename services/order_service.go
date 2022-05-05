@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -142,7 +143,7 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 	// Update order status
 	orderEntity := &entity.Order{}
 	orderEntity.OrderSatus = "Selesai"
-	orderEntity.CompletedAt.Time = time.Now()
+	orderEntity.CompletedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -237,7 +238,7 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 
 	orderEntity := &entity.Order{}
 	orderEntity.OrderSatus = "Dibatalkan"
-	orderEntity.CanceledAt.Time = time.Now()
+	orderEntity.CanceledAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	balancePointEntity := &entity.BalancePoint{}
 	balancePointEntity.BalancePoints = balancePoint.BalancePoints + order.PaymentByPoint
@@ -306,7 +307,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			orderEntity.PaymentStatus = "Pending"
 		}
 
-		orderEntity.PaymentSuccessAt.Time = time.Now()
+		orderEntity.PaymentSuccessAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -333,34 +334,6 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		}
-
-		// // Create Balance Point Tx
-		// if order.PaymentByPoint != 0 {
-		// 	// get data balance point
-		// 	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
-
-		// 	// update balance point
-		// 	balancePointEntity := &entity.BalancePoint{}
-		// 	balancePointEntity.BalancePoints = balancePoint.BalancePoints - order.PaymentByPoint
-
-		// 	// add balance point tx history
-		// 	balancePointTxEntity := &entity.BalancePointTx{}
-		// 	balancePointTxEntity.Id = utilities.RandomUUID()
-		// 	balancePointTxEntity.IdBalancePoint = balancePoint.Id
-		// 	balancePointTxEntity.NoOrder = order.NumberOrder
-		// 	balancePointTxEntity.TxType = "credit"
-		// 	balancePointTxEntity.TxDate = time.Now()
-		// 	balancePointTxEntity.TxNominal = order.PaymentByPoint
-		// 	balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
-		// 	balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints - order.PaymentByPoint
-		// 	balancePointTxEntity.CreatedDate = time.Now()
-
-		// 	_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
-		// 	exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
-
-		// 	_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
-		// 	exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
-		// }
 
 		// Create response log
 		paymentLogEntity := &entity.PaymentLog{}
@@ -561,10 +534,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		}
 
 		// reqDump, _ := httputil.DumpRequestOut(req, true)
+		// fmt.Printf("REQUEST:\n%s", string(reqDump))
 
 		resp, err := http.DefaultClient.Do(req)
-
-		// fmt.Printf("REQUEST:\n%s", string(reqDump))
 
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)

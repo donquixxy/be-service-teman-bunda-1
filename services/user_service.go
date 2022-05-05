@@ -317,7 +317,12 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.IdLevelMember = 1
 	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
-	userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
+	if userRequest.RegistrationReferalCode == "" {
+		userEntity.RegistrationReferalCode = ""
+	} else {
+		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
+	}
+
 	userEntity.CreatedDate = time.Now()
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
