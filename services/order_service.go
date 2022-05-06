@@ -47,6 +47,7 @@ type OrderServiceImplementation struct {
 	Validate                               *validator.Validate
 	Logger                                 *logrus.Logger
 	ConfigPayment                          config.Payment
+	ConfigTelegram                         config.Telegram
 	OrderRepositoryInterface               mysql.OrderRepositoryInterface
 	CartRepositoryInterface                mysql.CartRepositoryInterface
 	UserRepositoryInterface                mysql.UserRepositoryInterface
@@ -68,6 +69,7 @@ func NewOrderService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	configPayment config.Payment,
+	configTelegram config.Telegram,
 	orderRepositoryInterface mysql.OrderRepositoryInterface,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
 	userRepositoryInterface mysql.UserRepositoryInterface,
@@ -87,6 +89,7 @@ func NewOrderService(
 		Validate:                               validate,
 		Logger:                                 logger,
 		ConfigPayment:                          configPayment,
+		ConfigTelegram:                         configTelegram,
 		OrderRepositoryInterface:               orderRepositoryInterface,
 		CartRepositoryInterface:                cartRepositoryInterface,
 		UserRepositoryInterface:                userRepositoryInterface,
@@ -100,6 +103,27 @@ func NewOrderService(
 		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 		UserLevelRepositoryInterface:           userLevelMemberRepositoryInterface,
 	}
+}
+
+func (service *OrderServiceImplementation) SendTelegram(numberOrder string, mssg string) {
+
+	url, _ := url.Parse("https://api.telegram.org/bot" + service.ConfigTelegram.BotToken + "/sendMessage?chat_id=" + service.ConfigTelegram.ChatId + "&text=" + mssg + " " + numberOrder + "")
+
+	req := &http.Request{
+		Method: "POST",
+		URL:    url,
+		Header: map[string][]string{
+			"Content-Type": {"application/json"},
+		},
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+		exceptions.PanicIfError(err, "", service.Logger)
+	}
+	defer resp.Body.Close()
 }
 
 func (service *OrderServiceImplementation) OrderCheckPayment(requestId string, idOrder string) (orderCheckPaymentResponse response.OrderCheckPayment) {
@@ -151,7 +175,7 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 	// hitung bonus point dari pembaran dengan uang
 	bonusPoint := (order.PaymentByCash * user.UserLevelMember.BonusPercentage) / 100
 
-	// Bonus probadi dari perbelanjaan
+	// Bonus pribadi dari perbelanjaan
 	// Get bonus point from order order
 	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 
@@ -214,8 +238,9 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 }
 
 func (service *OrderServiceImplementation) CancelOrderById(requestId string, idOrder string) error {
+	// get data order
 	order, _ := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
-	orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+
 	// get data balance point
 	balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 	tx := service.DB.Begin()
@@ -248,31 +273,6 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 
 	_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
-
-	if order.PaymentMethod == "point" {
-		// Pengembalian stock
-		for _, orderItem := range orderItems {
-			productEntity := &entity.Product{}
-			productEntityStockHistory := &entity.ProductStockHistory{}
-			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
-			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
-
-			productEntityStockHistory.IdProduct = orderItem.IdProduct
-			productEntityStockHistory.TxDate = time.Now()
-			productEntityStockHistory.StockOpname = product.Stock
-			productEntityStockHistory.StockInQty = orderItem.Qty
-			productEntityStockHistory.StockFinal = product.Stock + orderItem.Qty
-			productEntityStockHistory.Description = "Pengembalian " + order.NumberOrder
-			productEntityStockHistory.CreatedAt = time.Now()
-			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
-			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
-
-			productEntity.Stock = product.Stock + orderItem.Qty
-			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
-			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
-		}
-
-	}
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -311,29 +311,6 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 
 		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
-
-		//update product stock
-		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
-		for _, orderItem := range orderItems {
-			productEntity := &entity.Product{}
-			productEntityStockHistory := &entity.ProductStockHistory{}
-			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
-			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
-
-			productEntityStockHistory.IdProduct = orderItem.IdProduct
-			productEntityStockHistory.TxDate = time.Now()
-			productEntityStockHistory.StockOpname = product.Stock
-			productEntityStockHistory.StockOutQty = orderItem.Qty
-			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
-			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
-			productEntityStockHistory.CreatedAt = time.Now()
-			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
-			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
-
-			productEntity.Stock = product.Stock - orderItem.Qty
-			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
-			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
-		}
 
 		// Create response log
 		paymentLogEntity := &entity.PaymentLog{}
@@ -486,7 +463,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(errCreateOrderItem, requestId, []string{"Error create order"}, service.Logger, tx)
 
-	// delete data item in cart
+	//  delete data item in cart
 	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
 	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
@@ -560,6 +537,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
 		} else if dataResponseIpaymu.Status == 200 {
 			// make log
+			service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (VA/QRIS)")
+
 			paymentLogEntity := &entity.PaymentLog{}
 			paymentLogEntity.Id = utilities.RandomUUID()
 			paymentLogEntity.IdOrder = orderEntity.Id
@@ -600,15 +579,19 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		// buat 3 nomor acak
 		rand.Seed(time.Now().UnixNano())
-		min := 200
-		max := 800
-		randNumber := rand.Intn(max-min+1) + min
+		min := 100
+		max := 300
+		rand3Number := rand.Intn(max-min+1) + min
+
+		min2 := 10
+		max2 := 99
+		rand2Number := rand.Intn(max2-min2+1) + min
 
 		sisaPembagi := math.Mod(orderRequest.PaymentByCash, 1000)
-		if sisaPembagi < 100 {
-			payment.Data.Total = orderRequest.PaymentByCash + float64(randNumber)
-		} else if sisaPembagi > 100 {
-			payment.Data.Total = orderRequest.PaymentByCash
+		if sisaPembagi < 200 {
+			payment.Data.Total = orderRequest.PaymentByCash + float64(rand3Number)
+		} else if sisaPembagi > 200 {
+			payment.Data.Total = orderRequest.PaymentByCash + float64(rand2Number)
 		}
 
 		payment.Data.PaymentName = bankTransfer.BankName
@@ -623,6 +606,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
+		fmt.Println("Number Order = ", orderEntity.NumberOrder)
+		service.SendTelegram(payment.Data.ReferenceId, "Ada Orderan Masuk (TRF)")
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
@@ -633,6 +619,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (COD)")
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -646,26 +634,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
-		for _, orderItem := range orderItems {
-			productEntity := &entity.Product{}
-			productEntityStockHistory := &entity.ProductStockHistory{}
-			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
-			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
-
-			productEntityStockHistory.IdProduct = orderItem.IdProduct
-			productEntityStockHistory.TxDate = time.Now()
-			productEntityStockHistory.StockOpname = product.Stock
-			productEntityStockHistory.StockOutQty = orderItem.Qty
-			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
-			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
-			productEntityStockHistory.CreatedAt = time.Now()
-			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
-			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
-
-			productEntity.Stock = product.Stock - orderItem.Qty
-			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
-			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
-		}
+		service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (Point)")
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)

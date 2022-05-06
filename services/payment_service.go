@@ -120,14 +120,12 @@ func (service *PaymentServiceImplementation) PaymentStatus(requestId string, pay
 	}
 
 	if order.OrderSatus == "Menunggu Pembayaran" {
-		if dataPaymentStatus.Data.Status == 1 {
+		if dataPaymentStatus.Data.Status == 1 || dataPaymentStatus.Data.Status == 6 {
 			tx := service.DB.Begin()
 
 			orderEntity := &entity.Order{}
 			orderEntity.OrderSatus = "Menunggu Konfirmasi"
 			orderEntity.PaymentSuccessAt.Time = time.Now()
-
-			fmt.Println("waktu = ", orderEntity.PaymentSuccessAt)
 
 			_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)

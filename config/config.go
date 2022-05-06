@@ -62,6 +62,11 @@ type Email struct {
 	LinkVerifyEmail   string `yaml:"linkverifyemail"`
 }
 
+type Telegram struct {
+	ChatId   string `yaml:"chatid"`
+	BotToken string `yaml:"bottoken"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -71,6 +76,7 @@ type ApplicationConfiguration struct {
 	Log         Log
 	Payment     Payment
 	Email       Email
+	Telegram    Telegram
 }
 
 var lock = sync.Mutex{}
