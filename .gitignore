@@ -8,6 +8,8 @@
 # Test binary, built with `go test -c`
 *.test
 config.yml
+config-dev.yml
+config-prod.yml
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out

@@ -329,6 +329,29 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
 		exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
 
+		//update product stock
+		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+		for _, orderItem := range orderItems {
+			productEntity := &entity.Product{}
+			productEntityStockHistory := &entity.ProductStockHistory{}
+			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+			productEntityStockHistory.IdProduct = orderItem.IdProduct
+			productEntityStockHistory.TxDate = time.Now()
+			productEntityStockHistory.StockOpname = product.Stock
+			productEntityStockHistory.StockOutQty = orderItem.Qty
+			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
+			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
+			productEntityStockHistory.CreatedAt = time.Now()
+			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+			productEntity.Stock = product.Stock - orderItem.Qty
+			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+		}
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 		orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
@@ -633,6 +656,29 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.PaymentStatus = "Sudah Dibayar"
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		//update product stock
+		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+		for _, orderItem := range orderItems {
+			productEntity := &entity.Product{}
+			productEntityStockHistory := &entity.ProductStockHistory{}
+			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+			productEntityStockHistory.IdProduct = orderItem.IdProduct
+			productEntityStockHistory.TxDate = time.Now()
+			productEntityStockHistory.StockOpname = product.Stock
+			productEntityStockHistory.StockOutQty = orderItem.Qty
+			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
+			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
+			productEntityStockHistory.CreatedAt = time.Now()
+			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+			productEntity.Stock = product.Stock - orderItem.Qty
+			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+		}
 
 		service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (Point)")
 
