@@ -125,7 +125,7 @@ func (repository *UserRepositoryImplementation) FindUserByReferalCode(DB *gorm.D
 }
 
 func (repository *UserRepositoryImplementation) CountUserByRegistrationReferal(DB *gorm.DB, referalCode string) (countUser int, err error) {
-	var user entity.User
+	var user []entity.User
 	results := DB.Model(&entity.User{}).Where("registration_referal_code = ?", referalCode).Find(&user)
 	return int(results.RowsAffected), results.Error
 }

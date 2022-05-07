@@ -22,6 +22,7 @@ type OrderControllerInterface interface {
 	CancelOrderById(c echo.Context) error
 	CompleteOrderById(c echo.Context) error
 	OrderCheckPayment(c echo.Context) error
+	// SendTelegram(c echo.Context) error
 }
 
 type OrderControllerImplementation struct {
@@ -39,6 +40,12 @@ func NewOrderController(configurationWebserver config.Webserver,
 		OrderServiceInterface:  orderServiceInterface,
 	}
 }
+
+// func (controller *OrderControllerImplementation) SendTelegram(c echo.Context) error {
+// 	controller.OrderServiceInterface.SendTelegram()
+// 	response := response.Response{Code: 200, Mssg: "success", Data: "Nice", Error: []string{}}
+// 	return c.JSON(http.StatusOK, response)
+// }
 
 func (controller *OrderControllerImplementation) FindOrderByUser(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)

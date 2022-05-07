@@ -49,100 +49,136 @@ func main() {
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 	e.Use(middleware.RequestID())
 
-	// Settings
+	// Setting Repository
 	settingsRepository := mysql.NewSettingsRepository(&appConfig.Database)
 
-	// Provinsi
+	// Provinsi Repository
 	provinsiRepository := mysql.NewProvinsiRepository(&appConfig.Database)
-	provinsiService := services.NewProvinsiService(appConfig.Webserver,
+
+	// Kabupaten Repository
+	kabupatenRepository := mysql.NewKabupatenRepository(&appConfig.Database)
+
+	// Kecamatan Repository
+	kecamatanRepository := mysql.NewKecamatanRepository(&appConfig.Database)
+
+	// Kelurahan Repository
+	kelurahanRepository := mysql.NewKelurahanRepository(&appConfig.Database)
+
+	// Family Repository
+	familyRepository := mysql.NewFamilyRepository(&appConfig.Database)
+
+	// Family Members Repository
+	familyMembersRepository := mysql.NewFamilyMembersRepository(&appConfig.Database)
+
+	// Shipping Repository
+	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
+
+	// Cart Repository
+	cartRepository := mysql.NewCartRepository(&appConfig.Database)
+
+	// Order Repository
+	orderRepository := mysql.NewOrderRepository(&appConfig.Database)
+
+	// Balance Point Repository
+	balancePointRepository := mysql.NewBalancePointRepository(&appConfig.Database)
+
+	// Balance Point Tx
+	balancePointTxRepository := mysql.NewBalancePointTxRepository(&appConfig.Database)
+
+	// User Repository
+	userRepository := mysql.NewUserRepository(&appConfig.Database)
+
+	// Product Repository
+	productRepository := mysql.NewProductRepository(&appConfig.Database)
+
+	// Order Item Repository
+	orderItemRepository := mysql.NewOrderItemRepository(&appConfig.Database)
+
+	// Bank Transfer Repository
+	bankTransferRepository := mysql.NewBankTransferRepository(&appConfig.Database)
+
+	// Bank Va Repository
+	bankVaRepository := mysql.NewBankVaRepository(&appConfig.Database)
+
+	// Payment Log Repository
+	paymentLogRepository := mysql.NewPaymentLogRepository(&appConfig.Database)
+
+	// Product Stock History Repository
+	productStockHistoryRepository := mysql.NewProductStockHistoryRepository(&appConfig.Database)
+
+	// User Level Member Repository
+	userLevelMemberRepository := mysql.NewUserLevelMemberRepository(&appConfig.Database)
+
+	// Setting Repository
+	bannerRepository := mysql.NewBannerRepository(&appConfig.Database)
+
+	// Product Brand Repository
+	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
+
+	// Provinsi Service
+	provinsiService := services.NewProvinsiService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		provinsiRepository)
-	provinsiController := controllers.NewProvinsiController(appConfig.Webserver, provinsiService)
-	routes.ProvinsiRoute(e, appConfig.Webserver, appConfig.Jwt, provinsiController)
 
-	// Kabupaten
-	kabupatenRepository := mysql.NewKabupatenRepository(&appConfig.Database)
-	kabupatenService := services.NewKabupatenService(appConfig.Webserver,
+	// Kabupaten Service
+	kabupatenService := services.NewKabupatenService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		kabupatenRepository)
-	kabupatenController := controllers.NewKabupatenController(appConfig.Webserver, kabupatenService)
-	routes.KabupatenRoute(e, appConfig.Webserver, kabupatenController)
 
 	// Kecamatan
-	kecamatanRepository := mysql.NewKecamatanRepository(&appConfig.Database)
-	kecamatanService := services.NewKecamatanService(appConfig.Webserver,
+	kecamatanService := services.NewKecamatanService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		kecamatanRepository)
-	kecamatanController := controllers.NewKecamatanController(appConfig.Webserver, kecamatanService)
-	routes.KecamatanRoute(e, appConfig.Webserver, kecamatanController)
 
-	// Kelurahan
-	kelurahanRepository := mysql.NewKelurahanRepository(&appConfig.Database)
-	kelurahanService := services.NewKelurahanService(appConfig.Webserver,
+	// Kelurahan Service
+	kelurahanService := services.NewKelurahanService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		kelurahanRepository)
-	kelurahanController := controllers.NewKelurahanController(appConfig.Webserver, kelurahanService)
-	routes.KelurahanRoute(e, appConfig.Webserver, kelurahanController)
 
-	// Family
-	familyRepository := mysql.NewFamilyRepository(&appConfig.Database)
-
-	// Family Members
-	familyMembersRepository := mysql.NewFamilyMembersRepository(&appConfig.Database)
-
-	// Shipping
-	shippingRepository := mysql.NewShippingRepository(&appConfig.Database)
+	// Shipping Service
 	shippingService := services.NewShippingService(
 		appConfig.Webserver,
 		mysqlDBConnection,
 		validate,
 		logrusLogger,
 		shippingRepository)
-	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
-	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
 
-	//  Cart
-	cartRepository := mysql.NewCartRepository(&appConfig.Database)
+	// Cart Service
 	cartService := services.NewCartService(
 		appConfig.Webserver,
 		mysqlDBConnection,
 		validate,
 		logrusLogger,
 		cartRepository,
-		shippingRepository)
-	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
-	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
+		shippingRepository,
+		productRepository)
 
-	// Order Repository
-	orderRepository := mysql.NewOrderRepository(&appConfig.Database)
-
-	// Balance Point
-	balancePointRepository := mysql.NewBalancePointRepository(&appConfig.Database)
-	balancePointService := services.NewBalancePointService(appConfig.Webserver,
+	// Balance Point Service
+	balancePointService := services.NewBalancePointService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		balancePointRepository,
 		settingsRepository,
 		orderRepository)
-	balancePointController := controllers.NewBalancePointController(appConfig.Webserver, logrusLogger, balancePointService)
-	routes.BalancePointRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointController)
 
-	// Balance Point Tx
-	balancePointTxRepository := mysql.NewBalancePointTxRepository(&appConfig.Database)
-	balancePointTxService := services.NewBalancePointTxService(appConfig.Webserver,
+	// Balance Point Tx Service
+	balancePointTxService := services.NewBalancePointTxService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		balancePointTxRepository,
 		balancePointRepository)
-	balancePointTxController := controllers.NewBalancePointTxController(appConfig.Webserver, logrusLogger, balancePointTxService)
-	routes.BalancePointTxRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointTxController)
 
-	// User
-	userRepository := mysql.NewUserRepository(&appConfig.Database)
+	// User Service
 	userService := services.NewUserService(
 		appConfig.Webserver,
 		mysqlDBConnection,
@@ -156,10 +192,8 @@ func main() {
 		familyMembersRepository,
 		balancePointRepository,
 		balancePointTxRepository)
-	userController := controllers.NewUserController(appConfig.Webserver, logrusLogger, userService)
-	routes.UserRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
 
-	// Auth
+	// Auth Service
 	authService := services.NewAuthService(
 		appConfig.Webserver,
 		mysqlDBConnection,
@@ -167,37 +201,14 @@ func main() {
 		validate,
 		logrusLogger,
 		userRepository)
-	authController := controllers.NewAuthController(appConfig.Webserver, logrusLogger, authService)
-	routes.AuthRoute(e, appConfig.Webserver, appConfig.Jwt, authController)
 
-	// Product
-	productRepository := mysql.NewProductRepository(&appConfig.Database)
+	// Product Service
 	productService := services.NewProductService(
 		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		productRepository,
 		appConfig.Payment)
-	productController := controllers.NewProductController(appConfig.Webserver, productService)
-	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
-
-	// Order Item
-	orderItemRepository := mysql.NewOrderItemRepository(&appConfig.Database)
-
-	// Bank Transfer
-	bankTransferRepository := mysql.NewBankTransferRepository(&appConfig.Database)
-
-	// Bank VA
-	bankVaRepository := mysql.NewBankVaRepository(&appConfig.Database)
-
-	// Payment log
-	paymentLogRepository := mysql.NewPaymentLogRepository(&appConfig.Database)
-
-	// Product Stock History
-	productStockHistoryRepository := mysql.NewProductStockHistoryRepository(&appConfig.Database)
-
-	// User Level Member
-	userLevelMemberRepository := mysql.NewUserLevelMemberRepository(&appConfig.Database)
 
 	// Order Service
 	orderService := services.NewOrderService(
@@ -207,6 +218,7 @@ func main() {
 		validate,
 		logrusLogger,
 		appConfig.Payment,
+		appConfig.Telegram,
 		orderRepository,
 		cartRepository,
 		userRepository,
@@ -219,42 +231,32 @@ func main() {
 		balancePointRepository,
 		balancePointTxRepository,
 		userLevelMemberRepository)
-	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
-	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
 
-	// Payment Channel
+	// Payment Channel Service
 	paymentChannelService := services.NewPaymentChannelService(
 		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		bankVaRepository,
-		bankTransferRepository,
-	)
-	paymentChannelController := controllers.NewPaymentChannelController(appConfig.Webserver, logrusLogger, paymentChannelService)
-	routes.PaymentChannelRoute(e, appConfig.Webserver, appConfig.Jwt, paymentChannelController)
+		bankTransferRepository)
 
-	// Banner
-	bannerRepository := mysql.NewBannerRepository(&appConfig.Database)
-	bannerService := services.NewBannerService(appConfig.Webserver,
+	// Banner Service
+	bannerService := services.NewBannerService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		bannerRepository)
-	bannerController := controllers.NewBannerController(appConfig.Webserver, bannerService)
-	routes.BannerRoute(e, appConfig.Webserver, appConfig.Jwt, bannerController)
 
-	// Product Brand
-	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
-	productBrandService := services.NewProductBrandService(appConfig.Webserver,
+	// Product Brand Service
+	productBrandService := services.NewProductBrandService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		logrusLogger,
 		productBrandRepository)
-	productBrandController := controllers.NewProductBrandController(appConfig.Webserver, productBrandService)
-	routes.ProductBrandRoute(e, appConfig.Webserver, appConfig.Jwt, productBrandController)
 
-	routes.VerifyEmailRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
-
-	// Payment Status
-	paymentService := services.NewPaymentService(appConfig.Webserver,
+	// Payment Service
+	paymentService := services.NewPaymentService(
+		appConfig.Webserver,
 		mysqlDBConnection,
 		validate,
 		logrusLogger,
@@ -265,8 +267,71 @@ func main() {
 		productStockHistoryRepository,
 		paymentLogRepository,
 	)
+
+	// Provinsi Controller
+	provinsiController := controllers.NewProvinsiController(appConfig.Webserver, provinsiService)
+	routes.ProvinsiRoute(e, appConfig.Webserver, appConfig.Jwt, provinsiController)
+
+	// Kabupaten Controller
+	kabupatenController := controllers.NewKabupatenController(appConfig.Webserver, kabupatenService)
+	routes.KabupatenRoute(e, appConfig.Webserver, kabupatenController)
+
+	// Kecamatan Controller
+	kecamatanController := controllers.NewKecamatanController(appConfig.Webserver, kecamatanService)
+	routes.KecamatanRoute(e, appConfig.Webserver, kecamatanController)
+
+	// Kelurahan Controller
+	kelurahanController := controllers.NewKelurahanController(appConfig.Webserver, kelurahanService)
+	routes.KelurahanRoute(e, appConfig.Webserver, kelurahanController)
+
+	// Shipping Controller
+	shippingController := controllers.NewShippingController(appConfig.Webserver, shippingService)
+	routes.ShippingRoute(e, appConfig.Webserver, appConfig.Jwt, shippingController)
+
+	// Cart Controller
+	cartController := controllers.NewCartController(appConfig.Webserver, cartService)
+	routes.CartRoute(e, appConfig.Webserver, appConfig.Jwt, cartController)
+
+	// Balance Point Controller
+	balancePointController := controllers.NewBalancePointController(appConfig.Webserver, logrusLogger, balancePointService)
+	routes.BalancePointRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointController)
+
+	// Balance Point Tx Controller
+	balancePointTxController := controllers.NewBalancePointTxController(appConfig.Webserver, logrusLogger, balancePointTxService)
+	routes.BalancePointTxRoute(e, appConfig.Webserver, appConfig.Jwt, balancePointTxController)
+
+	// User Controller
+	userController := controllers.NewUserController(appConfig.Webserver, logrusLogger, userService)
+	routes.UserRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
+	routes.VerifyEmailRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
+
+	// Auth Controller
+	authController := controllers.NewAuthController(appConfig.Webserver, logrusLogger, authService)
+	routes.AuthRoute(e, appConfig.Webserver, appConfig.Jwt, authController)
+
+	// Product Controller
+	productController := controllers.NewProductController(appConfig.Webserver, productService)
+	routes.ProductRoute(e, appConfig.Webserver, appConfig.Jwt, productController)
+
+	// Order Controller
+	orderController := controllers.NewOrderController(appConfig.Webserver, logrusLogger, orderService)
+	routes.OrderRoute(e, appConfig.Webserver, appConfig.Jwt, orderController)
+
+	// Payment Channel Controller
+	paymentChannelController := controllers.NewPaymentChannelController(appConfig.Webserver, logrusLogger, paymentChannelService)
+	routes.PaymentChannelRoute(e, appConfig.Webserver, appConfig.Jwt, paymentChannelController)
+
+	// Payment Controller
 	paymentController := controllers.NewPaymentController(appConfig.Webserver, logrusLogger, paymentService)
 	routes.PaymentRoute(e, appConfig.Webserver, appConfig.Jwt, paymentController)
+
+	// Banner Controller
+	bannerController := controllers.NewBannerController(appConfig.Webserver, bannerService)
+	routes.BannerRoute(e, appConfig.Webserver, appConfig.Jwt, bannerController)
+
+	// Product Brand Controller
+	productBrandController := controllers.NewProductBrandController(appConfig.Webserver, productBrandService)
+	routes.ProductBrandRoute(e, appConfig.Webserver, appConfig.Jwt, productBrandController)
 
 	// Careful shutdown
 	go func() {

@@ -31,6 +31,7 @@ type CartServiceImplementation struct {
 	Logger                      *logrus.Logger
 	CartRepositoryInterface     mysql.CartRepositoryInterface
 	ShippingRepositoryInterface mysql.ShippingRepositoryInterface
+	ProductRepositoryInterface  mysql.ProductRepositoryInterface
 }
 
 func NewCartService(
@@ -39,7 +40,8 @@ func NewCartService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
-	shippingRepositoryInterface mysql.ShippingRepositoryInterface) CartServiceInterface {
+	shippingRepositoryInterface mysql.ShippingRepositoryInterface,
+	productRepositoryInterface mysql.ProductRepositoryInterface) CartServiceInterface {
 	return &CartServiceImplementation{
 		ConfigWebserver:             configWebserver,
 		DB:                          DB,
@@ -47,6 +49,7 @@ func NewCartService(
 		Logger:                      logger,
 		CartRepositoryInterface:     cartRepositoryInterface,
 		ShippingRepositoryInterface: shippingRepositoryInterface,
+		ProductRepositoryInterface:  productRepositoryInterface,
 	}
 }
 
@@ -122,6 +125,13 @@ func (service *CartServiceImplementation) AddProductToCart(requestId string, IdU
 
 	// Cek apakah produk yang dimasukkan sudah ada di keranjang
 	cartProductExist, _ := service.CartRepositoryInterface.FindProductInCartByIdUser(service.DB, IdUser, addProductToCartRequest.IdProduct)
+
+	// Cek Prduct Stock
+	product, _ := service.ProductRepositoryInterface.FindProductById(service.DB, addProductToCartRequest.IdProduct)
+	if product.Stock < 1 {
+		exceptions.PanicIfBadRequest(errors.New("stock kosong"), requestId, []string{"Mohon maaf stock sedang kosong"}, service.Logger)
+	}
+
 	// Produk belum pernah dimasukkan
 	if cartProductExist.Id == "" {
 		cartEntity := &entity.Cart{}
