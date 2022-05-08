@@ -1,6 +1,8 @@
 package response
 
-import "github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
+import (
+	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
+)
 
 type FindOrderByIdOrderResponse struct {
 	IdOrder        string              `json:"id_order"`
@@ -14,6 +16,7 @@ type FindOrderByIdOrderResponse struct {
 	PaymentMethod  string              `json:"payment_method"`
 	PaymentChannel string              `json:"payment_channel"`
 	OrderItems     []OrderItemResponse `json:"order_items"`
+	PaymentDueDate string              `json:"payment_due_date"`
 }
 
 type OrderItemResponse struct {
@@ -64,5 +67,6 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 	orderResponse.OrderStatus = order.OrderSatus
 	orderResponse.ShippingCost = order.ShippingCost
 	orderResponse.SubTotal = totalPricePerItem
+	// orderResponse.PaymentDueDate = order.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 	return orderResponse
 }

@@ -21,3 +21,12 @@
 		// 		exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		// 	}
 		// }
+
+		// waktuSekarang := time.Now()
+		// waktu := order.PaymentDueDate.Time
+		// fmt.Println("waktu sekarang = ", waktuSekarang)
+		// fmt.Println("batas waktu pembayaran = ", waktu)
+		// if waktuSekarang.After(waktu) {
+		// 	fmt.Println("yes")
+		// }
+		// fmt.Println("waktu = ", waktu)

@@ -1,20 +1,22 @@
 package response
 
 import (
+	"time"
+
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 )
 
 type OrderCheckPayment struct {
-	IdOrder        string  `json:"id_order"`
-	PaymentNo      string  `json:"payment_no"`
-	PaymentName    string  `json:"payment_name"`
-	Total          float64 `json:"total"`
-	Expired        string  `json:"expired"`
-	PaymentMethod  string  `json:"payment_method"`
-	PaymentChannel string  `json:"payment_channel"`
-	PaymentStatus  string  `json:"payment_status"`
-	BankName       string  `json:"bank_name"`
-	BankLogo       string  `json:"bank_logo"`
+	IdOrder        string    `json:"id_order"`
+	PaymentNo      string    `json:"payment_no"`
+	PaymentName    string    `json:"payment_name"`
+	Total          float64   `json:"total"`
+	Expired        time.Time `json:"expired"`
+	PaymentMethod  string    `json:"payment_method"`
+	PaymentChannel string    `json:"payment_channel"`
+	PaymentStatus  string    `json:"payment_status"`
+	BankName       string    `json:"bank_name"`
+	BankLogo       string    `json:"bank_logo"`
 }
 
 func ToOrderCheckVaPaymentResponse(
@@ -24,7 +26,7 @@ func ToOrderCheckVaPaymentResponse(
 	orderResponse.PaymentNo = order.PaymentNo
 	orderResponse.PaymentName = order.PaymentName
 	orderResponse.Total = order.PaymentByCash
-	orderResponse.Expired = order.PaymentExpired
+	// orderResponse.Expired = order.PaymentDueDate.Time
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod

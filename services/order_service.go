@@ -3,7 +3,6 @@ package services
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -27,6 +26,7 @@ import (
 	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
+	"gopkg.in/guregu/null.v4"
 	"gorm.io/gorm"
 )
 
@@ -167,7 +167,7 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 	// Update order status
 	orderEntity := &entity.Order{}
 	orderEntity.OrderSatus = "Selesai"
-	orderEntity.CompletedAt = sql.NullTime{Time: time.Now(), Valid: true}
+	orderEntity.CompletedAt = null.NewTime(time.Now(), true)
 
 	_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -263,7 +263,7 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 
 	orderEntity := &entity.Order{}
 	orderEntity.OrderSatus = "Dibatalkan"
-	orderEntity.CanceledAt = sql.NullTime{Time: time.Now(), Valid: true}
+	orderEntity.CanceledAt = null.NewTime(time.Now(), true)
 
 	balancePointEntity := &entity.BalancePoint{}
 	balancePointEntity.BalancePoints = balancePoint.BalancePoints + order.PaymentByPoint
@@ -306,8 +306,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		} else {
 			orderEntity.PaymentStatus = "Pending"
 		}
-
-		orderEntity.PaymentSuccessAt = sql.NullTime{Time: time.Now(), Valid: true}
+		orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
 
 		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -414,7 +413,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
 	orderEntity.PaymentStatus = "Belum Dibayar"
 	orderEntity.PaymentByPoint = orderRequest.PaymentByPoint
-	orderEntity.PaymentByCash = orderRequest.PaymentByCash
+	if orderRequest.PaymentMethod != "trf" {
+		orderEntity.PaymentByCash = orderRequest.PaymentByCash
+	}
 	orderEntity.ShippingCost = orderRequest.ShippingCost
 	orderEntity.ShippingStatus = "Menunggu"
 	order, err := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
@@ -470,6 +471,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderItemEntity.Qty = cartItem.Qty
 		orderItemEntity.FlagPromo = cartItem.Product.ProductDiscount.FlagPromo
 		orderItemEntity.Thumbnail = cartItem.Product.Thumbnail
+		orderItemEntity.PriceBeforeDiscount = cartItem.Product.Price
+		orderItemEntity.PriceAfterDiscount = cartItem.Product.ProductDiscount.Nominal
 		if cartItem.Product.ProductDiscount.FlagPromo == "true" {
 			orderItemEntity.Price = cartItem.Product.ProductDiscount.Nominal
 			totalPriceProduct = cartItem.Product.ProductDiscount.Nominal
@@ -553,11 +556,12 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			fmt.Println(err)
 			exceptions.PanicIfError(err, requestId, service.Logger)
 		}
-		// ss := fmt.Sprintf("%+v\n", dataResponseIpaymu)
+		// ss := fmt.Sprintf("%+v\n", resp)
 		// fmt.Println(ss)
 
 		if dataResponseIpaymu.Status != 200 {
 			exceptions.PanicIfErrorWithRollback(errors.New("error response ipaymu"), requestId, []string{"Error response ipaymu"}, service.Logger, tx)
+			return
 		} else if dataResponseIpaymu.Status == 200 {
 			// make log
 			service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (VA/QRIS)")
@@ -577,19 +581,17 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 			orderEntity := &entity.Order{}
 			orderEntity.PaymentNo = dataResponseIpaymu.Data.PaymentNo
-			orderEntity.PaymentExpired = dataResponseIpaymu.Data.Expired
 			orderEntity.PaymentName = dataResponseIpaymu.Data.PaymentName
 			orderEntity.TrxId = dataResponseIpaymu.Data.TransactionId
-
+			paymentDueDate, _ := time.Parse("2006-01-02 15:04:05", dataResponseIpaymu.Data.Expired)
+			orderEntity.PaymentDueDate = null.NewTime(paymentDueDate, true)
 			_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
-
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+			orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu.Data.TransactionId, dataResponseIpaymu, bankVa)
+			return orderResponse
 		}
-
-		orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu.Data.TransactionId, dataResponseIpaymu, bankVa)
-		return orderResponse
 
 	case "trf":
 		// Get data bank by code
@@ -623,13 +625,12 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		orderEntity := &entity.Order{}
 		orderEntity.PaymentNo = bankTransfer.NoAccount
-		orderEntity.PaymentExpired = ""
 		orderEntity.PaymentName = bankTransfer.BankName
+		orderEntity.PaymentByCash = payment.Data.Total
 
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
-		fmt.Println("Number Order = ", orderEntity.NumberOrder)
 		service.SendTelegram(payment.Data.ReferenceId, "Ada Orderan Masuk (TRF)")
 
 		commit := tx.Commit()
@@ -643,7 +644,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
-		service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (COD)")
+		service.SendTelegram(order.NumberOrder, "Ada Orderan Masuk (COD)")
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -654,6 +655,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity := &entity.Order{}
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
 		orderEntity.PaymentStatus = "Sudah Dibayar"
+		orderEntity.PaymentMethod = orderRequest.PaymentMethod
+		orderEntity.PaymentChannel = orderRequest.PaymentChannel
+		orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
@@ -680,7 +684,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
 		}
 
-		service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (Point)")
+		service.SendTelegram(order.NumberOrder, "Ada Orderan Masuk (Point)")
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -691,4 +695,5 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		exceptions.PanicIfErrorWithRollback(errors.New("payment method not found"), requestId, []string{"payment method not found"}, service.Logger, tx)
 		return
 	}
+	return
 }

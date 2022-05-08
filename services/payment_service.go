@@ -23,6 +23,7 @@ import (
 	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
+	"gopkg.in/guregu/null.v4"
 	"gorm.io/gorm"
 )
 
@@ -125,7 +126,8 @@ func (service *PaymentServiceImplementation) PaymentStatus(requestId string, pay
 
 			orderEntity := &entity.Order{}
 			orderEntity.OrderSatus = "Menunggu Konfirmasi"
-			orderEntity.PaymentSuccessAt.Time = time.Now()
+			orderEntity.PaymentStatus = "Sudah Dibayar"
+			orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
 
 			_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
