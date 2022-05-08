@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -62,13 +61,14 @@ func (repository *OrderRepositoryImplementation) FindOrderById(DB *gorm.DB, idOr
 
 func (repository *OrderRepositoryImplementation) CreateOrder(DB *gorm.DB, order entity.Order) (entity.Order, error) {
 	results := DB.Create(order)
+	// DB.Scan(&order).Where("id", order.Id)
 	// results := DB.Exec("INSERT INTO orders_transaction", order)
 	return order, results.Error
 }
 
 func (repository *OrderRepositoryImplementation) UpdateOrderStatus(DB *gorm.DB, NumberOrder string, order entity.Order) (entity.Order, error) {
-	var test entity.Order
-	fmt.Println("waktu 2", test.PaymentSuccessAt.Time)
+	// var test entity.Order
+	// fmt.Println("waktu 2", test.PaymentSuccessAt.Time)
 
 	result := DB.
 		Model(entity.Order{}).
@@ -77,6 +77,8 @@ func (repository *OrderRepositoryImplementation) UpdateOrderStatus(DB *gorm.DB, 
 			PaymentStatus:    order.PaymentStatus,
 			OrderSatus:       order.OrderSatus,
 			PaymentSuccessAt: order.PaymentSuccessAt,
+			PaymentMethod:    order.PaymentMethod,
+			PaymentChannel:   order.PaymentChannel,
 		})
 	return order, result.Error
 }
@@ -87,9 +89,10 @@ func (repository *OrderRepositoryImplementation) UpdateOrderPayment(DB *gorm.DB,
 		Where("number_order = ?", NumberOrder).
 		Updates(entity.Order{
 			PaymentNo:      order.PaymentNo,
-			PaymentExpired: order.PaymentExpired,
 			PaymentName:    order.PaymentName,
 			TrxId:          order.TrxId,
+			PaymentByCash:  order.PaymentByCash,
+			PaymentDueDate: order.PaymentDueDate,
 		})
 	return order, result.Error
 }

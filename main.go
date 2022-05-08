@@ -265,8 +265,7 @@ func main() {
 		orderItemRepository,
 		productRepository,
 		productStockHistoryRepository,
-		paymentLogRepository,
-	)
+		paymentLogRepository)
 
 	// Provinsi Controller
 	provinsiController := controllers.NewProvinsiController(appConfig.Webserver, provinsiService)

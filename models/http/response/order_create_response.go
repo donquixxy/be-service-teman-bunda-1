@@ -46,9 +46,9 @@ func ToCreateOrderTransferResponse(
 	payment modelService.PaymentResponse,
 	bankTransfer entity.BankTransfer) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
-	orderResponse.ReferenceId = payment.Data.ReferenceId
-	orderResponse.PaymentNo = payment.Data.PaymentNo
-	orderResponse.Total = payment.Data.Total
+	orderResponse.ReferenceId = order.NumberOrder
+	orderResponse.PaymentNo = order.PaymentNo
+	orderResponse.Total = order.TotalBill
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod
@@ -72,5 +72,9 @@ func ToCreateOrderCodResponse(
 func ToCreateOrderFullPointResponse(
 	order entity.Order) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentChannel = order.PaymentChannel
+	orderResponse.PaymentMethod = order.PaymentMethod
+	orderResponse.PaymentStatus = order.PaymentStatus
 	return orderResponse
 }
