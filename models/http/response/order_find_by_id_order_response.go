@@ -67,6 +67,6 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 	orderResponse.OrderStatus = order.OrderSatus
 	orderResponse.ShippingCost = order.ShippingCost
 	orderResponse.SubTotal = totalPricePerItem
-	// orderResponse.PaymentDueDate = order.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
+	orderResponse.PaymentDueDate = order.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 	return orderResponse
 }

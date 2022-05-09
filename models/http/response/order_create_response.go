@@ -47,8 +47,8 @@ func ToCreateOrderTransferResponse(
 	bankTransfer entity.BankTransfer) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
 	orderResponse.ReferenceId = order.NumberOrder
-	orderResponse.PaymentNo = order.PaymentNo
-	orderResponse.Total = order.TotalBill
+	orderResponse.PaymentNo = payment.Data.PaymentNo
+	orderResponse.Total = payment.Data.Total
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod
@@ -56,12 +56,14 @@ func ToCreateOrderTransferResponse(
 	orderResponse.BankName = bankTransfer.BankName
 	orderResponse.PaymentName = bankTransfer.BankAn
 	orderResponse.BankLogo = bankTransfer.BankLogo
+	orderResponse.Expired = payment.Data.Expired
 	return orderResponse
 }
 
 func ToCreateOrderCodResponse(
 	order entity.Order) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
+	orderResponse.Total = order.PaymentByCash
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod
@@ -72,6 +74,7 @@ func ToCreateOrderCodResponse(
 func ToCreateOrderFullPointResponse(
 	order entity.Order) (orderResponse CreateOrderResponse) {
 	orderResponse.IdOrder = order.Id
+	orderResponse.Total = order.PaymentByPoint
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod

@@ -60,7 +60,7 @@ func (repository *ProductRepositoryImplementation) FindProductById(DB *gorm.DB, 
 
 func (repository *ProductRepositoryImplementation) FindProductByIdCategory(DB *gorm.DB, idCategory string) ([]entity.Product, error) {
 	var products []entity.Product
-	results := DB.Where("products.id_category = ?", idCategory).Where("products.published = ?", "1").Joins("ProductDiscount").Find(&products)
+	results := DB.Where("products.id_category = ?", idCategory).Where("products.published = ?", "1").Order("products.id_sub_category asc").Joins("ProductDiscount").Find(&products)
 	return products, results.Error
 }
 

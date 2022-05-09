@@ -656,6 +656,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.PaymentNo = bankTransfer.NoAccount
 		orderEntity.PaymentName = bankTransfer.BankName
 		orderEntity.PaymentByCash = payment.Data.Total
+		orderEntity.PaymentDueDate = null.NewTime(time.Now().Add(time.Hour*24), true)
+
+		payment.Data.Expired = orderEntity.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 
 		_, errUpdateOrderPayment := service.OrderRepositoryInterface.UpdateOrderPayment(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
