@@ -79,6 +79,7 @@ func (repository *OrderRepositoryImplementation) UpdateOrderStatus(DB *gorm.DB, 
 			PaymentSuccessAt: order.PaymentSuccessAt,
 			PaymentMethod:    order.PaymentMethod,
 			PaymentChannel:   order.PaymentChannel,
+			CompletedAt:      order.CompletedAt,
 		})
 	return order, result.Error
 }

@@ -299,62 +299,91 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 
 		tx := service.DB.Begin()
 
-		orderEntity := &entity.Order{}
-		orderEntity.OrderSatus = "Menunggu Konfirmasi"
-		if paymentRequestCallback.StatusCode == "1" {
+		if paymentRequestCallback.StatusCode == 1 || paymentRequestCallback.StatusCode == 6 {
+			orderEntity := &entity.Order{}
+			orderEntity.OrderSatus = "Menunggu Konfirmasi"
 			orderEntity.PaymentStatus = "Sudah Dibayar"
+			orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
+
+			orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
+			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
+			// Create response log
+			paymentLogEntity := &entity.PaymentLog{}
+			paymentLogEntity.Id = utilities.RandomUUID()
+			paymentLogEntity.IdOrder = order.Id
+			paymentLogEntity.NumberOrder = order.NumberOrder
+			paymentLogEntity.TypeLog = "Respon Success Ipaymu"
+			paymentLogEntity.PaymentMethod = order.PaymentMethod
+			paymentLogEntity.PaymentChannel = order.PaymentChannel
+			paymentLogEntity.Log = fmt.Sprintf("%+v\n", paymentRequestCallback)
+			paymentLogEntity.CreatedAt = time.Now()
+
+			// s := fmt.Sprintf("%+v\n", paymentRequestCallback)
+			// fmt.Println(s)
+
+			_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
+			exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
+
+			//update product stock
+			orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
+			for _, orderItem := range orderItems {
+				productEntity := &entity.Product{}
+				productEntityStockHistory := &entity.ProductStockHistory{}
+				product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
+				exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
+
+				productEntityStockHistory.IdProduct = orderItem.IdProduct
+				productEntityStockHistory.TxDate = time.Now()
+				productEntityStockHistory.StockOpname = product.Stock
+				productEntityStockHistory.StockOutQty = orderItem.Qty
+				productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
+				productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
+				productEntityStockHistory.CreatedAt = time.Now()
+				_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
+				exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
+
+				productEntity.Stock = product.Stock - orderItem.Qty
+				_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
+				exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
+			}
+
+			commit := tx.Commit()
+			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+			orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
+			return orderResponse
+		} else if paymentRequestCallback.StatusCode == -2 {
+			orderEntity := &entity.Order{}
+			orderEntity.OrderSatus = "Menunggu Konfirmasi"
+			orderEntity.PaymentStatus = "Sudah Dibayar"
+			orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
+
+			orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
+			exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
+			// Create response log
+			paymentLogEntity := &entity.PaymentLog{}
+			paymentLogEntity.Id = utilities.RandomUUID()
+			paymentLogEntity.IdOrder = order.Id
+			paymentLogEntity.NumberOrder = order.NumberOrder
+			paymentLogEntity.TypeLog = "Expired"
+			paymentLogEntity.PaymentMethod = order.PaymentMethod
+			paymentLogEntity.PaymentChannel = order.PaymentChannel
+			paymentLogEntity.Log = fmt.Sprintf("%+v\n", paymentRequestCallback)
+			paymentLogEntity.CreatedAt = time.Now()
+
+			// s := fmt.Sprintf("%+v\n", paymentRequestCallback)
+			// fmt.Println(s)
+
+			_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
+			exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
+
+			commit := tx.Commit()
+			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+			orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
+			return orderResponse
 		} else {
-			orderEntity.PaymentStatus = "Pending"
+			exceptions.PanicIfError(errors.New("hahaah"), requestId, service.Logger)
+			return
 		}
-		orderEntity.PaymentSuccessAt = null.NewTime(time.Now(), true)
-
-		orderResult, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, paymentRequestCallback.ReferenceId, *orderEntity)
-		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
-
-		// Create response log
-		paymentLogEntity := &entity.PaymentLog{}
-		paymentLogEntity.Id = utilities.RandomUUID()
-		paymentLogEntity.IdOrder = order.Id
-		paymentLogEntity.NumberOrder = order.NumberOrder
-		paymentLogEntity.TypeLog = "Respon Success Ipaymu"
-		paymentLogEntity.PaymentMethod = order.PaymentMethod
-		paymentLogEntity.PaymentChannel = order.PaymentChannel
-		paymentLogEntity.Log = fmt.Sprintf("%+v\n", paymentRequestCallback)
-		paymentLogEntity.CreatedAt = time.Now()
-
-		// s := fmt.Sprintf("%+v\n", paymentRequestCallback)
-		// fmt.Println(s)
-
-		_, errCreateLog := service.PaymentLogRepositoryInterface.CreatePaymentLog(tx, *paymentLogEntity)
-		exceptions.PanicIfErrorWithRollback(errCreateLog, requestId, []string{"Error create log"}, service.Logger, tx)
-
-		//update product stock
-		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
-		for _, orderItem := range orderItems {
-			productEntity := &entity.Product{}
-			productEntityStockHistory := &entity.ProductStockHistory{}
-			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
-			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
-
-			productEntityStockHistory.IdProduct = orderItem.IdProduct
-			productEntityStockHistory.TxDate = time.Now()
-			productEntityStockHistory.StockOpname = product.Stock
-			productEntityStockHistory.StockOutQty = orderItem.Qty
-			productEntityStockHistory.StockFinal = product.Stock - orderItem.Qty
-			productEntityStockHistory.Description = "Pembelian " + order.NumberOrder
-			productEntityStockHistory.CreatedAt = time.Now()
-			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
-			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
-
-			productEntity.Stock = product.Stock - orderItem.Qty
-			_, errUpdateProductStock := service.ProductRepositoryInterface.UpdateProductStock(tx, orderItem.IdProduct, *productEntity)
-			exceptions.PanicIfErrorWithRollback(errUpdateProductStock, requestId, []string{"update stock error"}, service.Logger, tx)
-		}
-
-		commit := tx.Commit()
-		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
-		orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
-		return orderResponse
 	}
 }
 
