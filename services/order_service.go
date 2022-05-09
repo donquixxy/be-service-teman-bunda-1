@@ -633,18 +633,18 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		// buat 3 nomor acak
 		rand.Seed(time.Now().UnixNano())
-		min := 100
-		max := 300
+		min := 111
+		max := 299
 		rand3Number := rand.Intn(max-min+1) + min
 
-		min2 := 10
+		min2 := 11
 		max2 := 99
 		rand2Number := rand.Intn(max2-min2+1) + min
 
 		sisaPembagi := math.Mod(orderRequest.PaymentByCash, 1000)
-		if sisaPembagi < 200 {
+		if sisaPembagi < 100 {
 			payment.Data.Total = orderRequest.PaymentByCash + float64(rand3Number)
-		} else if sisaPembagi > 200 {
+		} else if sisaPembagi > 100 {
 			payment.Data.Total = orderRequest.PaymentByCash + float64(rand2Number)
 		}
 
