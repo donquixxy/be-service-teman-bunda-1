@@ -200,7 +200,8 @@ func main() {
 		appConfig.Jwt,
 		validate,
 		logrusLogger,
-		userRepository)
+		userRepository,
+		settingsRepository)
 
 	// Product Service
 	productService := services.NewProductService(

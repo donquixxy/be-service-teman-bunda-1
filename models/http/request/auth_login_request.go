@@ -1,8 +1,6 @@
 package request
 
 import (
-	"fmt"
-
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -20,7 +18,6 @@ func ReadFromAuthRequestBody(c echo.Context, requestId string, logger *logrus.Lo
 	if err := c.Bind(authRequest); err != nil {
 		exceptions.PanicIfError(err, requestId, logger)
 	}
-	fmt.Println(authRequest)
 	return authRequest
 }
 

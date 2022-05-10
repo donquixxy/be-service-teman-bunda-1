@@ -441,3 +441,22 @@ func (service *UserServiceImplementation) SendEmailPasswordResetCode(toEmail str
 	fmt.Println(err)
 	return err
 }
+
+func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.User) (token string, err error) {
+	// Create the Claims
+	claims := modelService.TokenClaims{
+		Id:       user.Id,
+		Username: user.Username,
+		StandardClaims: jwt.StandardClaims{
+			// ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
+			Issuer: "ayaka",
+		},
+	}
+
+	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.VerifyKey))
+	if err != nil {
+		return "", err
+	}
+	return token, err
+}
