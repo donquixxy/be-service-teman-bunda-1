@@ -438,46 +438,22 @@ func (service *UserServiceImplementation) SendEmailPasswordResetCode(to string, 
 	}
 }
 
-// func (service *UserServiceImplementation) SendEmail(toEmail string, idUser string, token string) error {
-// 	fromEmail := string(service.ConfigEmail.FromEmail)
-// 	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
+func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.User) (token string, err error) {
+	// Create the Claims
+	claims := modelService.TokenClaims{
+		Id:       user.Id,
+		Username: user.Username,
+		StandardClaims: jwt.StandardClaims{
+			// ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
+			Issuer: "ayaka",
+		},
+	}
 
-// 	to := []string{toEmail}
+	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.VerifyKey))
+	if err != nil {
+		return "", err
+	}
+	return token, err
+}
 
-// 	host := "smtp.gmail.com"
-// 	port := "587"
-// 	address := host + ":" + port
-
-// 	subject := "Subject: Email Verification\r\n\r\n"
-// 	body := "Silakan klik link berikut untuk melakukan verifikasi \n" +
-// 		"Link : " + service.ConfigEmail.LinkVerifyEmail + token
-// 	message := []byte(subject + body)
-
-// 	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
-// 	fmt.Println("message : ", string(message))
-// 	err := smtp.SendMail(address, auth, fromEmail, to, message)
-// 	fmt.Println(err)
-// 	return err
-// }
-
-// func (service *UserServiceImplementation) SendEmailPasswordResetCode(toEmail string, code string) error {
-// 	fromEmail := string(service.ConfigEmail.FromEmail)
-// 	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
-
-// 	to := []string{toEmail}
-
-// 	host := "smtp.gmail.com"
-// 	port := "587"
-// 	address := host + ":" + port
-
-// 	subject := "Subject: Reset Password Code\r\n\r\n"
-// 	body := "Berikut merupakan code untuk reset password \n" +
-// 		"CODE : " + code
-// 	message := []byte(subject + body)
-
-// 	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
-// 	fmt.Println("message : ", string(message))
-// 	err := smtp.SendMail(address, auth, fromEmail, to, message)
-// 	fmt.Println(err)
-// 	return err
-// }

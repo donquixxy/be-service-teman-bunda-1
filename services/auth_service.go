@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
+	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
 	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
@@ -25,12 +26,13 @@ type AuthServiceInterface interface {
 }
 
 type AuthServiceImplementation struct {
-	ConfigurationWebserver  config.Webserver
-	DB                      *gorm.DB
-	ConfigJwt               config.Jwt
-	Validate                *validator.Validate
-	Logger                  *logrus.Logger
-	UserRepositoryInterface mysql.UserRepositoryInterface
+	ConfigurationWebserver     config.Webserver
+	DB                         *gorm.DB
+	ConfigJwt                  config.Jwt
+	Validate                   *validator.Validate
+	Logger                     *logrus.Logger
+	UserRepositoryInterface    mysql.UserRepositoryInterface
+	SettingRepositoryInterface mysql.SettingsRepositoryInterface
 }
 
 func NewAuthService(
@@ -39,25 +41,31 @@ func NewAuthService(
 	configJwt config.Jwt,
 	validate *validator.Validate,
 	logger *logrus.Logger,
-	userRepositoryInterface mysql.UserRepositoryInterface) AuthServiceInterface {
-	return &UserServiceImplementation{
-		ConfigurationWebserver:  configurationWebserver,
-		DB:                      DB,
-		ConfigJwt:               configJwt,
-		Validate:                validate,
-		Logger:                  logger,
-		UserRepositoryInterface: userRepositoryInterface,
+	userRepositoryInterface mysql.UserRepositoryInterface,
+	settingRepositoryInterface mysql.SettingsRepositoryInterface) AuthServiceInterface {
+	return &AuthServiceImplementation{
+		ConfigurationWebserver:     configurationWebserver,
+		DB:                         DB,
+		ConfigJwt:                  configJwt,
+		Validate:                   validate,
+		Logger:                     logger,
+		UserRepositoryInterface:    userRepositoryInterface,
+		SettingRepositoryInterface: settingRepositoryInterface,
 	}
 }
 
-func (service *UserServiceImplementation) Login(requestId string, authRequest *request.AuthRequest) (authResponse interface{}) {
+func (service *AuthServiceImplementation) Login(requestId string, authRequest *request.AuthRequest) (authResponse interface{}) {
 	var userModelService modelService.User
+	var user entity.User
 
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
+	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
 	if user.Id == "" {
-		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, authRequest.Username)
+		if user.Id == "" {
+			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+		}
 	}
 
 	if user.IsActive == 1 {
@@ -77,7 +85,9 @@ func (service *UserServiceImplementation) Login(requestId string, authRequest *r
 		_, err = service.UserRepositoryInterface.SaveUserRefreshToken(service.DB, userModelService.Id, refreshToken)
 		exceptions.PanicIfError(err, requestId, service.Logger)
 
-		authResponse = response.ToAuthResponse(userModelService.Id, userModelService.Username, token, refreshToken)
+		setting, _ := service.SettingRepositoryInterface.FindSettingsByName(service.DB, "ver_app")
+
+		authResponse = response.ToAuthResponse(userModelService.Id, userModelService.Username, token, refreshToken, setting.SettingsTitle)
 
 		return authResponse
 	} else {
@@ -87,7 +97,7 @@ func (service *UserServiceImplementation) Login(requestId string, authRequest *r
 
 }
 
-func (service *UserServiceImplementation) NewToken(requestId string, refreshToken string) (token string) {
+func (service *AuthServiceImplementation) NewToken(requestId string, refreshToken string) (token string) {
 	tokenParse, err := jwt.ParseWithClaims(refreshToken, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(service.ConfigJwt.Key), nil
 	})
@@ -131,7 +141,7 @@ func (service *UserServiceImplementation) NewToken(requestId string, refreshToke
 	}
 }
 
-func (service *UserServiceImplementation) GenerateToken(user modelService.User) (token string, err error) {
+func (service *AuthServiceImplementation) GenerateToken(user modelService.User) (token string, err error) {
 	// Create the Claims
 	claims := modelService.TokenClaims{
 		Id:          user.Id,
@@ -151,26 +161,7 @@ func (service *UserServiceImplementation) GenerateToken(user modelService.User) 
 	return token, err
 }
 
-func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.User) (token string, err error) {
-	// Create the Claims
-	claims := modelService.TokenClaims{
-		Id:       user.Id,
-		Username: user.Username,
-		StandardClaims: jwt.StandardClaims{
-			// ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.Tokenexpiredtime)).Unix(),
-			Issuer: "ayaka",
-		},
-	}
-
-	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.VerifyKey))
-	if err != nil {
-		return "", err
-	}
-	return token, err
-}
-
-func (service *UserServiceImplementation) GenerateRefreshToken(user modelService.User) (token string, err error) {
+func (service *AuthServiceImplementation) GenerateRefreshToken(user modelService.User) (token string, err error) {
 	// Create the Claims
 	claims := modelService.TokenClaims{
 		Id:       user.Id,
