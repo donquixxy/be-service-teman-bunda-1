@@ -88,7 +88,8 @@ func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Co
 	fmt.Println(accessToken)
 	err := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, accessToken)
 	if err == nil {
-		return c.JSON(http.StatusOK, "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA")
+		// return c.JSON(http.StatusOK, "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA")
+		return c.File("./template/verifikasi_email_success.html")
 	} else {
 		return nil
 	}

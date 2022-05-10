@@ -60,7 +60,8 @@ func (repository *UserRepositoryImplementation) UpdateStatusActiveUser(DB *gorm.
 		Model(entity.User{}).
 		Where("id = ?", idUser).
 		Updates(entity.User{
-			IsActive: user.IsActive,
+			IsActive:          user.IsActive,
+			PasswordResetCode: user.PasswordResetCode,
 		})
 	return user, result.Error
 }
