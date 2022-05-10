@@ -30,7 +30,10 @@ func main() {
 	// Timezone
 	location, err := time.LoadLocation(appConfig.Timezone.Timezone)
 	time.Local = location
-	fmt.Println("location:", location, err)
+	fmt.Println("Location:", location, err)
+
+	// App
+	fmt.Println("Server App : ", string(config.GetConfig().Application.Server))
 
 	// Logger
 	logrusLogger := utilities.NewLogger(appConfig.Log)
