@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net/smtp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -117,7 +117,13 @@ func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, 
 	_, errUpdateUser := service.UserRepositoryInterface.UpdatePasswordResetCodeUser(service.DB, user.Id, *userEntity)
 	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 
-	service.SendEmailPasswordResetCode(user.FamilyMembers.Email, userEntity.PasswordResetCode)
+	templateData := modelService.BodyCodeEmail{
+		Code:     output.String(),
+		FullName: user.FamilyMembers.FullName,
+	}
+	to := user.FamilyMembers.Email
+	runtime.GOMAXPROCS(1)
+	go service.SendEmailPasswordResetCode(to, templateData)
 
 	return nil
 }
@@ -143,9 +149,11 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 		user, _ := service.UserRepositoryInterface.FindUserById(service.DB, claims.Id)
 		userEntity := &entity.User{}
 		userEntity.IsActive = 1
+		userEntity.PasswordResetCode = ""
 
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
+
 		return nil
 	} else {
 		err := errors.New("no claims")
@@ -345,7 +353,15 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	token, err := service.GenerateTokenVerify(userModelService)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 
-	service.SendEmail(userRequest.Email, userEntity.Id, token)
+	templateData := modelService.BodyLinkEmail{
+		URL:      service.ConfigEmail.LinkVerifyEmail + token,
+		FullName: familyMembersEntity.FullName,
+	}
+	to := familyMembersEntity.Email
+	runtime.GOMAXPROCS(1)
+	go service.SendEmailVerification(to, templateData)
+
+	// service.SendEmail(userRequest.Email, userEntity.Id, token)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -398,48 +414,28 @@ func (service *UserServiceImplementation) FindUserById(requestId string, id stri
 	return userResponse
 }
 
-func (service *UserServiceImplementation) SendEmail(toEmail string, idUser string, token string) error {
-	fromEmail := string(service.ConfigEmail.FromEmail)
-	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
-
-	to := []string{toEmail}
-
-	host := "smtp.gmail.com"
-	port := "587"
-	address := host + ":" + port
-
-	subject := "Subject: Email Verification\r\n\r\n"
-	body := "Silakan klik link berikut untuk melakukan verifikasi \n" +
-		"Link : " + service.ConfigEmail.LinkVerifyEmail + token
-	message := []byte(subject + body)
-
-	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
-	fmt.Println("message : ", string(message))
-	err := smtp.SendMail(address, auth, fromEmail, to, message)
-	fmt.Println(err)
-	return err
+func (service *UserServiceImplementation) SendEmailVerification(to string, data interface{}) {
+	var err error
+	template := "./template/verifikasi_email.html"
+	subject := "Verifikasi Email Teman Bunda"
+	err = utilities.SendEmail(to, subject, data, template)
+	if err == nil {
+		fmt.Println("send email '" + subject + "' success")
+	} else {
+		fmt.Println(err)
+	}
 }
 
-func (service *UserServiceImplementation) SendEmailPasswordResetCode(toEmail string, code string) error {
-	fromEmail := string(service.ConfigEmail.FromEmail)
-	fromPasswordEmail := string(service.ConfigEmail.FromEmailPassword)
-
-	to := []string{toEmail}
-
-	host := "smtp.gmail.com"
-	port := "587"
-	address := host + ":" + port
-
-	subject := "Subject: Reset Password Code\r\n\r\n"
-	body := "Berikut merupakan code untuk reset password \n" +
-		"CODE : " + code
-	message := []byte(subject + body)
-
-	auth := smtp.PlainAuth("", fromEmail, fromPasswordEmail, host)
-	fmt.Println("message : ", string(message))
-	err := smtp.SendMail(address, auth, fromEmail, to, message)
-	fmt.Println(err)
-	return err
+func (service *UserServiceImplementation) SendEmailPasswordResetCode(to string, data interface{}) {
+	var err error
+	template := "./template/verifikasi_code_password.html"
+	subject := "Permintaan Reset Password"
+	err = utilities.SendEmail(to, subject, data, template)
+	if err == nil {
+		fmt.Println("send email '" + subject + "' success")
+	} else {
+		fmt.Println(err)
+	}
 }
 
 func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.User) (token string, err error) {
@@ -460,3 +456,4 @@ func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.
 	}
 	return token, err
 }
+
