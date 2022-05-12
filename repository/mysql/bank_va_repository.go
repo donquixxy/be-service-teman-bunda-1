@@ -29,6 +29,6 @@ func (repository *BankVaRepositoryImplementation) FindBankVaByBankCode(DB *gorm.
 
 func (repository *BankVaRepositoryImplementation) FindAllBankVa(DB *gorm.DB) ([]entity.BankVa, error) {
 	var bankVas []entity.BankVa
-	results := DB.Find(&bankVas)
+	results := DB.Where("bank_code != ?", "qris").Find(&bankVas)
 	return bankVas, results.Error
 }

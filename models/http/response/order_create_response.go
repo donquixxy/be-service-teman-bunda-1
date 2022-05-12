@@ -29,7 +29,7 @@ func ToCreateOrderVaResponse(
 	orderResponse.TrxId = TrxId
 	orderResponse.ReferenceId = payment.Data.ReferenceId
 	orderResponse.PaymentNo = payment.Data.PaymentNo
-	orderResponse.PaymentName = payment.Data.PaymentName
+	orderResponse.PaymentName = "Teman Bunda"
 	orderResponse.Total = payment.Data.Total
 	orderResponse.Expired = payment.Data.Expired
 	orderResponse.PaymentMethod = order.PaymentMethod

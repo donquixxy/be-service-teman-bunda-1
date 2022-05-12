@@ -13,6 +13,7 @@ import (
 
 type PaymentChannelServiceInterface interface {
 	FindListPaymentChannel(requestId string) (paymentListChannelResponses []response.FindListPaymentChannelResponse)
+	FindListPaymentChannelv2(requestId string) (paymentListChannelResponses []response.FindListPaymentChannelResponse)
 }
 
 type PaymentChannelServiceImplementation struct {
@@ -70,6 +71,18 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 	listPayment.BankLogo = bankVa.BankLogo
 	listPayments = append(listPayments, *listPayment)
 
+	bankCod, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, "cod")
+	listPayment.PaymentMethod = "cod"
+	listPayment.BankCode = bankCod.BankCode
+	listPayment.BankName = bankCod.BankName
+	listPayment.BankLogo = bankCod.BankLogo
+	listPayments = append(listPayments, *listPayment)
+
 	paymentListChannelResponses = response.ToFindPaymentMethodResponses(listPayments)
 	return paymentListChannelResponses
+}
+
+func (service *PaymentChannelServiceImplementation) FindListPaymentChannelv2(requestId string) (paymentListChannelResponses []response.FindListPaymentChannelResponse) {
+	return
+
 }

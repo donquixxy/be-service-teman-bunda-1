@@ -12,6 +12,7 @@ import (
 
 type PaymentChannelControllerInterface interface {
 	FindListPaymentChannel(c echo.Context) error
+	FindListPaymentChannelv2(c echo.Context) error
 }
 
 type PaymentChannelControllerImplementation struct {
@@ -31,6 +32,13 @@ func NewPaymentChannelController(configWebserver config.Webserver, logger *logru
 func (controller *PaymentChannelControllerImplementation) FindListPaymentChannel(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	paymentChannelResponses := controller.PaymentChannelServiceInterface.FindListPaymentChannel(requestId)
+	responses := response.Response{Code: 200, Mssg: "success", Data: paymentChannelResponses, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *PaymentChannelControllerImplementation) FindListPaymentChannelv2(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	paymentChannelResponses := controller.PaymentChannelServiceInterface.FindListPaymentChannelv2(requestId)
 	responses := response.Response{Code: 200, Mssg: "success", Data: paymentChannelResponses, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

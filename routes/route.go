@@ -32,16 +32,18 @@ func KelurahanRoute(e *echo.Echo, configWebserver config.Webserver, kelurahanCon
 }
 
 // User Route
-func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
+func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface, userShippingAddressControllerInterface controllers.UserShippingAddressControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/user/create", userControllerInterface.CreateUser)
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
-	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/password/request/code", userControllerInterface.PasswordCodeRequest)
 	group.POST("/password/code/verify", userControllerInterface.PasswordResetCodeVerify)
 	group.POST("/user/update/password", userControllerInterface.UpdateUserPassword)
+	group.GET("/user/shipping/address", userShippingAddressControllerInterface.FindUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
+	group.POST("/user/shipping/address", userShippingAddressControllerInterface.CreateUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
+	group.DELETE("/user/shipping/address", userShippingAddressControllerInterface.DeleteUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 }
 
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
@@ -113,6 +115,9 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentChannelControllerInterface controllers.PaymentChannelControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/payment/list", paymentChannelControllerInterface.FindListPaymentChannel, authMiddlerware.Authentication(configurationJWT))
+
+	group2 := e.Group("api/v2")
+	group2.GET("/payment/list", paymentChannelControllerInterface.FindListPaymentChannel, authMiddlerware.Authentication(configurationJWT))
 }
 
 // List Payment

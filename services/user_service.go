@@ -36,23 +36,25 @@ type UserServiceInterface interface {
 }
 
 type UserServiceImplementation struct {
-	ConfigurationWebserver            config.Webserver
-	DB                                *gorm.DB
-	ConfigJwt                         config.Jwt
-	Validate                          *validator.Validate
-	Logger                            *logrus.Logger
-	ConfigEmail                       config.Email
-	UserRepositoryInterface           mysql.UserRepositoryInterface
-	ProvinsiRepositoryInterface       mysql.ProvinsiRepositoryInterface
-	FamilyRepositoryInterface         mysql.FamilyRepositoryInterface
-	FamilyMembersRepositoryInterface  mysql.FamilyMembersRepositoryInterface
-	BalancePointRepositoryInterface   mysql.BalancePointRepositoryInterface
-	BalancePointTxRepositoryInterface mysql.BalancePointTxRepositoryInterface
+	ConfigurationWebserver                 config.Webserver
+	DB                                     *gorm.DB
+	ConfigJwt                              config.Jwt
+	Validate                               *validator.Validate
+	Logger                                 *logrus.Logger
+	ConfigEmail                            config.Email
+	UserRepositoryInterface                mysql.UserRepositoryInterface
+	ProvinsiRepositoryInterface            mysql.ProvinsiRepositoryInterface
+	FamilyRepositoryInterface              mysql.FamilyRepositoryInterface
+	FamilyMembersRepositoryInterface       mysql.FamilyMembersRepositoryInterface
+	BalancePointRepositoryInterface        mysql.BalancePointRepositoryInterface
+	BalancePointTxRepositoryInterface      mysql.BalancePointTxRepositoryInterface
+	UserShippingAddressRepositoryInterface mysql.UserShippingAddressRepositoryInterface
 }
 
 func NewUserService(
 	configurationWebserver config.Webserver,
-	DB *gorm.DB, configJwt config.Jwt,
+	DB *gorm.DB,
+	configJwt config.Jwt,
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	configEmail config.Email,
@@ -61,20 +63,22 @@ func NewUserService(
 	familyRepositoryInterface mysql.FamilyRepositoryInterface,
 	familyMembersRepositoryInterface mysql.FamilyMembersRepositoryInterface,
 	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface,
-	balancePointTxRepositoryInterface mysql.BalancePointTxRepositoryInterface) UserServiceInterface {
+	balancePointTxRepositoryInterface mysql.BalancePointTxRepositoryInterface,
+	userShippingAddressRepositoryInterface mysql.UserShippingAddressRepositoryInterface) UserServiceInterface {
 	return &UserServiceImplementation{
-		ConfigurationWebserver:            configurationWebserver,
-		DB:                                DB,
-		ConfigJwt:                         configJwt,
-		Validate:                          validate,
-		Logger:                            logger,
-		ConfigEmail:                       configEmail,
-		UserRepositoryInterface:           userRepositoryInterface,
-		ProvinsiRepositoryInterface:       provinsiRepositoryInterface,
-		FamilyRepositoryInterface:         familyRepositoryInterface,
-		FamilyMembersRepositoryInterface:  familyMembersRepositoryInterface,
-		BalancePointRepositoryInterface:   balancePointRepositoryInterface,
-		BalancePointTxRepositoryInterface: balancePointTxRepositoryInterface,
+		ConfigurationWebserver:                 configurationWebserver,
+		DB:                                     DB,
+		ConfigJwt:                              configJwt,
+		Validate:                               validate,
+		Logger:                                 logger,
+		ConfigEmail:                            configEmail,
+		UserRepositoryInterface:                userRepositoryInterface,
+		ProvinsiRepositoryInterface:            provinsiRepositoryInterface,
+		FamilyRepositoryInterface:              familyRepositoryInterface,
+		FamilyMembersRepositoryInterface:       familyMembersRepositoryInterface,
+		BalancePointRepositoryInterface:        balancePointRepositoryInterface,
+		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
+		UserShippingAddressRepositoryInterface: userShippingAddressRepositoryInterface,
 	}
 }
 
@@ -203,7 +207,7 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	}
 
 	if userRequest.Email != user.FamilyMembers.Email {
-		// Check email if exsict
+		// Check email if exist
 		checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
 		if checkEmail.Id != "" {
 			err := errors.New("email already exist")
@@ -274,6 +278,9 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
 	}
 
+	phone := strings.Replace(userRequest.Phone, "-", "", -1)
+	phoneFinal := strings.Replace(phone, "+62", "0", -1)
+
 	// Check phone if exsict
 	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
 	if checkPhone.Id != "" {
@@ -310,7 +317,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	familyMembersEntity.FullName = userRequest.FullName
 	familyMembersEntity.Email = userRequest.Email
 	familyMembersEntity.Address = userRequest.Address
-	familyMembersEntity.Phone = userRequest.Phone
+	familyMembersEntity.Phone = phoneFinal
 	familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
 	familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
 	familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
@@ -336,6 +343,20 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.RefreshToken = ""
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
+
+	// Create user address
+	// userAddressEntity := &entity.UserAddress{}
+	// userAddressEntity.Id = utilities.RandomUUID()
+	// userAddressEntity.IdUser = userEntity.Id
+	// userAddressEntity.Status = 1
+	// userAddressEntity.IdProvinsi = userRequest.IdProvinsi
+	// userAddressEntity.IdKabupaten = userRequest.IdKabupaten
+	// userAddressEntity.IdKecamatan = userRequest.IdKecamatan
+	// userAddressEntity.IdKelurahan = userRequest.IdKelurahan
+	// userAddressEntity.Address = userRequest.Address
+	// userAddress, err := service.UserAddressRepositoryInterface.CreateUserAddress(tx, *userAddressEntity)
+	// exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user address"}, service.Logger, tx)
+	// fmt.Println(userAddress)
 
 	// Create user balance points
 	balancePointEntity := &entity.BalancePoint{}
@@ -456,4 +477,3 @@ func (service *UserServiceImplementation) GenerateTokenVerify(user modelService.
 	}
 	return token, err
 }
-

@@ -52,6 +52,9 @@ func main() {
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 	e.Use(middleware.RequestID())
 
+	// User Address Repository
+	userShippingAddressRepository := mysql.NewUserShippingAddressRepository(&appConfig.Database)
+
 	// Setting Repository
 	settingsRepository := mysql.NewSettingsRepository(&appConfig.Database)
 
@@ -117,6 +120,14 @@ func main() {
 
 	// Product Brand Repository
 	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
+
+	// User Address Service
+	userShippingAddressService := services.NewUserShippingAddressService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		validate,
+		logrusLogger,
+		userShippingAddressRepository)
 
 	// Provinsi Service
 	provinsiService := services.NewProvinsiService(
@@ -194,7 +205,8 @@ func main() {
 		familyRepository,
 		familyMembersRepository,
 		balancePointRepository,
-		balancePointTxRepository)
+		balancePointTxRepository,
+		userShippingAddressRepository)
 
 	// Auth Service
 	authService := services.NewAuthService(
@@ -271,6 +283,9 @@ func main() {
 		productStockHistoryRepository,
 		paymentLogRepository)
 
+	// User Address Controller
+	userShippingAddressController := controllers.NewUserShippingAddressController(appConfig.Webserver, userShippingAddressService)
+
 	// Provinsi Controller
 	provinsiController := controllers.NewProvinsiController(appConfig.Webserver, provinsiService)
 	routes.ProvinsiRoute(e, appConfig.Webserver, appConfig.Jwt, provinsiController)
@@ -305,7 +320,7 @@ func main() {
 
 	// User Controller
 	userController := controllers.NewUserController(appConfig.Webserver, logrusLogger, userService)
-	routes.UserRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
+	routes.UserRoute(e, appConfig.Webserver, appConfig.Jwt, userController, userShippingAddressController)
 	routes.VerifyEmailRoute(e, appConfig.Webserver, appConfig.Jwt, userController)
 
 	// Auth Controller
