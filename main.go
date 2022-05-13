@@ -56,7 +56,7 @@ func main() {
 	userShippingAddressRepository := mysql.NewUserShippingAddressRepository(&appConfig.Database)
 
 	// Setting Repository
-	settingsRepository := mysql.NewSettingsRepository(&appConfig.Database)
+	settingsRepository := mysql.NewSettingRepository(&appConfig.Database)
 
 	// Provinsi Repository
 	provinsiRepository := mysql.NewProvinsiRepository(&appConfig.Database)
@@ -120,6 +120,13 @@ func main() {
 
 	// Product Brand Repository
 	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
+
+	// Setting Service
+	settingService := services.NewSettingService(
+		appConfig.Webserver,
+		mysqlDBConnection,
+		logrusLogger,
+		settingsRepository)
 
 	// User Address Service
 	userShippingAddressService := services.NewUserShippingAddressService(
@@ -246,7 +253,8 @@ func main() {
 		productStockHistoryRepository,
 		balancePointRepository,
 		balancePointTxRepository,
-		userLevelMemberRepository)
+		userLevelMemberRepository,
+		settingsRepository)
 
 	// Payment Channel Service
 	paymentChannelService := services.NewPaymentChannelService(
@@ -282,6 +290,10 @@ func main() {
 		productRepository,
 		productStockHistoryRepository,
 		paymentLogRepository)
+
+	// Setting Controller
+	settingController := controllers.NewSettingController(appConfig.Webserver, settingService)
+	routes.SettingRoute(e, appConfig.Webserver, appConfig.Jwt, settingController)
 
 	// User Address Controller
 	userShippingAddressController := controllers.NewUserShippingAddressController(appConfig.Webserver, userShippingAddressService)

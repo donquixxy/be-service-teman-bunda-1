@@ -8,6 +8,7 @@ type UserShippingAddress struct {
 	Latitude  float64 `gorm:"column:latitude;"`
 	Longitude float64 `gorm:"column:longitude;"`
 	Radius    float64 `gorm:"column:radius;"`
+	Note      string  `gorm:"column:note;"`
 }
 
 func (UserShippingAddress) TableName() string {

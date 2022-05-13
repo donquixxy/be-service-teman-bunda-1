@@ -32,7 +32,7 @@ type AuthServiceImplementation struct {
 	Validate                   *validator.Validate
 	Logger                     *logrus.Logger
 	UserRepositoryInterface    mysql.UserRepositoryInterface
-	SettingRepositoryInterface mysql.SettingsRepositoryInterface
+	SettingRepositoryInterface mysql.SettingRepositoryInterface
 }
 
 func NewAuthService(
@@ -42,7 +42,7 @@ func NewAuthService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	userRepositoryInterface mysql.UserRepositoryInterface,
-	settingRepositoryInterface mysql.SettingsRepositoryInterface) AuthServiceInterface {
+	settingRepositoryInterface mysql.SettingRepositoryInterface) AuthServiceInterface {
 	return &AuthServiceImplementation{
 		ConfigurationWebserver:     configurationWebserver,
 		DB:                         DB,

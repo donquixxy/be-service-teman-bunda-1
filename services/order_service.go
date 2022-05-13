@@ -12,7 +12,6 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -61,6 +60,7 @@ type OrderServiceImplementation struct {
 	BalancePointRepositoryInterface        mysql.BalancePointRepositoryInterface
 	BalancePointTxRepositoryInterface      mysql.BalancePointTxRepositoryInterface
 	UserLevelRepositoryInterface           mysql.UserLevelMemberRepositoryInterface
+	SettingRepositoryInterface             mysql.SettingRepositoryInterface
 }
 
 func NewOrderService(
@@ -82,7 +82,8 @@ func NewOrderService(
 	productStockHistoryRepositoryInterface mysql.ProductStockHistoryRepositoryInterface,
 	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface,
 	balancePointTxRepositoryInterface mysql.BalancePointTxRepositoryInterface,
-	userLevelMemberRepositoryInterface mysql.UserLevelMemberRepositoryInterface) OrderServiceInterface {
+	userLevelMemberRepositoryInterface mysql.UserLevelMemberRepositoryInterface,
+	settingRepositoryInterface mysql.SettingRepositoryInterface) OrderServiceInterface {
 	return &OrderServiceImplementation{
 		ConfigurationWebserver:                 configurationWebserver,
 		DB:                                     DB,
@@ -103,6 +104,7 @@ func NewOrderService(
 		BalancePointRepositoryInterface:        balancePointRepositoryInterface,
 		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 		UserLevelRepositoryInterface:           userLevelMemberRepositoryInterface,
+		SettingRepositoryInterface:             settingRepositoryInterface,
 	}
 }
 
@@ -177,63 +179,65 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 		_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
 
-		// hitung bonus point dari pembaran dengan uang
-		bonusPoint := (order.PaymentByCash * user.UserLevelMember.BonusPercentage) / 100
+		if order.PaymentByCash != 0 {
+			// hitung bonus point dari pembaran dengan uang
+			bonusPoint := ((order.PaymentByCash - order.ShippingCost) * user.UserLevelMember.BonusPercentage) / 100
 
-		// Bonus pribadi dari perbelanjaan
-		// Get bonus point from order order
-		balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
-
-		// Add to point history
-		balancePointTxEntity := &entity.BalancePointTx{}
-		balancePointTxEntity.Id = utilities.RandomUUID()
-		balancePointTxEntity.IdBalancePoint = balancePoint.Id
-		balancePointTxEntity.NoOrder = order.NumberOrder
-		balancePointTxEntity.TxType = "debit"
-		balancePointTxEntity.TxDate = time.Now()
-		balancePointTxEntity.TxNominal = bonusPoint
-		balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
-		balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + bonusPoint
-		balancePointTxEntity.CreatedDate = time.Now()
-		balancePointTxEntity.Description = "Bonus Dari Pembelian"
-
-		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
-		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
-
-		// update balance point
-		balancePointEntity := &entity.BalancePoint{}
-		balancePointEntity.BalancePoints = balancePoint.BalancePoints + bonusPoint
-
-		_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
-		exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
-		// end bonus point untuk pribadi dari pembelian
-
-		// bonus point untuk referal
-		if user.RegistrationReferalCode != "" {
-			userReferal, _ := service.UserRepositoryInterface.FindUserByReferalCode(service.DB, user.RegistrationReferalCode)
-			balancePointReferal, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, userReferal.Id)
+			// Bonus pribadi dari perbelanjaan
+			// Get bonus point from order order
+			balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 
 			// Add to point history
 			balancePointTxEntity := &entity.BalancePointTx{}
 			balancePointTxEntity.Id = utilities.RandomUUID()
-			balancePointTxEntity.IdBalancePoint = balancePointReferal.Id
+			balancePointTxEntity.IdBalancePoint = balancePoint.Id
 			balancePointTxEntity.NoOrder = order.NumberOrder
-			balancePointTxEntity.TxType = "referal"
+			balancePointTxEntity.TxType = "debit"
 			balancePointTxEntity.TxDate = time.Now()
 			balancePointTxEntity.TxNominal = bonusPoint
-			balancePointTxEntity.LastPointBalance = balancePointReferal.BalancePoints
-			balancePointTxEntity.NewPointBalance = balancePointReferal.BalancePoints + bonusPoint
+			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + bonusPoint
 			balancePointTxEntity.CreatedDate = time.Now()
+			balancePointTxEntity.Description = "Bonus Dari Pembelian"
 
 			_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
 			exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+			// end bonus point untuk pribadi dari pembelian
 
 			// update balance point
 			balancePointEntity := &entity.BalancePoint{}
-			balancePointEntity.BalancePoints = balancePointReferal.BalancePoints + bonusPoint
+			balancePointEntity.BalancePoints = balancePoint.BalancePoints + bonusPoint
 
-			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePointReferal.IdUser, *balancePointEntity)
+			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
+			// bonus point untuk referal
+			if user.RegistrationReferalCode != "" {
+				userReferal, _ := service.UserRepositoryInterface.FindUserByReferalCode(service.DB, user.RegistrationReferalCode)
+				balancePointReferal, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, userReferal.Id)
+
+				// Add to point history
+				balancePointTxEntityReferal := &entity.BalancePointTx{}
+				balancePointTxEntityReferal.Id = utilities.RandomUUID()
+				balancePointTxEntityReferal.IdBalancePoint = balancePointReferal.Id
+				balancePointTxEntityReferal.NoOrder = order.NumberOrder
+				balancePointTxEntityReferal.TxType = "referal"
+				balancePointTxEntityReferal.TxDate = time.Now()
+				balancePointTxEntityReferal.TxNominal = bonusPoint
+				balancePointTxEntityReferal.LastPointBalance = balancePointReferal.BalancePoints
+				balancePointTxEntityReferal.NewPointBalance = balancePointReferal.BalancePoints + bonusPoint
+				balancePointTxEntityReferal.CreatedDate = time.Now()
+
+				_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntityReferal)
+				exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+
+				// update balance point
+				balancePointEntityReferal := &entity.BalancePoint{}
+				balancePointEntityReferal.BalancePoints = balancePointReferal.BalancePoints + bonusPoint
+
+				_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePointReferal.IdUser, *balancePointEntityReferal)
+				exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+			}
 		}
 
 		commit := tx.Commit()
@@ -251,35 +255,40 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 	order, _ := service.OrderRepositoryInterface.FindOrderById(service.DB, idOrder)
 
 	if order.OrderSatus == "Menunggu Pembayaran" {
-		// get data balance point
-		balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
+
 		tx := service.DB.Begin()
 
-		// Add to point history
-		balancePointTxEntity := &entity.BalancePointTx{}
-		balancePointTxEntity.Id = utilities.RandomUUID()
-		balancePointTxEntity.IdBalancePoint = balancePoint.Id
-		balancePointTxEntity.NoOrder = order.NumberOrder
-		balancePointTxEntity.TxType = "debit"
-		balancePointTxEntity.TxDate = time.Now()
-		balancePointTxEntity.TxNominal = order.PaymentByPoint
-		balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
-		balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + order.PaymentByPoint
-		balancePointTxEntity.CreatedDate = time.Now()
-		balancePointTxEntity.Description = "Pengembalian Point"
+		if order.PaymentByPoint != 0 {
+			// get data balance point
+			balancePoint, _ := service.BalancePointRepositoryInterface.FindBalancePointByIdUser(service.DB, order.IdUser)
 
-		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
-		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+			balancePointEntity := &entity.BalancePoint{}
+			balancePointEntity.BalancePoints = balancePoint.BalancePoints + order.PaymentByPoint
+
+			_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+			exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
+			// Add to point history
+			balancePointTxEntity := &entity.BalancePointTx{}
+			balancePointTxEntity.Id = utilities.RandomUUID()
+			balancePointTxEntity.IdBalancePoint = balancePoint.Id
+			balancePointTxEntity.NoOrder = order.NumberOrder
+			balancePointTxEntity.TxType = "debit"
+			balancePointTxEntity.TxDate = time.Now()
+			balancePointTxEntity.TxNominal = order.PaymentByPoint
+			balancePointTxEntity.LastPointBalance = balancePoint.BalancePoints
+			balancePointTxEntity.NewPointBalance = balancePoint.BalancePoints + order.PaymentByPoint
+			balancePointTxEntity.CreatedDate = time.Now()
+			balancePointTxEntity.Description = "Pengembalian Point"
+
+			_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+			exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+
+		}
 
 		orderEntity := &entity.Order{}
 		orderEntity.OrderSatus = "Dibatalkan"
 		orderEntity.CanceledAt = null.NewTime(time.Now(), true)
-
-		balancePointEntity := &entity.BalancePoint{}
-		balancePointEntity.BalancePoints = balancePoint.BalancePoints + order.PaymentByPoint
-
-		_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
-		exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
 
 		_, err := service.OrderRepositoryInterface.UpdateOrderStatus(tx, order.NumberOrder, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error update order"}, service.Logger, tx)
@@ -288,6 +297,7 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
 		return err
+
 	} else {
 		return errors.New("sudah dibatalkan")
 	}
@@ -301,15 +311,15 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 	request.ValidateCallBackIpaymuRequest(service.Validate, paymentRequestCallback, requestId, service.Logger)
 
 	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, paymentRequestCallback.ReferenceId)
+	if order.Id == "" {
+		err := errors.New("order not found")
+		exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
+	}
 
 	if order.PaymentStatus == "Sudah Dibayar" {
 		orderResponse = response.ToUpdateOrderStatusResponse(order)
 		return orderResponse
 	} else {
-		if order.Id == "" {
-			err := errors.New("order not found")
-			exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
-		}
 		if order.OrderSatus == "Menunggu Pembayaran" {
 			tx := service.DB.Begin()
 
@@ -454,7 +464,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.CourierNote = orderRequest.CourierNote
 	orderEntity.TotalBill = orderRequest.TotalBill
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
-
 	orderEntity.OrderedAt = time.Now()
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
@@ -543,8 +552,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	// chose metode pembayaran
 	switch orderRequest.PaymentMethod {
 	case "va", "qris":
+		fmt.Println("Masuk ke va")
 		// Send request to ipaymu
-		var ipaymu_va = service.ConfigPayment.IpaymuVa
+		var ipaymu_va = string(service.ConfigPayment.IpaymuVa)
 		var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
 
 		url, _ := url.Parse(string(service.ConfigPayment.IpaymuUrl))
@@ -554,7 +564,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			"phone":          user.FamilyMembers.Phone,
 			"email":          user.FamilyMembers.Email,
 			"amount":         orderRequest.PaymentByCash,
-			"notifyUrl":      service.ConfigPayment.IpaymuCallbackUrl,
+			"notifyUrl":      string(service.ConfigPayment.IpaymuCallbackUrl),
 			"expired":        24,
 			"expiredType":    "hours",
 			"referenceId":    orderEntity.NumberOrder,
@@ -583,13 +593,13 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			Body: reqBody,
 		}
 
-		reqDump, _ := httputil.DumpRequestOut(req, true)
-		fmt.Printf("REQUEST:\n%s", string(reqDump))
+		// reqDump, _ := httputil.DumpRequestOut(req, true)
+		// fmt.Printf("REQUEST:\n%s", string(reqDump))
 
 		resp, err := http.DefaultClient.Do(req)
 
-		responseData, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("LOG RESPONSE IPAYMU = ", string(responseData))
+		// responseData, _ := ioutil.ReadAll(resp.Body)
+		// fmt.Println("LOG RESPONSE IPAYMU = ", string(responseData))
 
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)

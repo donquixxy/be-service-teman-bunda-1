@@ -22,7 +22,7 @@ type BalancePointServiceImplementation struct {
 	DB                              *gorm.DB
 	Logger                          *logrus.Logger
 	BalancePointRepositoryInterface mysql.BalancePointRepositoryInterface
-	SettingsRepositoryInterface     mysql.SettingsRepositoryInterface
+	SettingsRepositoryInterface     mysql.SettingRepositoryInterface
 	OrderRepositoryInterface        mysql.OrderRepositoryInterface
 }
 
@@ -30,7 +30,7 @@ func NewBalancePointService(configWebserver config.Webserver,
 	DB *gorm.DB,
 	logger *logrus.Logger,
 	balancePointRepositoryInterface mysql.BalancePointRepositoryInterface,
-	settingsRepositoryInterface mysql.SettingsRepositoryInterface,
+	settingsRepositoryInterface mysql.SettingRepositoryInterface,
 	orderRepositoryInterface mysql.OrderRepositoryInterface) BalancePointServiceInterface {
 	return &BalancePointServiceImplementation{
 		ConfigWebserver:                 configWebserver,
@@ -65,7 +65,7 @@ func (service *BalancePointServiceImplementation) BalancePointCheckOrderTx(reque
 	orders, _ := service.OrderRepositoryInterface.FindOrderByDate(service.DB, idUser)
 	var totalOrderAcumulate float64
 	for _, order := range orders {
-		totalOrderAcumulate = totalOrderAcumulate + order.TotalBill
+		totalOrderAcumulate = totalOrderAcumulate + order.PaymentByCash
 	}
 	totalOrderAcumulate = totalOrderAcumulate + totalBill
 

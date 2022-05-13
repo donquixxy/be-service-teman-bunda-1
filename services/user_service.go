@@ -282,7 +282,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	phoneFinal := strings.Replace(phone, "+62", "0", -1)
 
 	// Check phone if exsict
-	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, userRequest.Phone)
+	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, phoneFinal)
 	if checkPhone.Id != "" {
 		err := errors.New("phone already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone sudah digunakan"}, service.Logger)
@@ -298,15 +298,15 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
 	// Generate referal code
-	referalCode := service.GenerateReferalCode(userRequest.IdProvinsi)
+	referalCode := service.GenerateReferalCode()
 
 	// Create family profile
 	familyEntity := &entity.Family{}
 	familyEntity.Id = utilities.RandomUUID()
-	familyEntity.IdProvinsi = userRequest.IdProvinsi
-	familyEntity.IdKabupaten = userRequest.IdKabupaten
-	familyEntity.IdKecamatan = userRequest.IdKecamatan
-	familyEntity.IdKelurahan = userRequest.IdKelurahan
+	// familyEntity.IdProvinsi = userRequest.IdProvinsi
+	// familyEntity.IdKabupaten = userRequest.IdKabupaten
+	// familyEntity.IdKecamatan = userRequest.IdKecamatan
+	// familyEntity.IdKelurahan = userRequest.IdKelurahan
 	family, err := service.FamilyRepositoryInterface.CreateFamily(tx, *familyEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family"}, service.Logger, tx)
 
@@ -316,12 +316,12 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	familyMembersEntity.IdFamily = familyEntity.Id
 	familyMembersEntity.FullName = userRequest.FullName
 	familyMembersEntity.Email = userRequest.Email
-	familyMembersEntity.Address = userRequest.Address
+	// familyMembersEntity.Address = userRequest.Address
 	familyMembersEntity.Phone = phoneFinal
-	familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
-	familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
-	familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
-	familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
+	// familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
+	// familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
+	// familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
+	// familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
 	familyMembers, err := service.FamilyMembersRepositoryInterface.CreateFamilyMembers(tx, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family members"}, service.Logger, tx)
 
@@ -391,14 +391,14 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	return userResponse
 }
 
-func (service *UserServiceImplementation) GenerateReferalCode(idProvinsi int) (referalCode string) {
+func (service *UserServiceImplementation) GenerateReferalCode() (referalCode string) {
 	referalCodeEntity := &entity.ReferalCode{}
-	provinsi, _ := service.ProvinsiRepositoryInterface.FindProvinsiById(service.DB, idProvinsi)
+	// provinsi, _ := service.ProvinsiRepositoryInterface.FindProvinsiById(service.DB, idProvinsi)
 	for {
 		rand.Seed(time.Now().Unix())
 		charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 		var output strings.Builder
-		length := 7
+		length := 9
 
 		for i := 0; i < length; i++ {
 			random := rand.Intn(len(charSet))
@@ -406,7 +406,7 @@ func (service *UserServiceImplementation) GenerateReferalCode(idProvinsi int) (r
 			output.WriteString(string(randomChar))
 		}
 
-		referalCodeEntity.ReferalCode = output.String() + provinsi.KodeArea
+		referalCodeEntity.ReferalCode = output.String() // + provinsi.KodeArea
 
 		// Check referal code if exist
 		checkUser, _ := service.UserRepositoryInterface.FindUserByReferal(service.DB, referalCodeEntity.ReferalCode)
