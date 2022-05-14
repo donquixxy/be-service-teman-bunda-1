@@ -235,12 +235,7 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	familyMembersEntity := &entity.FamilyMembers{}
 	familyMembersEntity.FullName = userRequest.FullName
 	familyMembersEntity.Email = userRequest.Email
-	familyMembersEntity.Address = userRequest.Address
 	familyMembersEntity.Phone = userRequest.Phone
-	familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
-	familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
-	familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
-	familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
 	familyMembers, errUpdateFamilyMembers := service.FamilyMembersRepositoryInterface.UpdateFamilyMembers(tx, user.IdFamilyMembers, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(errUpdateFamilyMembers, requestId, []string{"Error update family members"}, service.Logger, tx)
 
@@ -303,10 +298,6 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// Create family profile
 	familyEntity := &entity.Family{}
 	familyEntity.Id = utilities.RandomUUID()
-	// familyEntity.IdProvinsi = userRequest.IdProvinsi
-	// familyEntity.IdKabupaten = userRequest.IdKabupaten
-	// familyEntity.IdKecamatan = userRequest.IdKecamatan
-	// familyEntity.IdKelurahan = userRequest.IdKelurahan
 	family, err := service.FamilyRepositoryInterface.CreateFamily(tx, *familyEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family"}, service.Logger, tx)
 
@@ -316,12 +307,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	familyMembersEntity.IdFamily = familyEntity.Id
 	familyMembersEntity.FullName = userRequest.FullName
 	familyMembersEntity.Email = userRequest.Email
-	// familyMembersEntity.Address = userRequest.Address
 	familyMembersEntity.Phone = phoneFinal
-	// familyMembersEntity.IdProvinsi = userRequest.IdProvinsi
-	// familyMembersEntity.IdKabupaten = userRequest.IdKabupaten
-	// familyMembersEntity.IdKecamatan = userRequest.IdKecamatan
-	// familyMembersEntity.IdKelurahan = userRequest.IdKelurahan
 	familyMembers, err := service.FamilyMembersRepositoryInterface.CreateFamilyMembers(tx, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family members"}, service.Logger, tx)
 
