@@ -12,6 +12,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -373,6 +374,9 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 
 				commit := tx.Commit()
 				exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+
+				service.SendTelegram(order.NumberOrder, "Pembayaran Sukses (VA/QRIS)")
+
 				orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 				return orderResponse
 			} else if paymentRequestCallback.StatusCode == -2 {
@@ -593,8 +597,8 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			Body: reqBody,
 		}
 
-		// reqDump, _ := httputil.DumpRequestOut(req, true)
-		// fmt.Printf("REQUEST:\n%s", string(reqDump))
+		reqDump, _ := httputil.DumpRequestOut(req, true)
+		fmt.Printf("REQUEST:\n%s", string(reqDump))
 
 		resp, err := http.DefaultClient.Do(req)
 
@@ -648,7 +652,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
-			service.SendTelegram(orderEntity.NumberOrder, "Ada Orderan Masuk (VA/QRIS)")
+			service.SendTelegram(order.NumberOrder, "Ada Orderan Masuk (VA/QRIS)")
 			orderResponse = response.ToCreateOrderVaResponse(order, dataResponseIpaymu.Data.TransactionId, dataResponseIpaymu, bankVa)
 			return orderResponse
 		}

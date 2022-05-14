@@ -11,6 +11,7 @@ import (
 
 type SettingServiceInterface interface {
 	FindSettingShippingCost(requestId string) (settingShippingCost response.FindSettingShippingCost)
+	FindSettingVerApp(requestId string) (settingVerApp response.FindSettingVerApp)
 }
 
 type SettingServiceImplementation struct {
@@ -34,4 +35,11 @@ func (service *SettingServiceImplementation) FindSettingShippingCost(requestId s
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	shippingCostResponse = response.ToFindSettingShippingCost(shippingCost)
 	return shippingCostResponse
+}
+
+func (service *SettingServiceImplementation) FindSettingVerApp(requestId string) (verAppResponse response.FindSettingVerApp) {
+	verApp, err := service.SettingRepositoryInterface.FindSettingVerApp(service.DB)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	verAppResponse = response.ToFindSettingVerApp(verApp)
+	return verAppResponse
 }
