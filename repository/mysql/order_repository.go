@@ -31,10 +31,10 @@ func NewOrderRepository(configDatabase *config.Database) OrderRepositoryInterfac
 func (repository *OrderRepositoryImplementation) FindOrderByUser(DB *gorm.DB, idUser string, orderStatus string) ([]entity.Order, error) {
 	var order []entity.Order
 	if orderStatus == "" {
-		results := DB.Where("id_user = ?", idUser).Find(&order)
+		results := DB.Order("ordered_at desc").Where("id_user = ?", idUser).Find(&order)
 		return order, results.Error
 	} else {
-		results := DB.Where("id_user = ?", idUser).Where("order_status = ?", order).Find(&order)
+		results := DB.Order("ordered_at desc").Where("id_user = ?", idUser).Where("order_status = ?", order).Find(&order)
 		return order, results.Error
 	}
 }
