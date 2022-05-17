@@ -8,16 +8,11 @@ import (
 )
 
 type UpdateUserRequest struct {
-	FullName    string `json:"full_name" form:"full_name"`
-	Email       string `json:"email" form:"email"`
-	Address     string `json:"address" form:"address"`
-	Phone       string `json:"phone" form:"phone"`
-	Username    string `json:"username" form:"username"`
-	Password    string `json:"password" form:"password"`
-	IdProvinsi  int    `json:"id_provinsi" form:"id_provinsi"`
-	IdKabupaten int    `json:"id_kabupaten" form:"id_kabupaten"`
-	IdKecamatan int    `json:"id_kecamatan" form:"id_kecamatan"`
-	IdKelurahan int    `json:"id_kelurahan" form:"id_kelurahan"`
+	FullName string `json:"full_name" form:"full_name"`
+	Email    string `json:"email" form:"email"`
+	Phone    string `json:"phone" form:"phone"`
+	Username string `json:"username" form:"username"`
+	Password string `json:"password" form:"password"`
 }
 
 func ReadFromUpdateUserRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (updateUser *UpdateUserRequest) {

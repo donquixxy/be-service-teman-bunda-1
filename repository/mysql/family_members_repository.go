@@ -31,14 +31,14 @@ func (repository *FamilyMembersRepositoryImplementation) UpdateFamilyMembers(DB 
 		Model(entity.FamilyMembers{}).
 		Where("id = ?", idFamilyMembers).
 		Updates(entity.FamilyMembers{
-			FullName:    familyMembers.FullName,
-			Address:     familyMembers.Address,
-			Phone:       familyMembers.Phone,
-			Email:       familyMembers.Email,
-			IdProvinsi:  familyMembers.IdProvinsi,
-			IdKabupaten: familyMembers.IdKabupaten,
-			IdKecamatan: familyMembers.IdKecamatan,
-			IdKelurahan: familyMembers.IdKelurahan,
+			FullName: familyMembers.FullName,
+			Phone:    familyMembers.Phone,
+			Email:    familyMembers.Email,
+			// IdProvinsi:  familyMembers.IdProvinsi,
+			// IdKabupaten: familyMembers.IdKabupaten,
+			// IdKecamatan: familyMembers.IdKecamatan,
+			// IdKelurahan: familyMembers.IdKelurahan,
+			// Address:     familyMembers.Address,
 		})
 	return familyMembers, result.Error
 }

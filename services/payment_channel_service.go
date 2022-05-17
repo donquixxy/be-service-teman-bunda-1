@@ -64,19 +64,24 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayments = append(listPayments, *listPayment)
 	}
 	bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, "qris")
-	listPayment := &modelService.ListPaymentChannelPayment{}
-	listPayment.PaymentMethod = "qris"
-	listPayment.BankCode = bankVa.BankCode
-	listPayment.BankName = bankVa.BankName
-	listPayment.BankLogo = bankVa.BankLogo
-	listPayments = append(listPayments, *listPayment)
+	if bankVa.Id != "" {
+		listPayment := &modelService.ListPaymentChannelPayment{}
+		listPayment.PaymentMethod = "qris"
+		listPayment.BankCode = bankVa.BankCode
+		listPayment.BankName = bankVa.BankName
+		listPayment.BankLogo = bankVa.BankLogo
+		listPayments = append(listPayments, *listPayment)
+	}
 
 	bankCod, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, "cod")
-	listPayment.PaymentMethod = "cod"
-	listPayment.BankCode = bankCod.BankCode
-	listPayment.BankName = bankCod.BankName
-	listPayment.BankLogo = bankCod.BankLogo
-	listPayments = append(listPayments, *listPayment)
+	if bankCod.Id != "" {
+		listPayment := &modelService.ListPaymentChannelPayment{}
+		listPayment.PaymentMethod = "cod"
+		listPayment.BankCode = bankCod.BankCode
+		listPayment.BankName = bankCod.BankName
+		listPayment.BankLogo = bankCod.BankLogo
+		listPayments = append(listPayments, *listPayment)
+	}
 
 	paymentListChannelResponses = response.ToFindPaymentMethodResponses(listPayments)
 	return paymentListChannelResponses

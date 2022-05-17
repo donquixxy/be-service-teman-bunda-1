@@ -137,3 +137,10 @@ func ProductBrandRoute(e *echo.Echo, configWebserver config.Webserver, configura
 	group := e.Group("api/v1")
 	group.GET("/productbrand", productBrandControllerInterface.FindAllProductBrand, authMiddlerware.Authentication(configurationJWT))
 }
+
+// Setting
+func SettingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, settingControllerInterface controllers.SettingControllerInterface) {
+	group := e.Group("api/v1")
+	group.GET("/setting/shippingcost", settingControllerInterface.FindSettingShippingCost, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/setting/verapp", settingControllerInterface.FindSettingVerApp, authMiddlerware.Authentication(configurationJWT))
+}

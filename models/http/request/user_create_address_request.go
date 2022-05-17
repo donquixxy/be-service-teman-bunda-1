@@ -12,6 +12,7 @@ type CreateUserShippingAddressRequest struct {
 	Latitude  float64 `json:"latitude" form:"latitude" validate:"required"`
 	Longitude float64 `json:"longitude" form:"longitude" validate:"required"`
 	Radius    float64 `json:"radius" form:"radius" validate:"required"`
+	Note      string  `json:"note" form:"note"`
 }
 
 func ReadFromCreateUserShippingAddressRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createUserShippingAddress *CreateUserShippingAddressRequest) {

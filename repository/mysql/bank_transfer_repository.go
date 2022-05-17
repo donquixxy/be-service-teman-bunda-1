@@ -23,12 +23,12 @@ func NewBankTransferRepository(configDatabase *config.Database) BankTransferRepo
 
 func (repository *BankTransferRepositoryImplementation) FindBankTransferByBankCode(DB *gorm.DB, bankCode string) (entity.BankTransfer, error) {
 	var bankTransfer entity.BankTransfer
-	results := DB.Where("bank_code = ?", bankCode).First(&bankTransfer)
+	results := DB.Where("bank_code = ?", bankCode).Where("is_active = ?", "1").First(&bankTransfer)
 	return bankTransfer, results.Error
 }
 
 func (repository *BankTransferRepositoryImplementation) FindAllBankTransfer(DB *gorm.DB) ([]entity.BankTransfer, error) {
 	var bankTransfers []entity.BankTransfer
-	results := DB.Find(&bankTransfers)
+	results := DB.Where("is_active = ?", "1").Find(&bankTransfers)
 	return bankTransfers, results.Error
 }

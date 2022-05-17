@@ -55,6 +55,7 @@ func (service *UserShippingAddressServiceImplementation) CreateUserShippingAddre
 	userShippingAddressEntity.Latitude = createUserShippingAddressRequest.Latitude
 	userShippingAddressEntity.Longitude = createUserShippingAddressRequest.Longitude
 	userShippingAddressEntity.Radius = createUserShippingAddressRequest.Radius
+	userShippingAddressEntity.Note = createUserShippingAddressRequest.Note
 	_, err := service.UserShippingAddressRepositoryInterface.CreateUserShippingAddress(service.DB, *userShippingAddressEntity)
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	return err

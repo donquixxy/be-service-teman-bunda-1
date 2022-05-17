@@ -24,9 +24,9 @@ func ToOrderCheckVaPaymentResponse(
 	bankVa entity.BankVa) (orderResponse OrderCheckPayment) {
 	orderResponse.IdOrder = order.Id
 	orderResponse.PaymentNo = order.PaymentNo
-	orderResponse.PaymentName = order.PaymentName
+	orderResponse.PaymentName = "Teman Bunda"
 	orderResponse.Total = order.PaymentByCash
-	// orderResponse.Expired = order.PaymentDueDate.Time
+	orderResponse.Expired = order.PaymentDueDate.Time
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod
