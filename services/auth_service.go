@@ -60,9 +60,11 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
-	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
+	// jika username tidak ditemukan
+	user, _ = service.UserRepositoryInterface.CheckUsername(service.DB, authRequest.Username)
 	if user.Id == "" {
-		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, authRequest.Username)
+		// cek apakah yg di input email
+		user, _ = service.UserRepositoryInterface.CheckEmail(service.DB, authRequest.Username)
 		if user.Id == "" {
 			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
 		}

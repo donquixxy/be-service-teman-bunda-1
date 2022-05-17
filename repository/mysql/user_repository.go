@@ -21,6 +21,9 @@ type UserRepositoryInterface interface {
 	SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error)
 	FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error)
 	FindUserByReferalCode(DB *gorm.DB, referalCode string) (entity.User, error)
+	CheckUsername(DB *gorm.DB, username string) (entity.User, error)
+	CheckEmail(DB *gorm.DB, email string) (entity.User, error)
+	CheckPhone(DB *gorm.DB, phone string) (entity.User, error)
 }
 
 type UserRepositoryImplementation struct {
@@ -87,6 +90,12 @@ func (repository *UserRepositoryImplementation) FindUserByUsername(DB *gorm.DB, 
 	return user, results.Error
 }
 
+func (repository *UserRepositoryImplementation) CheckUsername(DB *gorm.DB, username string) (entity.User, error) {
+	var user entity.User
+	results := DB.Where("users.username = ?", username).Where("users.not_verification = ?", 0).Joins("FamilyMembers").First(&user)
+	return user, results.Error
+}
+
 func (repository *UserRepositoryImplementation) FindUserByReferal(DB *gorm.DB, referalCode string) (entity.User, error) {
 	var user entity.User
 	results := DB.Where("referal_code = ?", referalCode).First(&user)
@@ -95,13 +104,25 @@ func (repository *UserRepositoryImplementation) FindUserByReferal(DB *gorm.DB, r
 
 func (repository *UserRepositoryImplementation) FindUserByEmail(DB *gorm.DB, email string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Find(&user, "FamilyMembers.email = ?", email)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
+	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) CheckEmail(DB *gorm.DB, email string) (entity.User, error) {
+	var user entity.User
+	results := DB.Joins("FamilyMembers").Where("users.not_verification == ", 0).Find(&user, "FamilyMembers.email = ?", email)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error) {
 	var user entity.User
 	results := DB.Joins("FamilyMembers").Find(&user, "FamilyMembers.phone = ?", phone)
+	return user, results.Error
+}
+
+func (repository *UserRepositoryImplementation) CheckPhone(DB *gorm.DB, phone string) (entity.User, error) {
+	var user entity.User
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
 	return user, results.Error
 }
 

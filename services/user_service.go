@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
-
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
@@ -21,6 +20,7 @@ import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/guregu/null.v4"
 	"gorm.io/gorm"
 )
 
@@ -154,6 +154,7 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 		userEntity := &entity.User{}
 		userEntity.IsActive = 1
 		userEntity.PasswordResetCode = ""
+		userEntity.VerificationDate = null.NewTime(time.Now(), true)
 
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
@@ -179,7 +180,7 @@ func (service *UserServiceImplementation) UpdateUserPassword(requestId string, u
 	if user.PasswordResetCode == updateUserPasswordRequest.Code {
 		userEntity := &entity.User{}
 		userEntity.Password = string(bcryptPassword)
-		userEntity.PasswordResetCode = " "
+		userEntity.PasswordResetCode = ""
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 	} else {
@@ -260,14 +261,14 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
 	// Check username if exsict
-	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
+	checkUsername, _ := service.UserRepositoryInterface.CheckUsername(service.DB, userRequest.Username)
 	if checkUsername.Id != "" {
 		err := errors.New("username already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
 	}
 
 	// Check email if exsict
-	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
+	checkEmail, _ := service.UserRepositoryInterface.CheckEmail(service.DB, userRequest.Email)
 	if checkEmail.Id != "" {
 		err := errors.New("email already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
@@ -277,7 +278,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	phoneFinal := strings.Replace(phone, "+62", "0", -1)
 
 	// Check phone if exsict
-	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, phoneFinal)
+	checkPhone, _ := service.UserRepositoryInterface.CheckPhone(service.DB, phoneFinal)
 	if checkPhone.Id != "" {
 		err := errors.New("phone already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone sudah digunakan"}, service.Logger)
@@ -288,7 +289,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	exceptions.PanicIfError(tx.Error, requestId, service.Logger)
 
 	// Generate Password
-	password := userRequest.Password
+	password := strings.ReplaceAll(userRequest.Password, " ", "")
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
@@ -325,24 +326,11 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	}
 
 	userEntity.CreatedDate = time.Now()
+	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
-
-	// Create user address
-	// userAddressEntity := &entity.UserAddress{}
-	// userAddressEntity.Id = utilities.RandomUUID()
-	// userAddressEntity.IdUser = userEntity.Id
-	// userAddressEntity.Status = 1
-	// userAddressEntity.IdProvinsi = userRequest.IdProvinsi
-	// userAddressEntity.IdKabupaten = userRequest.IdKabupaten
-	// userAddressEntity.IdKecamatan = userRequest.IdKecamatan
-	// userAddressEntity.IdKelurahan = userRequest.IdKelurahan
-	// userAddressEntity.Address = userRequest.Address
-	// userAddress, err := service.UserAddressRepositoryInterface.CreateUserAddress(tx, *userAddressEntity)
-	// exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user address"}, service.Logger, tx)
-	// fmt.Println(userAddress)
 
 	// Create user balance points
 	balancePointEntity := &entity.BalancePoint{}
@@ -367,8 +355,6 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	to := familyMembersEntity.Email
 	runtime.GOMAXPROCS(1)
 	go service.SendEmailVerification(to, templateData)
-
-	// service.SendEmail(userRequest.Email, userEntity.Id, token)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
