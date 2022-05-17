@@ -95,7 +95,7 @@ func (controller *OrderControllerImplementation) CompleteOrderById(c echo.Contex
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idOrder := c.QueryParam("id_order")
 	err := controller.OrderServiceInterface.CompleteOrderById(requestId, idOrder)
-	response := response.Response{Code: 201, Mssg: "succes compelte order", Data: err, Error: []string{}}
+	response := response.Response{Code: 201, Mssg: "succes complete order", Data: err, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 
