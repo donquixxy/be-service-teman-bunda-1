@@ -1,8 +1,6 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
@@ -52,8 +50,8 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayments = append(listPayments, *listPayment)
 	}
 
-	s := fmt.Sprintf("%+v\n", listPayments)
-	fmt.Println(s)
+	// s := fmt.Sprintf("%+v\n", listPayments)
+	// fmt.Println(s)
 	bankTrfs, _ := service.BankTransferRepositoryInterface.FindAllBankTransfer(service.DB)
 	for _, bankTrf := range bankTrfs {
 		listPayment := &modelService.ListPaymentChannelPayment{}

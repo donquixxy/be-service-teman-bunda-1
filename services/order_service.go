@@ -679,7 +679,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		sisaPembagi := math.Mod(orderRequest.PaymentByCash, 1000)
 		if sisaPembagi < 100 {
 			payment.Data.Total = orderRequest.PaymentByCash + float64(rand3Number)
-		} else if sisaPembagi > 100 {
+		} else if sisaPembagi >= 100 {
 			payment.Data.Total = orderRequest.PaymentByCash + float64(rand2Number)
 		}
 
