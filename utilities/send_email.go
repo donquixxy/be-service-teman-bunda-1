@@ -35,7 +35,8 @@ func SendEmail(to string, subject string, data interface{}, templateFile string)
 	d := gomail.NewDialer("smtp.gmail.com", senderPort, string(config.GetConfig().Email.FromEmail), string(config.GetConfig().Email.FromEmailPassword))
 	err := d.DialAndSend(m)
 	if err != nil {
-		panic(err)
+		// panic(err)
+		fmt.Println("Error = ", err)
 	}
 	return err
 }
