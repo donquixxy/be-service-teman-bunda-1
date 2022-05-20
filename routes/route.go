@@ -108,7 +108,6 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 	group.PUT("/order/cancel/id", orderControllerInterface.CancelOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/order/complete/id", orderControllerInterface.CompleteOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/order/payment/check", orderControllerInterface.OrderCheckPayment, authMiddlerware.Authentication(configurationJWT))
-	// group.POST("/telegram", orderControllerInterface.SendTelegram)
 }
 
 // List Payment
@@ -143,4 +142,9 @@ func SettingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 	group := e.Group("api/v1")
 	group.GET("/setting/shippingcost", settingControllerInterface.FindSettingShippingCost, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/setting/verapp", settingControllerInterface.FindSettingVerApp, authMiddlerware.Authentication(configurationJWT))
+}
+
+// Main Route
+func MainRoute(e *echo.Echo, configWebserver config.Webserver, mainControllerInterface controllers.MainControllerInterface) {
+	e.GET("/", mainControllerInterface.Main)
 }
