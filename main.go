@@ -363,6 +363,10 @@ func main() {
 	productBrandController := controllers.NewProductBrandController(appConfig.Webserver, productBrandService)
 	routes.ProductBrandRoute(e, appConfig.Webserver, appConfig.Jwt, productBrandController)
 
+	// Main Controller
+	mainController := controllers.NewMainController(appConfig.Webserver)
+	routes.MainRoute(e, appConfig.Webserver, mainController)
+
 	// Careful shutdown
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(int(appConfig.Webserver.Port))); err != nil && err != http.ErrServerClosed {

@@ -52,8 +52,18 @@ type Payment struct {
 	IpaymuVa             string `yaml:"ipaymuva"`
 	IpaymuKey            string `yaml:"ipaymukey"`
 	IpaymuUrl            string `yaml:"ipaymuurl"`
+	IpaymuSnapUrl        string `yaml:"ipaymusnapurl"`
 	IpaymuCallbackUrl    string `yaml:"ipaymucallbackurl"`
 	IpaymuTranscationUrl string `yaml:"ipaymutranscationurl"`
+	IpaymuThankYouPage   string `yaml:"ipaymuthankyoupage"`
+	IpaymuCancelUrl      string `yaml:"ipaymucancelurl"`
+}
+
+type Whatsapp struct {
+	TokenQontak    string `yaml:"tokenqontak"`
+	MssgTemplateId string `yaml:"mssgtemplateid"`
+	ChannelId      string `yaml:"channelid"`
+	MssgUrl        string `yaml:"mssgurl"`
 }
 
 type Email struct {
@@ -77,6 +87,7 @@ type ApplicationConfiguration struct {
 	Payment     Payment
 	Email       Email
 	Telegram    Telegram
+	Whatsapp    Whatsapp
 }
 
 var lock = sync.Mutex{}

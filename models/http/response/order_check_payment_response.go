@@ -19,6 +19,13 @@ type OrderCheckPayment struct {
 	BankLogo       string    `json:"bank_logo"`
 }
 
+func ToOrderCheckCreditCardPaymentResponse(
+	order entity.Order) (orderResponse OrderCheckPayment) {
+	orderResponse.IdOrder = order.Id
+	orderResponse.PaymentNo = order.PaymentNo
+	return orderResponse
+}
+
 func ToOrderCheckVaPaymentResponse(
 	order entity.Order,
 	bankVa entity.BankVa) (orderResponse OrderCheckPayment) {

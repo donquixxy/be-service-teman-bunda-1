@@ -20,6 +20,14 @@ type CreateOrderResponse struct {
 	BankLogo       string  `json:"bank_logo"`
 }
 
+func ToCreateOrderCreditCardResponse(
+	order entity.Order,
+	payment modelService.PaymentCreditCardResponse) (orderResponse CreateOrderResponse) {
+	orderResponse.IdOrder = order.Id
+	orderResponse.PaymentNo = payment.Data.Url
+	return orderResponse
+}
+
 func ToCreateOrderVaResponse(
 	order entity.Order,
 	TrxId int,
