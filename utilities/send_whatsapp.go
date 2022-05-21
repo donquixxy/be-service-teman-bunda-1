@@ -82,6 +82,6 @@ func SendWhatsapp(toNumber string, toName string, data *Body, mssgTemplateId str
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
-	fmt.Println(res)
+	fmt.Println(res.Body)
 	fmt.Println(string(body))
 }
