@@ -55,6 +55,7 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group := e.Group("api/v1")
 	group.POST("/auth/login", authControllerInterface.Login)
 	group.POST("/auth/new-token", authControllerInterface.NewToken)
+	group.POST("/auth/verify/otp", authControllerInterface.VerifyOtp)
 }
 
 // Balance Point Route

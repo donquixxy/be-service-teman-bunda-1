@@ -60,10 +60,10 @@ type Payment struct {
 }
 
 type Whatsapp struct {
-	TokenQontak    string `yaml:"tokenqontak"`
-	MssgTemplateId string `yaml:"mssgtemplateid"`
-	ChannelId      string `yaml:"channelid"`
-	MssgUrl        string `yaml:"mssgurl"`
+	WhatsappToken     string `yaml:"whatsapptoken"`
+	MssgOtpTemplateId string `yaml:"mssgotptemplateid"`
+	ChannelId         string `yaml:"channelid"`
+	WhatsappUrl       string `yaml:"whatsappurl"`
 }
 
 type Email struct {

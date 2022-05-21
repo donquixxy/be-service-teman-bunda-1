@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"runtime"
 	"strings"
 	"time"
@@ -104,25 +103,14 @@ func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, 
 		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
 	}
 
-	rand.Seed(time.Now().Unix())
-	charSet := "1234567890"
-	var output strings.Builder
-	length := 6
-
-	for i := 0; i < length; i++ {
-		random := rand.Intn(len(charSet))
-		randomChar := charSet[random]
-		output.WriteString(string(randomChar))
-	}
-
 	userEntity := &entity.User{}
-	userEntity.PasswordResetCode = output.String()
+	userEntity.PasswordResetCode = utilities.GenerateRandomCode()
 
 	_, errUpdateUser := service.UserRepositoryInterface.UpdatePasswordResetCodeUser(service.DB, user.Id, *userEntity)
 	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 
 	templateData := modelService.BodyCodeEmail{
-		Code:     output.String(),
+		Code:     userEntity.PasswordResetCode,
 		FullName: user.FamilyMembers.FullName,
 	}
 	to := user.FamilyMembers.Email
@@ -329,6 +317,8 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
+	userEntity.OtpCode = utilities.GenerateRandomCode()
+
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
 
@@ -352,8 +342,20 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 		URL:      service.ConfigEmail.LinkVerifyEmail + token,
 		FullName: familyMembersEntity.FullName,
 	}
-	to := familyMembersEntity.Email
+
 	runtime.GOMAXPROCS(1)
+
+	// send whatsapp
+	waEntity := utilities.Body{}
+	waEntity.Key = "1"
+	waEntity.Value = "full_name"
+	waEntity.ValueText = userEntity.OtpCode
+	WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
+	waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
+	go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
+
+	// send email
+	to := familyMembersEntity.Email
 	go service.SendEmailVerification(to, templateData)
 
 	commit := tx.Commit()
@@ -365,21 +367,8 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 
 func (service *UserServiceImplementation) GenerateReferalCode() (referalCode string) {
 	referalCodeEntity := &entity.ReferalCode{}
-	// provinsi, _ := service.ProvinsiRepositoryInterface.FindProvinsiById(service.DB, idProvinsi)
 	for {
-		rand.Seed(time.Now().Unix())
-		charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-		var output strings.Builder
-		length := 9
-
-		for i := 0; i < length; i++ {
-			random := rand.Intn(len(charSet))
-			randomChar := charSet[random]
-			output.WriteString(string(randomChar))
-		}
-
-		referalCodeEntity.ReferalCode = output.String() // + provinsi.KodeArea
-
+		referalCodeEntity.ReferalCode = utilities.GenerateReferalCode()
 		// Check referal code if exist
 		checkUser, _ := service.UserRepositoryInterface.FindUserByReferal(service.DB, referalCodeEntity.ReferalCode)
 		if checkUser.Id == "" {
