@@ -63,7 +63,7 @@ func NewAuthService(
 func (service *AuthServiceImplementation) SendOtpByWhatsapp(requestId string, sendOtpByWhatsappRequest *request.SendOtpByWhatsappRequest) error {
 	request.ValidateSendOtpByWhatsapRequest(service.Validate, sendOtpByWhatsappRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.CheckPhone(service.DB, sendOtpByWhatsappRequest.Phone)
+	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, sendOtpByWhatsappRequest.Phone)
 
 	if user.IsActive == 1 {
 		err := errors.New("user already active")
@@ -80,7 +80,7 @@ func (service *AuthServiceImplementation) SendOtpByWhatsapp(requestId string, se
 		runtime.GOMAXPROCS(1)
 
 		// send whatsapp
-		waEntity := utilities.Body{}
+		waEntity := modelService.WhatsappBody{}
 		waEntity.Key = "1"
 		waEntity.Value = "full_name"
 		waEntity.ValueText = userEntity.OtpCode
@@ -100,7 +100,7 @@ func (service *AuthServiceImplementation) SendOtpByWhatsapp(requestId string, se
 func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) error {
 	request.ValidateVerifyOtpRequest(service.Validate, verifyOtpRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.CheckPhone(service.DB, verifyOtpRequest.Phone)
+	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, verifyOtpRequest.Phone)
 
 	if user.Id == "" {
 		exceptions.PanicIfRecordNotFound(errors.New("data not found"), requestId, []string{"data tidak ditemukan"}, service.Logger)
@@ -135,10 +135,10 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
 	// jika username tidak ditemukan
-	user, _ = service.UserRepositoryInterface.CheckUsername(service.DB, authRequest.Username)
+	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
 	if user.Id == "" {
 		// cek apakah yg di input email
-		user, _ = service.UserRepositoryInterface.CheckEmail(service.DB, authRequest.Username)
+		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, authRequest.Username)
 		if user.Id == "" {
 			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
 		}

@@ -308,9 +308,8 @@ func (service *OrderServiceImplementation) CancelOrderById(requestId string, idO
 }
 
 func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, paymentRequestCallback *request.CallBackIpaymuRequest) (orderResponse response.UpdateOrderStatusResponse) {
-
-	fmt.Println("masuk ke update order status")
 	// validate request
+
 	request.ValidateCallBackIpaymuRequest(service.Validate, paymentRequestCallback, requestId, service.Logger)
 
 	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, paymentRequestCallback.ReferenceId)
@@ -557,17 +556,15 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			product = append(product, orderItemEntity.ProductName)
 			qty = append(qty, orderItemEntity.Qty)
 			price = append(price, orderItemEntity.Price)
-
 		}
-
 	}
 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(errCreateOrderItem, requestId, []string{"Error create order"}, service.Logger, tx)
 
 	// delete data item in cart
-	// errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
-	// exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 	// Pilih metode pembayaran
 	switch orderRequest.PaymentMethod {

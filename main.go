@@ -52,6 +52,8 @@ func main() {
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 	e.Use(middleware.RequestID())
 
+	e.Use(middleware.CORS())
+
 	// User Address Repository
 	userShippingAddressRepository := mysql.NewUserShippingAddressRepository(&appConfig.Database)
 

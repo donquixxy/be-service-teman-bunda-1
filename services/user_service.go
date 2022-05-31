@@ -120,6 +120,7 @@ func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, 
 	return nil
 }
 
+// Update status aktif user by email confirmation
 func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId string, accessToken string) error {
 	tokenParse, err := jwt.ParseWithClaims(accessToken, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(service.ConfigJwt.VerifyKey), nil
@@ -249,14 +250,14 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
 	// Check username if exsict
-	checkUsername, _ := service.UserRepositoryInterface.CheckUsername(service.DB, userRequest.Username)
+	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
 	if checkUsername.Id != "" {
 		err := errors.New("username already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
 	}
 
 	// Check email if exsict
-	checkEmail, _ := service.UserRepositoryInterface.CheckEmail(service.DB, userRequest.Email)
+	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
 	if checkEmail.Id != "" {
 		err := errors.New("email already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
@@ -266,7 +267,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	phoneFinal := strings.Replace(phone, "+62", "0", -1)
 
 	// Check phone if exsict
-	checkPhone, _ := service.UserRepositoryInterface.CheckPhone(service.DB, phoneFinal)
+	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, phoneFinal)
 	if checkPhone.Id != "" {
 		err := errors.New("phone already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone sudah digunakan"}, service.Logger)
@@ -308,6 +309,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
 	if userRequest.RegistrationReferalCode == "" {
+		// dafault kode referal jika inputan kosong
 		userEntity.RegistrationReferalCode = "0X0ROQIBA"
 	} else {
 		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
@@ -345,14 +347,14 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 
 	runtime.GOMAXPROCS(1)
 
-	// send whatsapp
-	waEntity := utilities.Body{}
-	waEntity.Key = "1"
-	waEntity.Value = "full_name"
-	waEntity.ValueText = userEntity.OtpCode
-	WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
-	waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
-	go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
+	// // send whatsapp
+	// waEntity := modelService.WhatsappBody{}
+	// waEntity.Key = "1"
+	// waEntity.Value = "full_name"
+	// waEntity.ValueText = userEntity.OtpCode
+	// WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
+	// waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
+	// go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
 
 	// send email
 	to := familyMembersEntity.Email

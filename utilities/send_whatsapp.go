@@ -12,44 +12,22 @@ import (
 	"strings"
 
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
+	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 )
 
-type SendWaRequest struct {
-	ToNumber        string     `json:"to_number"`
-	ToName          string     `json:"to_name"`
-	MssgTemplateId  string     `json:"message_template_id"`
-	ChIntegrationId string     `json:"channel_integration_id"`
-	Language        Language   `json:"language"`
-	Parameters      Parameters `json:"parameters"`
-}
-
-type Language struct {
-	Code string `json:"code"`
-}
-
-type Parameters struct {
-	Bodys []Body `json:"body"`
-}
-
-type Body struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	ValueText string `json:"value_text"`
-}
-
-func SendWhatsapp(toNumber string, toName string, data *Body, mssgTemplateId string) {
+func SendWhatsapp(toNumber string, toName string, data *modelService.WhatsappBody, mssgTemplateId string) {
 	url, _ := url.Parse(string(config.GetConfig().Whatsapp.WhatsappUrl))
 
-	makeReqBody := SendWaRequest{
+	makeReqBody := modelService.SendWhatsappRequest{
 		ToNumber:        toNumber,
 		ToName:          toName,
 		MssgTemplateId:  mssgTemplateId,
 		ChIntegrationId: config.GetConfig().Whatsapp.ChannelId,
-		Language: Language{
+		Language: modelService.WhatsappLanguage{
 			Code: "id",
 		},
-		Parameters: Parameters{
-			Bodys: []Body{
+		Parameters: modelService.WhatsappParameters{
+			Bodys: []modelService.WhatsappBody{
 				{
 					Key:       data.Key,
 					Value:     data.Value,

@@ -56,6 +56,7 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/auth/login", authControllerInterface.Login)
 	group.POST("/auth/new-token", authControllerInterface.NewToken)
 	group.POST("/auth/verify/otp", authControllerInterface.VerifyOtp)
+	group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
 }
 
 // Balance Point Route
@@ -124,6 +125,8 @@ func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configu
 func PaymentRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentControllerInterface controllers.PaymentControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/payment/status", paymentControllerInterface.PaymentStatus, authMiddlerware.Authentication(configurationJWT))
+	e.GET("thank-you", paymentControllerInterface.PaymentCreditCardSuccess)
+	e.GET("credit-card-cancel-order", paymentControllerInterface.PaymentCreditCardCancel)
 }
 
 // List Payment
