@@ -13,6 +13,8 @@ import (
 
 type PaymentControllerInterface interface {
 	PaymentStatus(c echo.Context) error
+	PaymentCreditCardSuccess(c echo.Context) error
+	PaymentCreditCardCancel(c echo.Context) error
 }
 
 type PaymentControllerImplementation struct {
@@ -29,6 +31,14 @@ func NewPaymentController(configurationWebserver config.Webserver,
 		Logger:                  logger,
 		PaymentServiceInterface: paymentServiceInterface,
 	}
+}
+
+func (controller *PaymentControllerImplementation) PaymentCreditCardSuccess(c echo.Context) error {
+	return c.File("./template/credit_card_success_payment.html")
+}
+
+func (controller *PaymentControllerImplementation) PaymentCreditCardCancel(c echo.Context) error {
+	return c.File("./template/credit_card_cancel_payment.html")
 }
 
 func (controller *PaymentControllerImplementation) PaymentStatus(c echo.Context) error {

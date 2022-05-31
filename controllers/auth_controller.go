@@ -14,6 +14,8 @@ import (
 type AuthControllerInterface interface {
 	Login(c echo.Context) error
 	NewToken(c echo.Context) error
+	VerifyOtp(c echo.Context) error
+	SendOtpWhatsapp(c echo.Context) error
 }
 
 type AuthControllerImplementation struct {
@@ -46,4 +48,20 @@ func (controller *AuthControllerImplementation) NewToken(c echo.Context) error {
 	token := controller.AuthServiceInterface.NewToken(requestId, refreshToken)
 	respon := response.Response{Code: 200, Mssg: "success", Data: token, Error: []string{}}
 	return c.JSON(http.StatusOK, respon)
+}
+
+func (controller *AuthControllerImplementation) VerifyOtp(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromVerifyOtpRequestBody(c, requestId, controller.Logger)
+	loginResponse := controller.AuthServiceInterface.VerifyOtp(requestId, request)
+	respon := response.Response{Code: 200, Mssg: "success", Data: loginResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, respon)
+}
+
+func (controller *AuthControllerImplementation) SendOtpWhatsapp(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromSendOtpByWhatsappRequestBody(c, requestId, controller.Logger)
+	controller.AuthServiceInterface.SendOtpByWhatsapp(requestId, request)
+	response := response.Response{Code: 201, Mssg: "success", Data: nil, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
 }

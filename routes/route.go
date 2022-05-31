@@ -55,6 +55,8 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group := e.Group("api/v1")
 	group.POST("/auth/login", authControllerInterface.Login)
 	group.POST("/auth/new-token", authControllerInterface.NewToken)
+	group.POST("/auth/verify/otp", authControllerInterface.VerifyOtp)
+	group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
 }
 
 // Balance Point Route
@@ -108,7 +110,6 @@ func OrderRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT
 	group.PUT("/order/cancel/id", orderControllerInterface.CancelOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/order/complete/id", orderControllerInterface.CompleteOrderById, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/order/payment/check", orderControllerInterface.OrderCheckPayment, authMiddlerware.Authentication(configurationJWT))
-	// group.POST("/telegram", orderControllerInterface.SendTelegram)
 }
 
 // List Payment
@@ -124,6 +125,8 @@ func PaymentChannelRoute(e *echo.Echo, configWebserver config.Webserver, configu
 func PaymentRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, paymentControllerInterface controllers.PaymentControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/payment/status", paymentControllerInterface.PaymentStatus, authMiddlerware.Authentication(configurationJWT))
+	e.GET("thank-you", paymentControllerInterface.PaymentCreditCardSuccess)
+	e.GET("credit-card-cancel-order", paymentControllerInterface.PaymentCreditCardCancel)
 }
 
 // List Payment
@@ -143,4 +146,9 @@ func SettingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 	group := e.Group("api/v1")
 	group.GET("/setting/shippingcost", settingControllerInterface.FindSettingShippingCost, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/setting/verapp", settingControllerInterface.FindSettingVerApp, authMiddlerware.Authentication(configurationJWT))
+}
+
+// Main Route
+func MainRoute(e *echo.Echo, configWebserver config.Webserver, mainControllerInterface controllers.MainControllerInterface) {
+	e.GET("/", mainControllerInterface.Main)
 }

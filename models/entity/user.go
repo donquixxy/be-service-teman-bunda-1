@@ -2,6 +2,8 @@ package entity
 
 import (
 	"time"
+
+	"gopkg.in/guregu/null.v4"
 )
 
 type User struct {
@@ -19,6 +21,10 @@ type User struct {
 	IdLevelMember           int             `gorm:"column:id_level_member;"`
 	PasswordResetCode       string          `gorm:"column:password_reset_code;"`
 	UserLevelMember         UserLevelMember `gorm:"foreignKey:IdLevelMember"`
+	VerificationDueDate     time.Time       `gorm:"column:verification_due_date;"`
+	VerificationDate        null.Time       `gorm:"column:verification_date;"`
+	NotVerification         int             `gorm:"column:not_verification;"`
+	OtpCode                 string          `gorm:"column:otp_code;"`
 	CreatedDate             time.Time       `gorm:"column:created_at;"`
 }
 

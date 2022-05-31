@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"runtime"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
-
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/entity"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/request"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/models/http/response"
@@ -21,6 +19,7 @@ import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/repository/mysql"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/utilities"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/guregu/null.v4"
 	"gorm.io/gorm"
 )
 
@@ -104,25 +103,14 @@ func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, 
 		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
 	}
 
-	rand.Seed(time.Now().Unix())
-	charSet := "1234567890"
-	var output strings.Builder
-	length := 6
-
-	for i := 0; i < length; i++ {
-		random := rand.Intn(len(charSet))
-		randomChar := charSet[random]
-		output.WriteString(string(randomChar))
-	}
-
 	userEntity := &entity.User{}
-	userEntity.PasswordResetCode = output.String()
+	userEntity.PasswordResetCode = utilities.GenerateRandomCode()
 
 	_, errUpdateUser := service.UserRepositoryInterface.UpdatePasswordResetCodeUser(service.DB, user.Id, *userEntity)
 	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 
 	templateData := modelService.BodyCodeEmail{
-		Code:     output.String(),
+		Code:     userEntity.PasswordResetCode,
 		FullName: user.FamilyMembers.FullName,
 	}
 	to := user.FamilyMembers.Email
@@ -132,6 +120,7 @@ func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, 
 	return nil
 }
 
+// Update status aktif user by email confirmation
 func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId string, accessToken string) error {
 	tokenParse, err := jwt.ParseWithClaims(accessToken, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(service.ConfigJwt.VerifyKey), nil
@@ -154,6 +143,7 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 		userEntity := &entity.User{}
 		userEntity.IsActive = 1
 		userEntity.PasswordResetCode = ""
+		userEntity.VerificationDate = null.NewTime(time.Now(), true)
 
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
@@ -179,7 +169,7 @@ func (service *UserServiceImplementation) UpdateUserPassword(requestId string, u
 	if user.PasswordResetCode == updateUserPasswordRequest.Code {
 		userEntity := &entity.User{}
 		userEntity.Password = string(bcryptPassword)
-		userEntity.PasswordResetCode = " "
+		userEntity.PasswordResetCode = ""
 		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 	} else {
@@ -288,7 +278,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	exceptions.PanicIfError(tx.Error, requestId, service.Logger)
 
 	// Generate Password
-	password := userRequest.Password
+	password := strings.ReplaceAll(userRequest.Password, " ", "")
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
@@ -319,30 +309,20 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
 	if userRequest.RegistrationReferalCode == "" {
+		// dafault kode referal jika inputan kosong
 		userEntity.RegistrationReferalCode = "0X0ROQIBA"
 	} else {
 		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
 	}
 
 	userEntity.CreatedDate = time.Now()
+	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
+	userEntity.OtpCode = utilities.GenerateRandomCode()
+
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
-
-	// Create user address
-	// userAddressEntity := &entity.UserAddress{}
-	// userAddressEntity.Id = utilities.RandomUUID()
-	// userAddressEntity.IdUser = userEntity.Id
-	// userAddressEntity.Status = 1
-	// userAddressEntity.IdProvinsi = userRequest.IdProvinsi
-	// userAddressEntity.IdKabupaten = userRequest.IdKabupaten
-	// userAddressEntity.IdKecamatan = userRequest.IdKecamatan
-	// userAddressEntity.IdKelurahan = userRequest.IdKelurahan
-	// userAddressEntity.Address = userRequest.Address
-	// userAddress, err := service.UserAddressRepositoryInterface.CreateUserAddress(tx, *userAddressEntity)
-	// exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user address"}, service.Logger, tx)
-	// fmt.Println(userAddress)
 
 	// Create user balance points
 	balancePointEntity := &entity.BalancePoint{}
@@ -364,11 +344,21 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 		URL:      service.ConfigEmail.LinkVerifyEmail + token,
 		FullName: familyMembersEntity.FullName,
 	}
-	to := familyMembersEntity.Email
-	runtime.GOMAXPROCS(1)
-	go service.SendEmailVerification(to, templateData)
 
-	// service.SendEmail(userRequest.Email, userEntity.Id, token)
+	runtime.GOMAXPROCS(1)
+
+	// // send whatsapp
+	// waEntity := modelService.WhatsappBody{}
+	// waEntity.Key = "1"
+	// waEntity.Value = "full_name"
+	// waEntity.ValueText = userEntity.OtpCode
+	// WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
+	// waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
+	// go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
+
+	// send email
+	to := familyMembersEntity.Email
+	go service.SendEmailVerification(to, templateData)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -379,21 +369,8 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 
 func (service *UserServiceImplementation) GenerateReferalCode() (referalCode string) {
 	referalCodeEntity := &entity.ReferalCode{}
-	// provinsi, _ := service.ProvinsiRepositoryInterface.FindProvinsiById(service.DB, idProvinsi)
 	for {
-		rand.Seed(time.Now().Unix())
-		charSet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-		var output strings.Builder
-		length := 9
-
-		for i := 0; i < length; i++ {
-			random := rand.Intn(len(charSet))
-			randomChar := charSet[random]
-			output.WriteString(string(randomChar))
-		}
-
-		referalCodeEntity.ReferalCode = output.String() // + provinsi.KodeArea
-
+		referalCodeEntity.ReferalCode = utilities.GenerateReferalCode()
 		// Check referal code if exist
 		checkUser, _ := service.UserRepositoryInterface.FindUserByReferal(service.DB, referalCodeEntity.ReferalCode)
 		if checkUser.Id == "" {

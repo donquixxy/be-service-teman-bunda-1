@@ -50,8 +50,6 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayments = append(listPayments, *listPayment)
 	}
 
-	// s := fmt.Sprintf("%+v\n", listPayments)
-	// fmt.Println(s)
 	bankTrfs, _ := service.BankTransferRepositoryInterface.FindAllBankTransfer(service.DB)
 	for _, bankTrf := range bankTrfs {
 		listPayment := &modelService.ListPaymentChannelPayment{}
@@ -61,6 +59,7 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayment.BankLogo = bankTrf.BankLogo
 		listPayments = append(listPayments, *listPayment)
 	}
+
 	bankVa, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, "qris")
 	if bankVa.Id != "" {
 		listPayment := &modelService.ListPaymentChannelPayment{}
@@ -78,6 +77,16 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayment.BankCode = bankCod.BankCode
 		listPayment.BankName = bankCod.BankName
 		listPayment.BankLogo = bankCod.BankLogo
+		listPayments = append(listPayments, *listPayment)
+	}
+
+	cc, _ := service.BankVaRepositoryInterface.FindBankVaByBankCode(service.DB, "cc")
+	if cc.Id != "" {
+		listPayment := &modelService.ListPaymentChannelPayment{}
+		listPayment.PaymentMethod = "cc"
+		listPayment.BankCode = cc.BankCode
+		listPayment.BankName = cc.BankName
+		listPayment.BankLogo = cc.BankLogo
 		listPayments = append(listPayments, *listPayment)
 	}
 

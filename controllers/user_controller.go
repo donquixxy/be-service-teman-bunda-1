@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -83,9 +82,7 @@ func (controller *UserControllerImplementation) PasswordCodeRequest(c echo.Conte
 
 func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	// idUser := middleware.TokenClaimsIdUser(c)
 	accessToken := c.QueryParam("access_token")
-	fmt.Println(accessToken)
 	err := controller.UserServiceInterface.UpdateStatusActiveUser(requestId, accessToken)
 	if err == nil {
 		// return c.JSON(http.StatusOK, "VERIFIKASI SUCCESS SILAKAN LOGIN DI APLIAKSI TEMAN BUNDA")

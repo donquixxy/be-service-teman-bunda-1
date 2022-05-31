@@ -12,6 +12,17 @@ type PaymentStatusResponse struct {
 	Message string
 }
 
+type PaymentCreditCardResponse struct {
+	Status  int
+	Data    CreditCardData
+	Message string
+}
+
+type CreditCardData struct {
+	SessionId string
+	Url       string
+}
+
 type PaymentStatus struct {
 	TransactionId  int
 	SessionId      string

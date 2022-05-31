@@ -11,6 +11,7 @@ type UserRepositoryInterface interface {
 	UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateStatusActiveUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
@@ -61,7 +62,9 @@ func (repository *UserRepositoryImplementation) UpdateStatusActiveUser(DB *gorm.
 		Where("id = ?", idUser).
 		Updates(entity.User{
 			IsActive:          user.IsActive,
+			OtpCode:           user.OtpCode,
 			PasswordResetCode: user.PasswordResetCode,
+			VerificationDate:  user.VerificationDate,
 		})
 	return user, result.Error
 }
@@ -76,6 +79,16 @@ func (repository *UserRepositoryImplementation) UpdatePasswordResetCodeUser(DB *
 	return user, result.Error
 }
 
+func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			OtpCode: user.OtpCode,
+		})
+	return user, result.Error
+}
+
 func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user entity.User) (entity.User, error) {
 	results := DB.Create(user)
 	return user, results.Error
@@ -83,31 +96,31 @@ func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user ent
 
 func (repository *UserRepositoryImplementation) FindUserByUsername(DB *gorm.DB, username string) (entity.User, error) {
 	var user entity.User
-	results := DB.Where("users.username = ?", username).Joins("FamilyMembers").First(&user)
+	results := DB.Where("users.username = ?", username).Where("users.not_verification = ?", 0).Joins("FamilyMembers").First(&user)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByReferal(DB *gorm.DB, referalCode string) (entity.User, error) {
 	var user entity.User
-	results := DB.Where("referal_code = ?", referalCode).First(&user)
+	results := DB.Where("referal_code = ?", referalCode).Where("users.not_verification = ?", 0).First(&user)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByEmail(DB *gorm.DB, email string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Find(&user, "FamilyMembers.email = ?", email)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Find(&user, "FamilyMembers.phone = ?", phone)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserById(DB *gorm.DB, id string) (entity.User, error) {
 	var user entity.User
-	results := DB.Where("users.id = ?", id).
+	results := DB.Where("users.id = ?", id).Where("users.not_verification = ?", 0).
 		Joins("FamilyMembers").
 		Joins("BalancePoint").
 		Joins("UserLevelMember").

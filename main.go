@@ -52,6 +52,8 @@ func main() {
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 	e.Use(middleware.RequestID())
 
+	e.Use(middleware.CORS())
+
 	// User Address Repository
 	userShippingAddressRepository := mysql.NewUserShippingAddressRepository(&appConfig.Database)
 
@@ -362,6 +364,10 @@ func main() {
 	// Product Brand Controller
 	productBrandController := controllers.NewProductBrandController(appConfig.Webserver, productBrandService)
 	routes.ProductBrandRoute(e, appConfig.Webserver, appConfig.Jwt, productBrandController)
+
+	// Main Controller
+	mainController := controllers.NewMainController(appConfig.Webserver)
+	routes.MainRoute(e, appConfig.Webserver, mainController)
 
 	// Careful shutdown
 	go func() {
