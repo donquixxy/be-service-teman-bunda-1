@@ -29,6 +29,7 @@ import (
 
 type PaymentServiceInterface interface {
 	PaymentStatus(requestId string, paymentStatusRequest *request.PaymentStatusRequest) (paymentStatusResponse response.PaymentStatusResponse)
+	// CreditCardPaymentSuccess(requestId string, numberOrder string) error
 }
 
 type PaymentServiceImplementation struct {
@@ -68,6 +69,15 @@ func NewPaymentService(
 		PaymentLogRepositoryInterface:          PaymentLogRepositoryInterface,
 	}
 }
+
+// func (service *PaymentServiceImplementation) CreditCardPaymentSuccess(requestId string, numberOrder string) error {
+// 	order, _ := service.OrderRepositoryInterface.FindOrderByNumberOrder(service.DB, numberOrder)
+// 	if order.Id == "" {
+// 		exceptions.PanicIfRecordNotFound(errors.New("order not found"), requestId, []string{"order not found"}, service.Logger)
+// 	}
+
+// 	return nil
+// }
 
 func (service *PaymentServiceImplementation) PaymentStatus(requestId string, paymentStatusRequest *request.PaymentStatusRequest) (paymentStatusResponse response.PaymentStatusResponse) {
 	// Validate request

@@ -52,8 +52,18 @@ type Payment struct {
 	IpaymuVa             string `yaml:"ipaymuva"`
 	IpaymuKey            string `yaml:"ipaymukey"`
 	IpaymuUrl            string `yaml:"ipaymuurl"`
+	IpaymuSnapUrl        string `yaml:"ipaymusnapurl"`
 	IpaymuCallbackUrl    string `yaml:"ipaymucallbackurl"`
 	IpaymuTranscationUrl string `yaml:"ipaymutranscationurl"`
+	IpaymuThankYouPage   string `yaml:"ipaymuthankyoupage"`
+	IpaymuCancelUrl      string `yaml:"ipaymucancelurl"`
+}
+
+type Whatsapp struct {
+	WhatsappToken     string `yaml:"whatsapptoken"`
+	MssgOtpTemplateId string `yaml:"mssgotptemplateid"`
+	ChannelId         string `yaml:"channelid"`
+	WhatsappUrl       string `yaml:"whatsappurl"`
 }
 
 type Email struct {
@@ -77,6 +87,7 @@ type ApplicationConfiguration struct {
 	Payment     Payment
 	Email       Email
 	Telegram    Telegram
+	Whatsapp    Whatsapp
 }
 
 var lock = sync.Mutex{}
@@ -95,7 +106,7 @@ func GetConfig() *ApplicationConfiguration {
 
 func initConfig() *ApplicationConfiguration {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("config-prod")
+	viper.SetConfigName("config-dev")
 	viper.AddConfigPath("./")
 
 	if err := viper.ReadInConfig(); err != nil {
