@@ -106,7 +106,7 @@ func GetConfig() *ApplicationConfiguration {
 
 func initConfig() *ApplicationConfiguration {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("config-dev")
+	viper.SetConfigName("config-prod")
 	viper.AddConfigPath("./")
 
 	if err := viper.ReadInConfig(); err != nil {
