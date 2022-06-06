@@ -318,6 +318,49 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
 	}
 
+	// Cek payment status ke ipaymu
+	var ipaymu_va = string(service.ConfigPayment.IpaymuVa)
+	var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
+
+	url, _ := url.Parse(string(service.ConfigPayment.IpaymuTranscationUrl))
+	postBody, _ := json.Marshal(map[string]interface{}{
+		"transactionId": order.TrxId,
+	})
+
+	bodyHash := sha256.Sum256([]byte(postBody))
+	bodyHashToString := hex.EncodeToString(bodyHash[:])
+	stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
+
+	h := hmac.New(sha256.New, []byte(ipaymu_key))
+	h.Write([]byte(stringToSign))
+	signature := hex.EncodeToString(h.Sum(nil))
+
+	reqBody := ioutil.NopCloser(strings.NewReader(string(postBody)))
+
+	req := &http.Request{
+		Method: "POST",
+		URL:    url,
+		Header: map[string][]string{
+			"Content-Type": {"application/json"},
+			"va":           {ipaymu_va},
+			"signature":    {signature},
+		},
+		Body: reqBody,
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+	defer resp.Body.Close()
+
+	var dataPaymentStatus modelService.PaymentStatusResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&dataPaymentStatus); err != nil {
+		fmt.Println(err)
+	}
+
 	if order.PaymentStatus == "Sudah Dibayar" {
 		orderResponse = response.ToUpdateOrderStatusResponse(order)
 		return orderResponse
@@ -325,7 +368,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		if order.OrderSatus == "Menunggu Pembayaran" {
 			tx := service.DB.Begin()
 
-			if paymentRequestCallback.StatusCode == 1 || paymentRequestCallback.StatusCode == 6 {
+			if dataPaymentStatus.Data.Status == 1 || dataPaymentStatus.Data.Status == 6 {
 				// Update status order
 				orderEntity := &entity.Order{}
 				orderEntity.OrderSatus = "Menunggu Konfirmasi"
