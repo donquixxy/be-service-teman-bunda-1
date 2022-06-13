@@ -31,7 +31,7 @@ func SendEmail(to string, subject string, data interface{}, templateFile string)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", result)
 	// m.Attach(templateFile) // attach whatever you want
-	senderPort := 587
+	senderPort := 465
 	d := gomail.NewDialer("smtp.gmail.com", senderPort, string(config.GetConfig().Email.FromEmail), string(config.GetConfig().Email.FromEmailPassword))
 	err := d.DialAndSend(m)
 	if err != nil {

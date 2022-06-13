@@ -221,7 +221,7 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
-	// Create family members profile
+	// Update family members profile
 	familyMembersEntity := &entity.FamilyMembers{}
 	familyMembersEntity.FullName = userRequest.FullName
 	familyMembersEntity.Email = userRequest.Email
@@ -229,7 +229,7 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	familyMembers, errUpdateFamilyMembers := service.FamilyMembersRepositoryInterface.UpdateFamilyMembers(tx, user.IdFamilyMembers, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(errUpdateFamilyMembers, requestId, []string{"Error update family members"}, service.Logger, tx)
 
-	// Crate user profile
+	// Update user profile
 	userEntity := &entity.User{}
 	userEntity.IdFamilyMembers = familyMembers.Id
 	userEntity.Username = userRequest.Username
