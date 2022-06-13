@@ -318,6 +318,49 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		exceptions.PanicIfRecordNotFound(err, requestId, []string{"order not found"}, service.Logger)
 	}
 
+	// Cek payment status ke ipaymu
+	var ipaymu_va = string(service.ConfigPayment.IpaymuVa)
+	var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
+
+	url, _ := url.Parse(string(service.ConfigPayment.IpaymuTranscationUrl))
+	postBody, _ := json.Marshal(map[string]interface{}{
+		"transactionId": order.TrxId,
+	})
+
+	bodyHash := sha256.Sum256([]byte(postBody))
+	bodyHashToString := hex.EncodeToString(bodyHash[:])
+	stringToSign := "POST:" + ipaymu_va + ":" + strings.ToLower(string(bodyHashToString)) + ":" + ipaymu_key
+
+	h := hmac.New(sha256.New, []byte(ipaymu_key))
+	h.Write([]byte(stringToSign))
+	signature := hex.EncodeToString(h.Sum(nil))
+
+	reqBody := ioutil.NopCloser(strings.NewReader(string(postBody)))
+
+	req := &http.Request{
+		Method: "POST",
+		URL:    url,
+		Header: map[string][]string{
+			"Content-Type": {"application/json"},
+			"va":           {ipaymu_va},
+			"signature":    {signature},
+		},
+		Body: reqBody,
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+	defer resp.Body.Close()
+
+	var dataPaymentStatus modelService.PaymentStatusResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&dataPaymentStatus); err != nil {
+		fmt.Println(err)
+	}
+
 	if order.PaymentStatus == "Sudah Dibayar" {
 		orderResponse = response.ToUpdateOrderStatusResponse(order)
 		return orderResponse
@@ -325,7 +368,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 		if order.OrderSatus == "Menunggu Pembayaran" {
 			tx := service.DB.Begin()
 
-			if paymentRequestCallback.StatusCode == 1 || paymentRequestCallback.StatusCode == 6 {
+			if dataPaymentStatus.Data.Status == 1 || dataPaymentStatus.Data.Status == 6 {
 				// Update status order
 				orderEntity := &entity.Order{}
 				orderEntity.OrderSatus = "Menunggu Konfirmasi"
@@ -414,6 +457,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 				orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 				return orderResponse
 			} else {
+				fmt.Println("kode Status ipaymu = ", dataPaymentStatus.Data.Status)
 				exceptions.PanicIfError(errors.New("hahaah"), requestId, service.Logger)
 				return
 			}
@@ -562,10 +606,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(errCreateOrderItem, requestId, []string{"Error create order"}, service.Logger, tx)
 
-	// delete data item in cart
-	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
-	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
-
 	// Pilih metode pembayaran
 	switch orderRequest.PaymentMethod {
 	// Credit Card
@@ -657,6 +697,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			orderEntity.PaymentDueDate = null.NewTime(time.Now().Add(time.Hour*24), true)
 			order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+			// delete data item in cart
+			errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+			exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -759,6 +803,11 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			orderEntity.PaymentDueDate = null.NewTime(paymentDueDate, true)
 			order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+			// delete data item in cart
+			errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+			exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
@@ -810,6 +859,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
@@ -824,6 +877,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
 		order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -866,6 +923,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
 			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
 		}
+
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
