@@ -457,6 +457,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 				orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 				return orderResponse
 			} else {
+				fmt.Println("kode Status ipaymu = ", dataPaymentStatus.Data.Status)
 				exceptions.PanicIfError(errors.New("hahaah"), requestId, service.Logger)
 				return
 			}
@@ -605,10 +606,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
 	exceptions.PanicIfErrorWithRollback(errCreateOrderItem, requestId, []string{"Error create order"}, service.Logger, tx)
 
-	// delete data item in cart
-	errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
-	exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
-
 	// Pilih metode pembayaran
 	switch orderRequest.PaymentMethod {
 	// Credit Card
@@ -700,6 +697,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			orderEntity.PaymentDueDate = null.NewTime(time.Now().Add(time.Hour*24), true)
 			order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+			// delete data item in cart
+			errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+			exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -802,6 +803,11 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			orderEntity.PaymentDueDate = null.NewTime(paymentDueDate, true)
 			order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 			exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+			// delete data item in cart
+			errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+			exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+
 			commit := tx.Commit()
 			exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
@@ -853,6 +859,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
+
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
@@ -867,6 +877,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.OrderSatus = "Menunggu Konfirmasi"
 		order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
+
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -909,6 +923,10 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			_, errAddProductStockHistory := service.ProductStockHistoryRepositoryInterface.AddProductStockHistory(tx, *productEntityStockHistory)
 			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
 		}
+
+		// delete data item in cart
+		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
+		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
 		commit := tx.Commit()
 		exceptions.PanicIfError(commit.Error, requestId, service.Logger)
