@@ -82,6 +82,12 @@ func ProductRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 	group.GET("/products/category", productControllerInterface.FindProductByIdCategory, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/products/sub_category", productControllerInterface.FindProductByIdSubCategory, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/products/brand", productControllerInterface.FindProductByIdBrand, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/products/notoken", productControllerInterface.FindAllProducts)
+	group.GET("/products/notoken/search", productControllerInterface.FindProductsBySearch)
+	group.GET("/product/notoken/id", productControllerInterface.FindProductById)
+	group.GET("/products/notoken/category", productControllerInterface.FindProductByIdCategory)
+	group.GET("/products/notoken/sub_category", productControllerInterface.FindProductByIdSubCategory)
+	group.GET("/products/notoken/brand", productControllerInterface.FindProductByIdBrand)
 }
 
 // Cart Route
