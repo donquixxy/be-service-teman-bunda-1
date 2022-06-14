@@ -256,8 +256,9 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
 	}
 
+	emailLowerCase := strings.ToLower(userRequest.Email)
 	// Check email if exsict
-	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, userRequest.Email)
+	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 	if checkEmail.Id != "" {
 		err := errors.New("email already exist")
 		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
@@ -296,7 +297,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	familyMembersEntity.Id = utilities.RandomUUID()
 	familyMembersEntity.IdFamily = familyEntity.Id
 	familyMembersEntity.FullName = userRequest.FullName
-	familyMembersEntity.Email = userRequest.Email
+	familyMembersEntity.Email = emailLowerCase
 	familyMembersEntity.Phone = phoneFinal
 	familyMembers, err := service.FamilyMembersRepositoryInterface.CreateFamilyMembers(tx, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family members"}, service.Logger, tx)
@@ -331,6 +332,33 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	balancePointEntity.CreatedDate = time.Now()
 	balancePoint, err := service.BalancePointRepositoryInterface.CreateBalancePoint(tx, *balancePointEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert balance point"}, service.Logger, tx)
+
+	// Kode untuk bonus point registrasi referal
+	if userRequest.RegistrationReferalCode != "" {
+		// dapat bonus point jika menggunakan kode referal
+
+		balancePointEntity := &entity.BalancePoint{}
+		balancePointEntity.BalancePoints = 10000
+
+		_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+
+		// Add to point history
+		balancePointTxEntity := &entity.BalancePointTx{}
+		balancePointTxEntity.Id = utilities.RandomUUID()
+		balancePointTxEntity.IdBalancePoint = balancePoint.Id
+		balancePointTxEntity.TxType = "debit"
+		balancePointTxEntity.TxDate = time.Now()
+		balancePointTxEntity.TxNominal = balancePointEntity.BalancePoints
+		balancePointTxEntity.LastPointBalance = 0
+		balancePointTxEntity.NewPointBalance = balancePointEntity.BalancePoints
+		balancePointTxEntity.CreatedDate = time.Now()
+		balancePointTxEntity.Description = "Bonus Registrasi"
+
+		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+	}
+	// end of promo registration code
 
 	var userModelService modelService.User
 	userModelService.Id = user.Id

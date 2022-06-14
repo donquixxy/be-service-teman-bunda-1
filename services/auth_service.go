@@ -138,7 +138,8 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
 	if user.Id == "" {
 		// cek apakah yg di input email
-		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, authRequest.Username)
+		emailLowerCase := strings.ToLower(authRequest.Username)
+		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 		if user.Id == "" {
 			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
 		}
