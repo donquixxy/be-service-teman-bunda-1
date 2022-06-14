@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -95,7 +96,8 @@ func (controller *UserControllerImplementation) UpdateStatusActiveUser(c echo.Co
 func (controller *UserControllerImplementation) FindUserByReferal(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	referal := c.QueryParam("referal")
-	userResponse := controller.UserServiceInterface.FindUserByReferal(requestId, referal)
+	referalUppercase := strings.ToUpper(referal)
+	userResponse := controller.UserServiceInterface.FindUserByReferal(requestId, referalUppercase)
 	response := response.Response{Code: 200, Mssg: "success", Data: userResponse.ReferalCode, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
