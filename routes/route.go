@@ -139,6 +139,7 @@ func PaymentRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 func BannerRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, bannerControllerInterface controllers.BannerControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/banner", bannerControllerInterface.FindAllBanner, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/banner/notoken", bannerControllerInterface.FindAllBanner)
 }
 
 // Product Brand
