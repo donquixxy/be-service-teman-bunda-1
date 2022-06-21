@@ -13,6 +13,7 @@ type UserRepositoryInterface interface {
 	UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
@@ -32,6 +33,16 @@ func NewUserRepository(configDatabase *config.Database) UserRepositoryInterface 
 	return &UserRepositoryImplementation{
 		configurationDatabase: configDatabase,
 	}
+}
+
+func (repository *UserRepositoryImplementation) UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			TokenDevice: user.TokenDevice,
+		})
+	return result.Error
 }
 
 func (repository *UserRepositoryImplementation) UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {

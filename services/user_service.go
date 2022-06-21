@@ -28,6 +28,7 @@ type UserServiceInterface interface {
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
 	UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error
+	UpdateUserTokenDevice(requestId string, idUser string, userRequest *request.UpdateUserTokenDeviceRequest) error
 	UpdateStatusActiveUser(requestId string, accessToken string) error
 	PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error
 	PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error
@@ -79,6 +80,18 @@ func NewUserService(
 		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 		UserShippingAddressRepositoryInterface: userShippingAddressRepositoryInterface,
 	}
+}
+
+func (service *UserServiceImplementation) UpdateUserTokenDevice(requestId string, idUser string, updateUserTokenDeviceRequest *request.UpdateUserTokenDeviceRequest) error {
+	// Validate request
+	request.ValidateUpdateUserTokenDeviceRequest(service.Validate, updateUserTokenDeviceRequest, requestId, service.Logger)
+
+	userEntity := &entity.User{}
+	userEntity.TokenDevice = updateUserTokenDeviceRequest.TokenDevice
+
+	err := service.UserRepositoryInterface.UpdateUserTokenDevice(service.DB, idUser, *userEntity)
+
+	return err
 }
 
 func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error {

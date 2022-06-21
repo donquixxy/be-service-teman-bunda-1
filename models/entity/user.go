@@ -26,6 +26,7 @@ type User struct {
 	NotVerification         int             `gorm:"column:not_verification;"`
 	OtpCode                 string          `gorm:"column:otp_code;"`
 	CreatedDate             time.Time       `gorm:"column:created_at;"`
+	TokenDevice             string          `gorm:"column:token_device;"`
 }
 
 func (User) TableName() string {

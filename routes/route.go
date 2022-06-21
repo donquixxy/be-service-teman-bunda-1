@@ -38,6 +38,7 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/user/update/tokendevice", userControllerInterface.UpdateUserTokenDevice, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/password/request/code", userControllerInterface.PasswordCodeRequest)
 	group.POST("/password/code/verify", userControllerInterface.PasswordResetCodeVerify)
 	group.POST("/user/update/password", userControllerInterface.UpdateUserPassword)
