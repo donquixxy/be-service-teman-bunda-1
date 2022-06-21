@@ -422,7 +422,12 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 				exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 
 				runtime.GOMAXPROCS(1)
+				// Send notif telegram
 				go service.SendTelegram(order.NumberOrder, "Pembayaran Sukses (VA/QRIS)")
+
+				// Send push notification
+				user, _ := service.UserRepositoryInterface.FindUserById(service.DB, order.IdUser)
+				go utilities.SendPushNotification(user.TokenDevice, &modelService.NotificationData{Title: "Pembayaran Sukses", Body: "Selamat Pembayaran Anda Sudah Dikonfirmasi"})
 
 				orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 				return orderResponse

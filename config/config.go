@@ -77,6 +77,10 @@ type Telegram struct {
 	BotToken string `yaml:"bottoken"`
 }
 
+type Fcm struct {
+	Serverkey string `yaml:"serverkey"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -88,6 +92,7 @@ type ApplicationConfiguration struct {
 	Email       Email
 	Telegram    Telegram
 	Whatsapp    Whatsapp
+	Fcm         Fcm
 }
 
 var lock = sync.Mutex{}
