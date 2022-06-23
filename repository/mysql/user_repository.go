@@ -11,7 +11,7 @@ type UserRepositoryInterface interface {
 	UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateStatusActiveUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
-	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error
 	UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
@@ -90,14 +90,15 @@ func (repository *UserRepositoryImplementation) UpdatePasswordResetCodeUser(DB *
 	return user, result.Error
 }
 
-func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error {
 	result := DB.
 		Model(entity.User{}).
 		Where("id = ?", idUser).
 		Updates(entity.User{
-			OtpCode: user.OtpCode,
+			OtpCode:               user.OtpCode,
+			OtpCodeExpiredDueDate: user.OtpCodeExpiredDueDate,
 		})
-	return user, result.Error
+	return result.Error
 }
 
 func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user entity.User) (entity.User, error) {

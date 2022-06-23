@@ -57,7 +57,9 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/auth/login", authControllerInterface.Login)
 	group.POST("/auth/new-token", authControllerInterface.NewToken)
 	group.POST("/auth/verify/otp", authControllerInterface.VerifyOtp)
-	group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
+	// group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
+	group.POST("/auth/sendotp/sms", authControllerInterface.SendOtpBySms)
+	group.POST("/auth/sendotp/email", authControllerInterface.SendOtpByEmail)
 }
 
 // Balance Point Route

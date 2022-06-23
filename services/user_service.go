@@ -112,7 +112,7 @@ func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId stri
 func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error {
 	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordRequest.Email)
 
-	if user.Id == "" {
+	if user.Id == " " {
 		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
 	}
 
@@ -262,12 +262,12 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// Validate request
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
-	// Check username if exsict
-	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
-	if checkUsername.Id != "" {
-		err := errors.New("username already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
-	}
+	// // Check username if exsict
+	// checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
+	// if checkUsername.Id != "" {
+	// 	err := errors.New("username already exist")
+	// 	exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
+	// }
 
 	emailLowerCase := strings.ToLower(userRequest.Email)
 	// Check email if exsict
@@ -320,8 +320,8 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.Id = utilities.RandomUUID()
 	userEntity.IdFamilyMembers = familyMembers.Id
 	userEntity.IdLevelMember = 1
-	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
+	userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
 	if userRequest.RegistrationReferalCode == "" {
 		// dafault kode referal jika inputan kosong
 		userEntity.RegistrationReferalCode = "0X0ROQIBA"
@@ -333,7 +333,10 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
-	userEntity.OtpCode = utilities.GenerateRandomCode()
+	otpCode := utilities.GenerateRandomCode()
+	bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
+	userEntity.OtpCode = string(bcryptOtpCode)
 
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
@@ -388,14 +391,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 
 	runtime.GOMAXPROCS(1)
 
-	// // send whatsapp
-	// waEntity := modelService.WhatsappBody{}
-	// waEntity.Key = "1"
-	// waEntity.Value = "full_name"
-	// waEntity.ValueText = userEntity.OtpCode
-	// WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
-	// waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
-	// go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
+	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
 	// send email
 	to := familyMembersEntity.Email

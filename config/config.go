@@ -81,6 +81,11 @@ type Fcm struct {
 	Serverkey string `yaml:"serverkey"`
 }
 
+type Sms struct {
+	UserKey string `yaml:"userkey"`
+	PassKey string `yaml:"passkey"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -93,6 +98,7 @@ type ApplicationConfiguration struct {
 	Telegram    Telegram
 	Whatsapp    Whatsapp
 	Fcm         Fcm
+	Sms         Sms
 }
 
 var lock = sync.Mutex{}

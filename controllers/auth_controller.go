@@ -15,7 +15,8 @@ type AuthControllerInterface interface {
 	Login(c echo.Context) error
 	NewToken(c echo.Context) error
 	VerifyOtp(c echo.Context) error
-	SendOtpWhatsapp(c echo.Context) error
+	SendOtpBySms(c echo.Context) error
+	SendOtpByEmail(c echo.Context) error
 }
 
 type AuthControllerImplementation struct {
@@ -58,10 +59,18 @@ func (controller *AuthControllerImplementation) VerifyOtp(c echo.Context) error 
 	return c.JSON(http.StatusOK, respon)
 }
 
-func (controller *AuthControllerImplementation) SendOtpWhatsapp(c echo.Context) error {
+func (controller *AuthControllerImplementation) SendOtpBySms(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	request := request.ReadFromSendOtpByWhatsappRequestBody(c, requestId, controller.Logger)
-	controller.AuthServiceInterface.SendOtpByWhatsapp(requestId, request)
+	request := request.ReadFromSendOtpBySmsRequestBody(c, requestId, controller.Logger)
+	controller.AuthServiceInterface.SendOtpBySms(requestId, request)
+	response := response.Response{Code: 201, Mssg: "success", Data: nil, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *AuthControllerImplementation) SendOtpByEmail(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadFromSendOtpByEmailRequestBody(c, requestId, controller.Logger)
+	controller.AuthServiceInterface.SendOtpByEmail(requestId, request)
 	response := response.Response{Code: 201, Mssg: "success", Data: nil, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }

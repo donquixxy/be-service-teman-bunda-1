@@ -7,23 +7,23 @@ import (
 	"github.com/tensuqiuwulu/be-service-teman-bunda/exceptions"
 )
 
-type SendOtpByWhatsappRequest struct {
+type SendOtpBySmsRequest struct {
 	Phone string `json:"phone" form:"phone" validate:"required"`
 }
 
-func ReadFromSendOtpByWhatsappRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (sendOtpByWhatsapp *SendOtpByWhatsappRequest) {
-	sendOtpByWhatsappRequest := new(SendOtpByWhatsappRequest)
-	if err := c.Bind(sendOtpByWhatsappRequest); err != nil {
+func ReadFromSendOtpBySmsRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (sendOtpBySms *SendOtpBySmsRequest) {
+	sendOtpBySmsRequest := new(SendOtpBySmsRequest)
+	if err := c.Bind(sendOtpBySmsRequest); err != nil {
 		exceptions.PanicIfError(err, requestId, logger)
 	}
-	sendOtpByWhatsapp = sendOtpByWhatsappRequest
-	return sendOtpByWhatsapp
+	sendOtpBySms = sendOtpBySmsRequest
+	return sendOtpBySms
 }
 
-func ValidateSendOtpByWhatsapRequest(validate *validator.Validate, sendOtpByWhatsappRequest *SendOtpByWhatsappRequest, requestId string, logger *logrus.Logger) {
+func ValidateSendOtpBySmsRequest(validate *validator.Validate, sendOtpBySmsRequest *SendOtpBySmsRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
 	var errorString string
-	err := validate.Struct(sendOtpByWhatsappRequest)
+	err := validate.Struct(sendOtpBySmsRequest)
 	if err != nil {
 		for _, errorValidation := range err.(validator.ValidationErrors) {
 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()

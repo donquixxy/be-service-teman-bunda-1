@@ -25,6 +25,7 @@ type User struct {
 	VerificationDate        null.Time       `gorm:"column:verification_date;"`
 	NotVerification         int             `gorm:"column:not_verification;"`
 	OtpCode                 string          `gorm:"column:otp_code;"`
+	OtpCodeExpiredDueDate   null.Time       `gorm:"column:otp_code_expired_due_date;"`
 	CreatedDate             time.Time       `gorm:"column:created_at;"`
 	TokenDevice             string          `gorm:"column:token_device;"`
 }
