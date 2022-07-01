@@ -51,6 +51,7 @@ func main() {
 	e.Use(middleware.Recover())
 	e.HTTPErrorHandler = exceptions.ErrorHandler
 	e.Use(middleware.RequestID())
+	// e.IPExtractor = echo.ExtractIPDirect()
 
 	e.Use(middleware.CORS())
 

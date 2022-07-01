@@ -3,7 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -297,7 +299,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
 	// Generate referal code
-	referalCode := service.GenerateReferalCode()
+	referalCode := service.GenerateReferalCode(userRequest.FullName)
 
 	// Create family profile
 	familyEntity := &entity.Family{}
@@ -381,21 +383,21 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userModelService.Username = user.Username
 	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
 
-	token, err := service.GenerateTokenVerify(userModelService)
-	exceptions.PanicIfError(err, requestId, service.Logger)
+	// token, err := service.GenerateTokenVerify(userModelService)
+	// exceptions.PanicIfError(err, requestId, service.Logger)
 
-	templateData := modelService.BodyLinkEmail{
-		URL:      service.ConfigEmail.LinkVerifyEmail + token,
-		FullName: familyMembersEntity.FullName,
-	}
+	// templateData := modelService.BodyLinkEmail{
+	// 	URL:      service.ConfigEmail.LinkVerifyEmail + token,
+	// 	FullName: familyMembersEntity.FullName,
+	// }
 
 	runtime.GOMAXPROCS(1)
 
 	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
-	// send email
-	to := familyMembersEntity.Email
-	go service.SendEmailVerification(to, templateData)
+	// // send email
+	// to := familyMembersEntity.Email
+	// go service.SendEmailVerification(to, templateData)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
@@ -404,17 +406,34 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	return userResponse
 }
 
-func (service *UserServiceImplementation) GenerateReferalCode() (referalCode string) {
-	referalCodeEntity := &entity.ReferalCode{}
+func (service *UserServiceImplementation) GenerateReferalCode(fullName string) string {
+	var splitNickname []string
+	var referalName string
+	var referalCode string
+
+	splitFullName := strings.Split(fullName, " ")
+
+	if len(splitFullName) >= 2 {
+		splitNickname = strings.Split(string(splitFullName[len(splitFullName)-2]), "")
+	} else {
+		splitNickname = strings.Split(fullName, "")
+	}
+
+	referalName = splitNickname[0] + splitNickname[1] + splitNickname[2]
+
+	// Check if referal code exist
 	for {
-		referalCodeEntity.ReferalCode = utilities.GenerateReferalCode()
-		// Check referal code if exist
-		checkUser, _ := service.UserRepositoryInterface.FindUserByReferal(service.DB, referalCodeEntity.ReferalCode)
-		if checkUser.Id == "" {
+		rand.Seed(time.Now().UTC().UnixNano())
+		generateCode := 100 + rand.Intn(999-100)
+		referalCode = strings.ToUpper(referalName) + strconv.Itoa(generateCode)
+
+		result, _ := service.UserRepositoryInterface.FindUserByReferalCode(service.DB, referalCode)
+		if result.Id == "" {
 			break
 		}
 	}
-	return referalCodeEntity.ReferalCode
+
+	return referalCode
 }
 
 func (service *UserServiceImplementation) FindUserByReferal(requestId string, referal string) (userResponse response.FindUserByReferalResponse) {

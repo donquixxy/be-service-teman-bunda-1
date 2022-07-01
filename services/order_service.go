@@ -427,7 +427,7 @@ func (service *OrderServiceImplementation) UpdateStatusOrder(requestId string, p
 
 				// Send push notification
 				user, _ := service.UserRepositoryInterface.FindUserById(service.DB, order.IdUser)
-				go utilities.SendPushNotification(user.TokenDevice, &modelService.NotificationData{Title: "Pembayaran Sukses", Body: "Selamat Pembayaran Anda Sudah Dikonfirmasi"})
+				go utilities.SendPushNotification(user.TokenDevice, &modelService.NotificationData{Title: "Pembayaran Berhasil", Body: "Selamat Pembayaran Anda Sudah Dikonfirmasi"})
 
 				orderResponse = response.ToUpdateOrderStatusResponse(orderResult)
 				return orderResponse

@@ -170,10 +170,10 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
 	// jika username tidak ditemukan
-	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
+	user, _ = service.UserRepositoryInterface.FindUserByPhone(service.DB, authRequest.Credential)
 	if user.Id == "" {
 		// cek apakah yg di input email
-		emailLowerCase := strings.ToLower(authRequest.Username)
+		emailLowerCase := strings.ToLower(authRequest.Credential)
 		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 		if user.Id == "" {
 			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)

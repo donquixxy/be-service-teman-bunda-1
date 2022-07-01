@@ -15,6 +15,7 @@ type FindOrderByIdOrderResponse struct {
 	PaymentByCash  float64             `json:"payment_by_cash"`
 	PaymentMethod  string              `json:"payment_method"`
 	PaymentChannel string              `json:"payment_channel"`
+	ProofOfPayment string              `json:"proof_of_payment"`
 	OrderItems     []OrderItemResponse `json:"order_items"`
 	PaymentDueDate string              `json:"payment_due_date"`
 }
@@ -67,6 +68,7 @@ func ToFindOrderByIdOrder(order entity.Order, orderItems []entity.OrderItem) (or
 	orderResponse.OrderStatus = order.OrderSatus
 	orderResponse.ShippingCost = order.ShippingCost
 	orderResponse.SubTotal = totalPricePerItem
+	orderResponse.ProofOfPayment = order.ProofOfPayment
 	orderResponse.PaymentDueDate = order.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 	return orderResponse
 }
