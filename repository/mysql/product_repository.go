@@ -27,12 +27,12 @@ func NewProductRepository(configDatabase *config.Database) ProductRepositoryInte
 }
 
 func (repository *ProductRepositoryImplementation) UpdateProductStock(DB *gorm.DB, idProduct string, product entity.Product) (entity.Product, error) {
+	updateProduct := make(map[string]interface{})
+	updateProduct["stock"] = product.Stock
 	result := DB.
 		Model(entity.Product{}).
 		Where("id = ?", idProduct).
-		Updates(entity.Product{
-			Stock: product.Stock,
-		})
+		Updates(&updateProduct)
 	return product, result.Error
 }
 
