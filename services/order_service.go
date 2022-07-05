@@ -574,6 +574,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	var product []string
 	var qty []int
 	var price []float64
+	var totalPrice float64
 	for _, cartItem := range cartItems {
 		orderItemEntity := &entity.OrderItem{}
 		orderItemEntity.Id = utilities.RandomUUID()
@@ -600,12 +601,18 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		orderItemEntity.TotalPrice = totalPriceProduct * (float64(cartItem.Qty))
 		orderItemEntity.CreatedAt = time.Now()
+		totalPrice = totalPrice + orderItemEntity.TotalPrice
 		orderItems = append(orderItems, *orderItemEntity)
 		if orderRequest.PaymentMethod == "cc" {
 			product = append(product, orderItemEntity.ProductName)
 			qty = append(qty, orderItemEntity.Qty)
 			price = append(price, orderItemEntity.Price)
 		}
+	}
+
+	if (totalPrice + orderRequest.ShippingCost) != orderRequest.TotalBill {
+		exceptions.PanicIfErrorWithRollback(errors.New("price not same"), requestId, []string{"Error create order"}, service.Logger, tx)
+		fmt.Print("harga tidak sama, user name = ", user.FamilyMembers.FullName)
 	}
 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
