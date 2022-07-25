@@ -91,13 +91,16 @@ func (repository *UserRepositoryImplementation) UpdatePasswordResetCodeUser(DB *
 }
 
 func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error {
+	updateUserOtp := make(map[string]interface{})
+	updateUserOtp["otp_code"] = user.OtpCode
+	updateUserOtp["otp_code_expired_due_date"] = user.OtpCodeExpiredDueDate
+	updateUserOtp["otp_limit_phone"] = user.OtpLimitPhone
+	updateUserOtp["otp_limit_reset_date"] = user.OtpLimitResetDate
+
 	result := DB.
 		Model(entity.User{}).
 		Where("id = ?", idUser).
-		Updates(entity.User{
-			OtpCode:               user.OtpCode,
-			OtpCodeExpiredDueDate: user.OtpCodeExpiredDueDate,
-		})
+		Updates(&updateUserOtp)
 	return result.Error
 }
 

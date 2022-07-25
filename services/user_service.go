@@ -335,6 +335,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
+	userEntity.OtpLimitPhone = 4
 	otpCode := utilities.GenerateRandomCode()
 	bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
@@ -391,7 +392,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// 	FullName: familyMembersEntity.FullName,
 	// }
 
-	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
+	// go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
 	// // send email
 	// to := familyMembersEntity.Email

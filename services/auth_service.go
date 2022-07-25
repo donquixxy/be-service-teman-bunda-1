@@ -98,18 +98,41 @@ func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtp
 		exceptions.PanicIfRecordNotFound(errors.New("record not found"), requestId, []string{"user not found"}, service.Logger)
 	}
 
-	// make otp code
-	otpCode := utilities.GenerateRandomCode()
-	bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
-	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
-
 	userEntity := &entity.User{}
-	userEntity.OtpCode = string(bcryptOtpCode)
-	userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
-	errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
-	exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
 
-	go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+	if user.OtpLimitPhone <= 0 {
+
+		if time.Now().After(user.OtpLimitResetDate.Time) {
+			// make otp code
+			otpCode := utilities.GenerateRandomCode()
+			bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+			exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
+
+			userEntity.OtpCode = string(bcryptOtpCode)
+			userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
+			userEntity.OtpLimitPhone = 4
+			errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
+			exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+
+			// go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+
+		} else {
+			exceptions.PanicIfBadRequest(errors.New("phone limit to send otp"), requestId, []string{"phone limit to send otp"}, service.Logger)
+		}
+	} else if user.OtpLimitPhone > 0 {
+		otpCode := utilities.GenerateRandomCode()
+		bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+		exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
+
+		userEntity.OtpCode = string(bcryptOtpCode)
+		userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
+		userEntity.OtpLimitPhone = user.OtpLimitPhone - 1
+		userEntity.OtpLimitResetDate = null.NewTime(time.Now().Add(time.Hour*12), true)
+		errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
+		exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+
+		// go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+	}
 	return nil
 }
 
