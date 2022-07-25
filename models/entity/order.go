@@ -28,6 +28,7 @@ type Order struct {
 	PaymentName             string    `gorm:"column:payment_name;"`
 	PaymentByPoint          float64   `gorm:"column:payment_by_point;"`
 	PaymentByCash           float64   `gorm:"column:payment_by_cash;"`
+	PaymentFee              float64   `gorm:"column:payment_fee;"`
 	ShippingMethod          string    `gorm:"column:shipping_method;"`
 	ShippingCost            float64   `gorm:"column:shipping_cost;"`
 	ShippingStatus          string    `gorm:"column:shipping_status;"`

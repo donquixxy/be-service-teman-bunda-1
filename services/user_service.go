@@ -391,8 +391,6 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// 	FullName: familyMembersEntity.FullName,
 	// }
 
-	runtime.GOMAXPROCS(1)
-
 	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
 	// // send email

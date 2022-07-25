@@ -57,8 +57,10 @@ type Data struct {
 }
 
 type ListPaymentChannelPayment struct {
-	PaymentMethod string
-	BankCode      string
-	BankName      string
-	BankLogo      string
+	PaymentMethod      string
+	BankCode           string
+	BankName           string
+	BankLogo           string
+	AdminFee           float64
+	AdminFeePercentage float64
 }

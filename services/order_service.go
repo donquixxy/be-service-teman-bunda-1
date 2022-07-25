@@ -187,7 +187,7 @@ func (service *OrderServiceImplementation) CompleteOrderById(requestId string, i
 
 		if order.PaymentByCash != 0 {
 			// hitung bonus point dari pembaran dengan uang
-			bonusPoint := ((order.PaymentByCash - order.ShippingCost) * user.UserLevelMember.BonusPercentage) / 100
+			bonusPoint := ((order.PaymentByCash - order.ShippingCost - order.PaymentFee) * user.UserLevelMember.BonusPercentage) / 100
 
 			// Bonus pribadi dari perbelanjaan
 			// Get bonus point from order order
@@ -527,8 +527,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.PaymentChannel = orderRequest.PaymentChannel
 	orderEntity.PaymentStatus = "Belum Dibayar"
 	orderEntity.PaymentByPoint = orderRequest.PaymentByPoint
+	orderEntity.PaymentFee = orderRequest.PaymentFee
 	if orderRequest.PaymentMethod != "trf" {
-		orderEntity.PaymentByCash = orderRequest.PaymentByCash
+		orderEntity.PaymentByCash = orderRequest.PaymentByCash + orderRequest.PaymentFee
 	}
 	orderEntity.ShippingCost = orderRequest.ShippingCost
 	orderEntity.ShippingStatus = "Menunggu"
@@ -611,8 +612,13 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	}
 
 	if (totalPrice + orderRequest.ShippingCost) != orderRequest.TotalBill {
-		exceptions.PanicIfErrorWithRollback(errors.New("price not same"), requestId, []string{"Error create order"}, service.Logger, tx)
 		fmt.Print("harga tidak sama, user name = ", user.FamilyMembers.FullName)
+		exceptions.PanicIfErrorWithRollback(errors.New("price not same 1"), requestId, []string{"price not same 1"}, service.Logger, tx)
+	}
+
+	if (totalPrice + orderRequest.ShippingCost + orderRequest.PaymentFee) != (orderRequest.PaymentByCash + orderRequest.PaymentByPoint) {
+		fmt.Print("harga tidak sama 2, user name = ", user.FamilyMembers.FullName)
+		exceptions.PanicIfErrorWithRollback(errors.New("price not same 2"), requestId, []string{"price not same 2"}, service.Logger, tx)
 	}
 
 	errCreateOrderItem := service.OrderItemRepositoryInterface.CreateOrderItems(tx, orderItems)
@@ -626,9 +632,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
 
 		// tambahkan ongkos kirim
-		product = append(product, "Shipping Cost")
-		qty = append(qty, 1)
-		price = append(price, orderRequest.ShippingCost)
+		product = append(product, "Shipping Cost", "Payment Fee")
+		qty = append(qty, 1, 1)
+		price = append(price, orderRequest.ShippingCost, orderRequest.PaymentFee)
 
 		url, _ := url.Parse(string(service.ConfigPayment.IpaymuSnapUrl))
 
@@ -736,7 +742,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			"name":           user.FamilyMembers.FullName,
 			"phone":          user.FamilyMembers.Phone,
 			"email":          user.FamilyMembers.Email,
-			"amount":         orderRequest.PaymentByCash,
+			"amount":         orderEntity.PaymentByCash,
 			"notifyUrl":      string(service.ConfigPayment.IpaymuCallbackUrl),
 			"expired":        24,
 			"expiredType":    "hours",
@@ -865,7 +871,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		orderEntity.PaymentName = bankTransfer.BankName
 		orderEntity.PaymentByCash = payment.Data.Total
 		orderEntity.PaymentDueDate = null.NewTime(time.Now().Add(time.Hour*24), true)
-
 		payment.Data.Expired = orderEntity.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 
 		order, errUpdateOrderPayment := service.OrderRepositoryInterface.CreateOrder(tx, *orderEntity)

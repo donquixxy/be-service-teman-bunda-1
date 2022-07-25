@@ -176,7 +176,10 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 		emailLowerCase := strings.ToLower(authRequest.Credential)
 		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 		if user.Id == "" {
-			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+			user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Credential)
+			if len(user.Id) == 0 {
+				exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+			}
 		}
 	}
 
