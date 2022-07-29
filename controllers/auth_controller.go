@@ -54,7 +54,7 @@ func (controller *AuthControllerImplementation) NewToken(c echo.Context) error {
 func (controller *AuthControllerImplementation) VerifyOtp(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromVerifyOtpRequestBody(c, requestId, controller.Logger)
-	loginResponse := controller.AuthServiceInterface.VerifyOtp(requestId, request)
+	loginResponse, _ := controller.AuthServiceInterface.VerifyOtp(requestId, request)
 	respon := response.Response{Code: 200, Mssg: "success", Data: loginResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, respon)
 }

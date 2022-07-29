@@ -111,7 +111,26 @@ func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId stri
 	}
 }
 
+func (service *UserServiceImplementation) VerifyFormToken(requestId, token string) {
+	tokenParse, err := jwt.ParseWithClaims(token, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(service.ConfigJwt.FormToken), nil
+	})
+
+	if !tokenParse.Valid {
+		exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		}
+	}
+}
+
 func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error {
+
 	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordRequest.Email)
 
 	if user.Id == " " {
@@ -172,25 +191,22 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 }
 
 func (service *UserServiceImplementation) UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error {
+	service.VerifyFormToken(requestId, updateUserPasswordRequest.FormToken)
+
 	// Validate request
 	request.ValidateUpdateUserPasswordRequest(service.Validate, updateUserPasswordRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, updateUserPasswordRequest.Email)
+	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, updateUserPasswordRequest.Credential)
 
 	password := updateUserPasswordRequest.Password
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
-	if user.PasswordResetCode == updateUserPasswordRequest.Code {
-		userEntity := &entity.User{}
-		userEntity.Password = string(bcryptPassword)
-		userEntity.PasswordResetCode = ""
-		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
-	} else {
-		err := errors.New("email and code not match")
-		exceptions.PanicIfBadRequest(err, requestId, []string{"email and code not match"}, service.Logger)
-	}
+	userEntity := &entity.User{}
+	userEntity.Password = string(bcryptPassword)
+	userEntity.PasswordResetCode = ""
+	_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 
 	return nil
 }
@@ -264,7 +280,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// Validate request
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
-	// // Check username if exsict
+	// Check username if exsict
 	// checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
 	// if checkUsername.Id != "" {
 	// 	err := errors.New("username already exist")
@@ -392,7 +408,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// 	FullName: familyMembersEntity.FullName,
 	// }
 
-	// go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
+	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
 	// // send email
 	// to := familyMembersEntity.Email

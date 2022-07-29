@@ -34,8 +34,10 @@ type Database struct {
 
 type Jwt struct {
 	VerifyKey               string `yaml:"verifykey"`
+	FormToken               string `yaml:"formkey"`
 	Key                     string `yaml:"key"`
 	Tokenexpiredtime        uint   `yaml:"tokenexpiredtime"`
+	FormTokenexpiredtime    uint   `yaml:"formtokenexpiredtime"`
 	Refreshtokenexpiredtime uint   `yaml:"refreshtokenexpiredtime"`
 }
 

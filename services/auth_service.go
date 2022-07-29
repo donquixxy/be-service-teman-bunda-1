@@ -26,7 +26,7 @@ type AuthServiceInterface interface {
 	NewToken(requestId string, refreshToken string) (token string)
 	GenerateToken(user modelService.User) (token string, err error)
 	GenerateRefreshToken(user modelService.User) (token string, err error)
-	VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) error
+	VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) (string, error)
 	SendOtpBySms(requestId string, sendOtpBySmsRequest *request.SendOtpBySmsRequest) error
 	SendOtpByEmail(requestId string, sendOtpByEmail *request.SendOtpByEmailRequest) error
 }
@@ -114,7 +114,7 @@ func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtp
 			errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
 			exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
 
-			// go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+			go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
 
 		} else {
 			exceptions.PanicIfBadRequest(errors.New("phone limit to send otp"), requestId, []string{"phone limit to send otp"}, service.Logger)
@@ -131,12 +131,12 @@ func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtp
 		errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
 
-		// go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
 	}
 	return nil
 }
 
-func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) error {
+func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) (string, error) {
 	request.ValidateVerifyOtpByPhoneRequest(service.Validate, verifyOtpRequest, requestId, service.Logger)
 
 	var user entity.User
@@ -172,17 +172,18 @@ func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpR
 		userEntity.VerificationDate = null.NewTime(time.Now(), true)
 		_, err := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(err, requestId, service.Logger)
-		return nil
+		return "", nil
 	} else if user.IsActive == 1 {
 		userEntity := &entity.User{}
 		userEntity.OtpCode = " "
 		errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
 		exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
-		return nil
+		token, _ := service.GenerateTokenForm()
+		return token, nil
 	} else {
 		err := errors.New("bad request")
 		exceptions.PanicIfBadRequest(err, requestId, []string{"bad request"}, service.Logger)
-		return err
+		return "", nil
 	}
 }
 
@@ -304,6 +305,23 @@ func (service *AuthServiceImplementation) GenerateRefreshToken(user modelService
 
 	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.Key))
+	if err != nil {
+		return "", err
+	}
+	return token, err
+}
+
+func (service *AuthServiceImplementation) GenerateTokenForm() (token string, err error) {
+	// Create the Claims
+	claims := modelService.TokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.FormTokenexpiredtime)).Unix(),
+			Issuer:    "aether",
+		},
+	}
+
+	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.FormToken))
 	if err != nil {
 		return "", err
 	}
