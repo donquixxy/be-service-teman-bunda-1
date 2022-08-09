@@ -45,6 +45,7 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.GET("/user/shipping/address", userShippingAddressControllerInterface.FindUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/user/shipping/address", userShippingAddressControllerInterface.CreateUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 	group.DELETE("/user/shipping/address", userShippingAddressControllerInterface.DeleteUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/user/delete/account", userControllerInterface.DeleteAccount, authMiddlerware.Authentication(configurationJWT))
 }
 
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {

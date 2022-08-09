@@ -35,6 +35,7 @@ type UserServiceInterface interface {
 	PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error
 	PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error
 	UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error
+	DeleteAccount(requestId string, idUser string)
 }
 
 type UserServiceImplementation struct {
@@ -82,6 +83,17 @@ func NewUserService(
 		BalancePointTxRepositoryInterface:      balancePointTxRepositoryInterface,
 		UserShippingAddressRepositoryInterface: userShippingAddressRepositoryInterface,
 	}
+}
+
+func (service *UserServiceImplementation) DeleteAccount(requestId string, idUser string) {
+
+	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, idUser)
+
+	userEntity := &entity.User{}
+	userEntity.IsDelete = 1
+	userEntity.PasswordResetCode = ""
+	errUpdateUser := service.UserRepositoryInterface.DeleteAccount(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 }
 
 func (service *UserServiceImplementation) UpdateUserTokenDevice(requestId string, idUser string, updateUserTokenDeviceRequest *request.UpdateUserTokenDeviceRequest) error {
@@ -281,11 +293,11 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
 	// Check username if exsict
-	// checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
-	// if checkUsername.Id != "" {
-	// 	err := errors.New("username already exist")
-	// 	exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
-	// }
+	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
+	if checkUsername.Id != "" {
+		err := errors.New("username already exist")
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
+	}
 
 	emailLowerCase := strings.ToLower(userRequest.Email)
 	// Check email if exsict
@@ -400,19 +412,19 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userModelService.Username = user.Username
 	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
 
-	// token, err := service.GenerateTokenVerify(userModelService)
-	// exceptions.PanicIfError(err, requestId, service.Logger)
+	token, err := service.GenerateTokenVerify(userModelService)
+	exceptions.PanicIfError(err, requestId, service.Logger)
 
-	// templateData := modelService.BodyLinkEmail{
-	// 	URL:      service.ConfigEmail.LinkVerifyEmail + token,
-	// 	FullName: familyMembersEntity.FullName,
-	// }
+	templateData := modelService.BodyLinkEmail{
+		URL:      service.ConfigEmail.LinkVerifyEmail + token,
+		FullName: familyMembersEntity.FullName,
+	}
 
-	go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
+	// go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
 
-	// // send email
-	// to := familyMembersEntity.Email
-	// go service.SendEmailVerification(to, templateData)
+	// send email
+	to := familyMembersEntity.Email
+	go service.SendEmailVerification(to, templateData)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)

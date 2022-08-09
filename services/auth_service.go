@@ -207,6 +207,10 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 		}
 	}
 
+	if user.IsDelete == 1 {
+		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+	}
+
 	if user.IsActive == 1 {
 		err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
 		exceptions.PanicIfBadRequest(err, requestId, []string{"Invalid Credentials"}, service.Logger)

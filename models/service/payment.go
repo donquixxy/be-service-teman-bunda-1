@@ -30,8 +30,8 @@ type PaymentStatus struct {
 	RelatedId      int
 	Sender         string
 	Recevier       string
-	Amount         string
-	Fee            string
+	Amount         float64
+	Fee            float64
 	Status         int
 	StatusDesc     string
 	Type           int

@@ -23,6 +23,7 @@ type UserControllerInterface interface {
 	PasswordResetCodeVerify(c echo.Context) error
 	UpdateUserPassword(c echo.Context) error
 	UpdateUserTokenDevice(c echo.Context) error
+	DeleteAccount(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -39,6 +40,14 @@ func NewUserController(configurationWebserver config.Webserver,
 		Logger:                 logger,
 		UserServiceInterface:   userServiceInterface,
 	}
+}
+
+func (controller *UserControllerImplementation) DeleteAccount(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	controller.UserServiceInterface.DeleteAccount(requestId, idUser)
+	response := response.Response{Code: 201, Mssg: "user deleted", Data: "Success", Error: []string{}}
+	return c.JSON(http.StatusOK, response)
 }
 
 func (controller *UserControllerImplementation) CreateUser(c echo.Context) error {

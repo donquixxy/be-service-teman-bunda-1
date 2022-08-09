@@ -30,6 +30,7 @@ type User struct {
 	OtpLimitResetDate       null.Time       `gorm:"column:otp_limit_reset_date;"`
 	CreatedDate             time.Time       `gorm:"column:created_at;"`
 	TokenDevice             string          `gorm:"column:token_device;"`
+	IsDelete                int             `gorm:"column:is_delete;"`
 }
 
 func (User) TableName() string {

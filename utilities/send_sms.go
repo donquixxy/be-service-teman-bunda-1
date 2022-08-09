@@ -13,7 +13,6 @@ import (
 
 func SendSmsOtp(to string, otpCode string) {
 
-	fmt.Println("REQUEST KIRIM PESAN !!!!")
 	message := fmt.Sprintf("Kode Verifikasi Teman Bunda Anda adalah: %s *JANGAN BERIKAN KODE INI KEPADA SIAPAPUN, TERMASUK PIHAK TEMAN BUNDA* Hubungi 081228512244 untuk bantuan.", otpCode)
 
 	postBody, _ := json.Marshal(map[string]string{
@@ -26,6 +25,7 @@ func SendSmsOtp(to string, otpCode string) {
 	responseBody := bytes.NewBuffer(postBody)
 	//Leverage Go's HTTP Post function to make request
 	resp, err := http.Post("https://console.zenziva.net/wareguler/api/sendWA/", "application/json", responseBody)
+	// resp, err := http.Post("https://console.zenziva.net/masking/api/sendOTP/", "application/json", responseBody)
 	//Handle Error
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)

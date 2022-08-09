@@ -14,6 +14,7 @@ type UserRepositoryInterface interface {
 	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error
 	UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error
+	DeleteAccount(DB *gorm.DB, idUser string, user entity.User) error
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
@@ -54,6 +55,16 @@ func (repository *UserRepositoryImplementation) UpdateUser(DB *gorm.DB, idUser s
 			Password: user.Password,
 		})
 	return user, result.Error
+}
+
+func (repository *UserRepositoryImplementation) DeleteAccount(DB *gorm.DB, idUser string, user entity.User) error {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			IsDelete: user.IsDelete,
+		})
+	return result.Error
 }
 
 func (repository *UserRepositoryImplementation) UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
