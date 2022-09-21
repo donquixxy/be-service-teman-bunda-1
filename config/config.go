@@ -34,8 +34,10 @@ type Database struct {
 
 type Jwt struct {
 	VerifyKey               string `yaml:"verifykey"`
+	FormToken               string `yaml:"formkey"`
 	Key                     string `yaml:"key"`
 	Tokenexpiredtime        uint   `yaml:"tokenexpiredtime"`
+	FormTokenexpiredtime    uint   `yaml:"formtokenexpiredtime"`
 	Refreshtokenexpiredtime uint   `yaml:"refreshtokenexpiredtime"`
 }
 
@@ -77,6 +79,15 @@ type Telegram struct {
 	BotToken string `yaml:"bottoken"`
 }
 
+type Fcm struct {
+	Serverkey string `yaml:"serverkey"`
+}
+
+type Sms struct {
+	UserKey string `yaml:"userkey"`
+	PassKey string `yaml:"passkey"`
+}
+
 type ApplicationConfiguration struct {
 	Application Application
 	Webserver   Webserver
@@ -88,6 +99,8 @@ type ApplicationConfiguration struct {
 	Email       Email
 	Telegram    Telegram
 	Whatsapp    Whatsapp
+	Fcm         Fcm
+	Sms         Sms
 }
 
 var lock = sync.Mutex{}
@@ -106,7 +119,7 @@ func GetConfig() *ApplicationConfiguration {
 
 func initConfig() *ApplicationConfiguration {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("config-dev")
+	viper.SetConfigName("config-prod")
 	viper.AddConfigPath("./")
 
 	if err := viper.ReadInConfig(); err != nil {

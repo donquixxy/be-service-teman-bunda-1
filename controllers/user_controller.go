@@ -22,6 +22,8 @@ type UserControllerInterface interface {
 	PasswordCodeRequest(c echo.Context) error
 	PasswordResetCodeVerify(c echo.Context) error
 	UpdateUserPassword(c echo.Context) error
+	UpdateUserTokenDevice(c echo.Context) error
+	DeleteAccount(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -40,6 +42,14 @@ func NewUserController(configurationWebserver config.Webserver,
 	}
 }
 
+func (controller *UserControllerImplementation) DeleteAccount(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	controller.UserServiceInterface.DeleteAccount(requestId, idUser)
+	response := response.Response{Code: 201, Mssg: "user deleted", Data: "Success", Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
 func (controller *UserControllerImplementation) CreateUser(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	request := request.ReadFromCreateUserRequestBody(c, requestId, controller.Logger)
@@ -54,6 +64,15 @@ func (controller *UserControllerImplementation) UpdateUser(c echo.Context) error
 	request := request.ReadFromUpdateUserRequestBody(c, requestId, controller.Logger)
 	userResponse := controller.UserServiceInterface.UpdateUser(requestId, idUser, request)
 	response := response.Response{Code: 201, Mssg: "user updated", Data: userResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+
+func (controller *UserControllerImplementation) UpdateUserTokenDevice(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	idUser := middleware.TokenClaimsIdUser(c)
+	request := request.ReadFromUpdateUseTokenDevicerRequestBody(c, requestId, controller.Logger)
+	controller.UserServiceInterface.UpdateUserTokenDevice(requestId, idUser, request)
+	response := response.Response{Code: 201, Mssg: "token device updated", Data: nil, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

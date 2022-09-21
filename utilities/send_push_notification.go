@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
+	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
 	modelService "github.com/tensuqiuwulu/be-service-teman-bunda/models/service"
 )
 
@@ -18,9 +18,7 @@ func SendPushNotification(toDeviceToken string, data *modelService.NotificationD
 	url, _ := url.Parse("https://fcm.googleapis.com/fcm/send")
 
 	makeReqBody := modelService.PushNotificationRequestBody{
-		ToDeviceToken: toDeviceToken,
-		Priority:      "high",
-		SoundName:     "default",
+		ToDeviceToken: []string{toDeviceToken},
 		Notification: modelService.NotificationData{
 			Title: data.Title,
 			Body:  data.Body,
@@ -36,7 +34,7 @@ func SendPushNotification(toDeviceToken string, data *modelService.NotificationD
 		URL:    url,
 		Header: map[string][]string{
 			"Content-Type":  {"application/json"},
-			"Authorization": {"sdsd"},
+			"Authorization": {config.GetConfig().Fcm.Serverkey},
 		},
 		Body: reqBody,
 	}
@@ -46,7 +44,7 @@ func SendPushNotification(toDeviceToken string, data *modelService.NotificationD
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalf("An Error Occured %v", err)
+		fmt.Printf("An Error Occured %v", err)
 	}
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)

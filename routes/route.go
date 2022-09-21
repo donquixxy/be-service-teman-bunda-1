@@ -38,12 +38,14 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/user/update/tokendevice", userControllerInterface.UpdateUserTokenDevice, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/password/request/code", userControllerInterface.PasswordCodeRequest)
 	group.POST("/password/code/verify", userControllerInterface.PasswordResetCodeVerify)
 	group.POST("/user/update/password", userControllerInterface.UpdateUserPassword)
 	group.GET("/user/shipping/address", userShippingAddressControllerInterface.FindUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 	group.POST("/user/shipping/address", userShippingAddressControllerInterface.CreateUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 	group.DELETE("/user/shipping/address", userShippingAddressControllerInterface.DeleteUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
+	group.PUT("/user/delete/account", userControllerInterface.DeleteAccount, authMiddlerware.Authentication(configurationJWT))
 }
 
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
@@ -56,7 +58,9 @@ func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.POST("/auth/login", authControllerInterface.Login)
 	group.POST("/auth/new-token", authControllerInterface.NewToken)
 	group.POST("/auth/verify/otp", authControllerInterface.VerifyOtp)
-	group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
+	// group.POST("/auth/send/otp/whatsapp", authControllerInterface.SendOtpWhatsapp)
+	group.POST("/auth/sendotp/sms", authControllerInterface.SendOtpBySms)
+	group.POST("/auth/sendotp/email", authControllerInterface.SendOtpByEmail)
 }
 
 // Balance Point Route
@@ -151,7 +155,7 @@ func ProductBrandRoute(e *echo.Echo, configWebserver config.Webserver, configura
 func SettingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, settingControllerInterface controllers.SettingControllerInterface) {
 	group := e.Group("api/v1")
 	group.GET("/setting/shippingcost", settingControllerInterface.FindSettingShippingCost, authMiddlerware.Authentication(configurationJWT))
-	group.GET("/setting/verapp", settingControllerInterface.FindSettingVerApp, authMiddlerware.Authentication(configurationJWT))
+	group.GET("/setting/verapp", settingControllerInterface.FindSettingVerApp)
 }
 
 // Main Route

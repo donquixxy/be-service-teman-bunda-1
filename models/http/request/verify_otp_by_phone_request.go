@@ -8,8 +8,8 @@ import (
 )
 
 type VerifyOtpRequest struct {
-	Phone   string `json:"phone" form:"phone" validate:"required"`
-	OtpCode string `json:"otp_code" form:"otp_code" validate:"required"`
+	Credential string `json:"credential" form:"credential" validate:"required"`
+	OtpCode    string `json:"otp_code" form:"otp_code" validate:"required"`
 }
 
 func ReadFromVerifyOtpRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (verifyOtp *VerifyOtpRequest) {
@@ -21,10 +21,10 @@ func ReadFromVerifyOtpRequestBody(c echo.Context, requestId string, logger *logr
 	return verifyOtp
 }
 
-func ValidateVerifyOtpRequest(validate *validator.Validate, verifyOtp *VerifyOtpRequest, requestId string, logger *logrus.Logger) {
+func ValidateVerifyOtpByPhoneRequest(validate *validator.Validate, verifyOtpByPhoneRequest *VerifyOtpRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
 	var errorString string
-	err := validate.Struct(verifyOtp)
+	err := validate.Struct(verifyOtpByPhoneRequest)
 	if err != nil {
 		for _, errorValidation := range err.(validator.ValidationErrors) {
 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()

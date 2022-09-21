@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -55,7 +54,7 @@ func SendWhatsapp(toNumber string, toName string, data *modelService.WhatsappBod
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalf("An Error Occured %v", err)
+		fmt.Printf("An Error Occured %v", err)
 	}
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)

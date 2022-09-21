@@ -38,7 +38,7 @@ func ToCreateOrderVaResponse(
 	orderResponse.ReferenceId = payment.Data.ReferenceId
 	orderResponse.PaymentNo = payment.Data.PaymentNo
 	orderResponse.PaymentName = "Teman Bunda"
-	orderResponse.Total = payment.Data.Total
+	orderResponse.Total = order.PaymentByCash
 	orderResponse.Expired = payment.Data.Expired
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
@@ -56,7 +56,7 @@ func ToCreateOrderTransferResponse(
 	orderResponse.IdOrder = order.Id
 	orderResponse.ReferenceId = order.NumberOrder
 	orderResponse.PaymentNo = payment.Data.PaymentNo
-	orderResponse.Total = payment.Data.Total
+	orderResponse.Total = order.PaymentByCash
 	orderResponse.PaymentMethod = order.PaymentMethod
 	orderResponse.PaymentChannel = order.PaymentChannel
 	orderResponse.PaymentMethod = order.PaymentMethod

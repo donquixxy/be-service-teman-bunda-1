@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"runtime"
 	"strings"
 	"time"
 
@@ -27,18 +26,20 @@ type AuthServiceInterface interface {
 	NewToken(requestId string, refreshToken string) (token string)
 	GenerateToken(user modelService.User) (token string, err error)
 	GenerateRefreshToken(user modelService.User) (token string, err error)
-	VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) error
-	SendOtpByWhatsapp(requestId string, sendOtpByWhatsappRequest *request.SendOtpByWhatsappRequest) error
+	VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) (string, error)
+	SendOtpBySms(requestId string, sendOtpBySmsRequest *request.SendOtpBySmsRequest) error
+	SendOtpByEmail(requestId string, sendOtpByEmail *request.SendOtpByEmailRequest) error
 }
 
 type AuthServiceImplementation struct {
-	ConfigurationWebserver     config.Webserver
-	DB                         *gorm.DB
-	ConfigJwt                  config.Jwt
-	Validate                   *validator.Validate
-	Logger                     *logrus.Logger
-	UserRepositoryInterface    mysql.UserRepositoryInterface
-	SettingRepositoryInterface mysql.SettingRepositoryInterface
+	ConfigurationWebserver        config.Webserver
+	DB                            *gorm.DB
+	ConfigJwt                     config.Jwt
+	Validate                      *validator.Validate
+	Logger                        *logrus.Logger
+	UserRepositoryInterface       mysql.UserRepositoryInterface
+	SettingRepositoryInterface    mysql.SettingRepositoryInterface
+	OtpManagerRepositoryInterface mysql.OtpManagerRepositoryInterface
 }
 
 func NewAuthService(
@@ -48,84 +49,142 @@ func NewAuthService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	userRepositoryInterface mysql.UserRepositoryInterface,
-	settingRepositoryInterface mysql.SettingRepositoryInterface) AuthServiceInterface {
+	settingRepositoryInterface mysql.SettingRepositoryInterface,
+	otpManagerRepositoryInterface mysql.OtpManagerRepositoryInterface) AuthServiceInterface {
 	return &AuthServiceImplementation{
-		ConfigurationWebserver:     configurationWebserver,
-		DB:                         DB,
-		ConfigJwt:                  configJwt,
-		Validate:                   validate,
-		Logger:                     logger,
-		UserRepositoryInterface:    userRepositoryInterface,
-		SettingRepositoryInterface: settingRepositoryInterface,
+		ConfigurationWebserver:        configurationWebserver,
+		DB:                            DB,
+		ConfigJwt:                     configJwt,
+		Validate:                      validate,
+		Logger:                        logger,
+		UserRepositoryInterface:       userRepositoryInterface,
+		SettingRepositoryInterface:    settingRepositoryInterface,
+		OtpManagerRepositoryInterface: otpManagerRepositoryInterface,
 	}
 }
 
-func (service *AuthServiceImplementation) SendOtpByWhatsapp(requestId string, sendOtpByWhatsappRequest *request.SendOtpByWhatsappRequest) error {
-	request.ValidateSendOtpByWhatsapRequest(service.Validate, sendOtpByWhatsappRequest, requestId, service.Logger)
+func (service *AuthServiceImplementation) SendOtpByEmail(requestId string, sendOtpByEmailRequest *request.SendOtpByEmailRequest) error {
+	request.ValidateSendOtpByEmailRequest(service.Validate, sendOtpByEmailRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, sendOtpByWhatsappRequest.Phone)
-
-	if user.IsActive == 1 {
-		err := errors.New("user already active")
-		exceptions.PanicIfBadRequest(err, requestId, []string{"user already active"}, service.Logger)
-		return err
-	} else if user.IsActive == 0 {
-
-		userEntity := &entity.User{}
-		userEntity.OtpCode = utilities.GenerateRandomCode()
-
-		_, err := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(err, requestId, service.Logger)
-
-		runtime.GOMAXPROCS(1)
-
-		// send whatsapp
-		waEntity := modelService.WhatsappBody{}
-		waEntity.Key = "1"
-		waEntity.Value = "full_name"
-		waEntity.ValueText = userEntity.OtpCode
-		WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
-		waPhone := strings.Replace(user.FamilyMembers.Phone, "0", "62", 1)
-		go utilities.SendWhatsapp(waPhone, user.FamilyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
-
-		return nil
-
-	} else {
-		err := errors.New("error")
-		exceptions.PanicIfError(err, requestId, service.Logger)
-		return err
-	}
-}
-
-func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) error {
-	request.ValidateVerifyOtpRequest(service.Validate, verifyOtpRequest, requestId, service.Logger)
-
-	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, verifyOtpRequest.Phone)
-
+	emailLowerCase := strings.ToLower(sendOtpByEmailRequest.Email)
+	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 	if user.Id == "" {
-		exceptions.PanicIfRecordNotFound(errors.New("data not found"), requestId, []string{"data tidak ditemukan"}, service.Logger)
+		exceptions.PanicIfRecordNotFound(errors.New("record not found"), requestId, []string{"user not found"}, service.Logger)
 	}
 
-	if user.IsActive == 0 {
-		if user.OtpCode == verifyOtpRequest.OtpCode {
-			userEntity := &entity.User{}
-			userEntity.OtpCode = " "
-			userEntity.IsActive = 1
-			userEntity.VerificationDate = null.NewTime(time.Now(), true)
-			_, err := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
-			exceptions.PanicIfError(err, requestId, service.Logger)
-			return nil
-		} else {
-			err := errors.New("phone and otp code not match")
-			exceptions.PanicIfBadRequest(err, requestId, []string{"phone and otp code not match"}, service.Logger)
-			return err
+	otpCode := utilities.GenerateRandomCode()
+	bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
+
+	userEntity := &entity.User{}
+	userEntity.OtpCode = string(bcryptOtpCode)
+	userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
+	errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+
+	dataEmail := modelService.BodyCodeEmail{
+		Code:     otpCode,
+		FullName: user.FamilyMembers.FullName,
+	}
+
+	template := "./template/verifikasi_code_password.html"
+	subject := "Kode OTP Teman Bunda"
+	go utilities.SendEmail(user.FamilyMembers.Email, subject, dataEmail, template)
+	return nil
+}
+
+func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtpBySmsRequest *request.SendOtpBySmsRequest) error {
+	request.ValidateSendOtpBySmsRequest(service.Validate, sendOtpBySmsRequest, requestId, service.Logger)
+
+	resultOtp, err := service.OtpManagerRepositoryInterface.FindOtpByPhone(service.DB, sendOtpBySmsRequest.Phone)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	if sendOtpBySmsRequest.TypeOtp == 1 {
+		user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, resultOtp.Phone)
+		if len(user.Id) != 0 {
+			exceptions.PanicIfBadRequest(errors.New("phone already use"), requestId, []string{"phone already use"}, service.Logger)
 		}
-	} else {
-		err := errors.New("user already active")
-		exceptions.PanicIfBadRequest(err, requestId, []string{"user already active"}, service.Logger)
-		return err
 	}
 
+	if len(resultOtp.Id) == 0 {
+		otpManagerEntity := &entity.OtpManager{}
+		otpManagerEntity.Id = utilities.RandomUUID()
+		otpManagerEntity.OtpCode = utilities.GenerateRandomCode()
+		otpManagerEntity.Phone = sendOtpBySmsRequest.Phone
+		otpManagerEntity.PhoneLimit = 5
+		otpManagerEntity.IpAddressLimit = 5
+		otpManagerEntity.OtpExperiedAt = time.Now().Add(time.Minute * 5)
+		otpManagerEntity.CreatedDate = time.Now()
+
+		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpManagerEntity.OtpCode)
+
+		createOtpErr := service.OtpManagerRepositoryInterface.CreateOtp(service.DB, otpManagerEntity)
+		exceptions.PanicIfError(createOtpErr, requestId, service.Logger)
+
+	} else {
+		if resultOtp.PhoneLimit <= 0 {
+			exceptions.PanicIfBadRequest(errors.New("phone daily limit"), requestId, []string{"phone daily limit"}, service.Logger)
+		}
+
+		otpManagerEntity := &entity.OtpManager{}
+		otpManagerEntity.OtpCode = utilities.GenerateRandomCode()
+		// otpManagerEntity.OtpCode = "123456"
+		otpManagerEntity.PhoneLimit = resultOtp.PhoneLimit - 1
+		otpManagerEntity.OtpExperiedAt = time.Now().Add(time.Minute * 5)
+		otpManagerEntity.UpdatedDate = null.NewTime(time.Now(), true)
+
+		// Send OTP
+		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpManagerEntity.OtpCode)
+
+		// Update OTP
+		updateOtpErr := service.OtpManagerRepositoryInterface.UpdateOtp(service.DB, resultOtp.Id, otpManagerEntity)
+		exceptions.PanicIfError(updateOtpErr, requestId, service.Logger)
+	}
+	return nil
+}
+
+func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) (string, error) {
+	request.ValidateVerifyOtpByPhoneRequest(service.Validate, verifyOtpRequest, requestId, service.Logger)
+
+	// var user entity.User
+
+	otp, _ := service.OtpManagerRepositoryInterface.FindOtpByPhone(service.DB, verifyOtpRequest.Credential)
+	if len(otp.Id) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("otp not found"), requestId, []string{"otp not found"}, service.Logger)
+	}
+
+	if verifyOtpRequest.OtpCode != otp.OtpCode {
+		exceptions.PanicIfBadRequest(errors.New("otp not match"), requestId, []string{"otp not match"}, service.Logger)
+	}
+
+	// var userModelService modelService.User
+	// userModelService.Phone = otp.Phone
+	token, _ := service.GenerateTokenForm()
+	// verifyOtpResponse := response.ToVerifyOtpResponse(token)
+
+	return token, nil
+
+	// Jika user melakukan pendaftaran
+	// if user.IsActive == 0 && user.NotVerification != 1 {
+	// 	userEntity := &entity.User{}
+	// 	userEntity.OtpCode = " "
+	// 	userEntity.IsActive = 1
+	// 	userEntity.VerificationDate = null.NewTime(time.Now(), true)
+	// 	_, err := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
+	// 	exceptions.PanicIfError(err, requestId, service.Logger)
+	// 	return "", nil
+	// } else if user.IsActive == 1 {
+	// 	userEntity := &entity.User{}
+	// 	userEntity.OtpCode = " "
+	// 	errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
+	// 	exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+	// 	token, _ := service.GenerateTokenForm()
+	// 	return token, nil
+	// } else {
+	// 	err := errors.New("bad request")
+	// 	exceptions.PanicIfBadRequest(err, requestId, []string{"bad request"}, service.Logger)
+	// 	return "", nil
+	// }
 }
 
 func (service *AuthServiceImplementation) Login(requestId string, authRequest *request.AuthRequest) (authResponse interface{}) {
@@ -135,14 +194,21 @@ func (service *AuthServiceImplementation) Login(requestId string, authRequest *r
 	request.ValidateAuth(service.Validate, authRequest, requestId, service.Logger)
 
 	// jika username tidak ditemukan
-	user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Username)
+	user, _ = service.UserRepositoryInterface.FindUserByPhone(service.DB, authRequest.Credential)
 	if user.Id == "" {
 		// cek apakah yg di input email
-		emailLowerCase := strings.ToLower(authRequest.Username)
+		emailLowerCase := strings.ToLower(authRequest.Credential)
 		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
 		if user.Id == "" {
-			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+			user, _ = service.UserRepositoryInterface.FindUserByUsername(service.DB, authRequest.Credential)
+			if len(user.Id) == 0 {
+				exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
+			}
 		}
+	}
+
+	if user.IsDelete == 1 {
+		exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"not found"}, service.Logger)
 	}
 
 	if user.IsActive == 1 {
@@ -181,21 +247,13 @@ func (service *AuthServiceImplementation) NewToken(requestId string, refreshToke
 
 	if !tokenParse.Valid {
 		exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
-		// return "", errors.New("invalid")
 	} else if ve, ok := err.(*jwt.ValidationError); ok {
 		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-			// fmt.Println("That's not even a token")
 			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
-			// return "", errors.New("invalid token")
 		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-			// Token is either expired or not active yet
-			// fmt.Println("Timing is everything")
 			exceptions.PanicIfUnauthorized(err, requestId, []string{"expired token"}, service.Logger)
-			// return "", errors.New("expired")
 		} else {
-			// fmt.Println("Couldn't handle this token 1:", err)
 			exceptions.PanicIfError(err, requestId, service.Logger)
-			// return "", err
 		}
 	}
 
@@ -251,6 +309,23 @@ func (service *AuthServiceImplementation) GenerateRefreshToken(user modelService
 
 	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.Key))
+	if err != nil {
+		return "", err
+	}
+	return token, err
+}
+
+func (service *AuthServiceImplementation) GenerateTokenForm() (token string, err error) {
+	// Create the Claims
+	claims := modelService.TokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.ConfigJwt.FormTokenexpiredtime)).Unix(),
+			Issuer:    "aether",
+		},
+	}
+
+	tokenWithClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token, err = tokenWithClaims.SignedString([]byte(service.ConfigJwt.FormToken))
 	if err != nil {
 		return "", err
 	}

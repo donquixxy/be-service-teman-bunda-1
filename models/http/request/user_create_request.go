@@ -11,9 +11,9 @@ type CreateUserRequest struct {
 	FullName                string `json:"full_name" form:"full_name" validate:"required"`
 	Email                   string `json:"email" form:"email" validate:"required"`
 	Phone                   string `json:"phone" form:"phone" validate:"required"`
-	Username                string `json:"username" form:"username" validate:"required"`
 	Password                string `json:"password" form:"password" validate:"required"`
 	RegistrationReferalCode string `json:"registration_referal_code" form:"registration_referal_code"`
+	FormToken               string `json:"form_token" form:"form_token"`
 }
 
 func ReadFromCreateUserRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createUser *CreateUserRequest) {

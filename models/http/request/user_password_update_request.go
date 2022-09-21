@@ -8,9 +8,9 @@ import (
 )
 
 type UpdateUserPasswordRequest struct {
-	Email    string `json:"email" form:"email" validate:"required"`
-	Password string `json:"password" form:"password" validate:"required"`
-	Code     string `json:"code" form:"code" validate:"required"`
+	Credential string `json:"credential" form:"credential" validate:"required"`
+	Password   string `json:"password" form:"password" validate:"required"`
+	FormToken  string `json:"form_token" form:"form_token" validate:"required"`
 }
 
 func ReadFromUpdateUserPasswordRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (updateUserPassword *UpdateUserPasswordRequest) {

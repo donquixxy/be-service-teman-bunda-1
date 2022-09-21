@@ -3,7 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,10 +30,12 @@ type UserServiceInterface interface {
 	FindUserByReferal(requestId string, referalCode string) (userResponse response.FindUserByReferalResponse)
 	FindUserById(requestId string, id string) (userResponse response.FindUserByIdResponse)
 	UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error
+	UpdateUserTokenDevice(requestId string, idUser string, userRequest *request.UpdateUserTokenDeviceRequest) error
 	UpdateStatusActiveUser(requestId string, accessToken string) error
 	PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error
 	PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error
 	UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error
+	DeleteAccount(requestId string, idUser string)
 }
 
 type UserServiceImplementation struct {
@@ -81,6 +85,29 @@ func NewUserService(
 	}
 }
 
+func (service *UserServiceImplementation) DeleteAccount(requestId string, idUser string) {
+
+	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, idUser)
+
+	userEntity := &entity.User{}
+	userEntity.IsDelete = 1
+	userEntity.PasswordResetCode = ""
+	errUpdateUser := service.UserRepositoryInterface.DeleteAccount(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
+}
+
+func (service *UserServiceImplementation) UpdateUserTokenDevice(requestId string, idUser string, updateUserTokenDeviceRequest *request.UpdateUserTokenDeviceRequest) error {
+	// Validate request
+	request.ValidateUpdateUserTokenDeviceRequest(service.Validate, updateUserTokenDeviceRequest, requestId, service.Logger)
+
+	userEntity := &entity.User{}
+	userEntity.TokenDevice = updateUserTokenDeviceRequest.TokenDevice
+
+	err := service.UserRepositoryInterface.UpdateUserTokenDevice(service.DB, idUser, *userEntity)
+
+	return err
+}
+
 func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error {
 	// Validate request
 	request.ValidatePasswordResetCodeVerifyRequest(service.Validate, passwordResetCodeVerifyRequest, requestId, service.Logger)
@@ -96,10 +123,29 @@ func (service *UserServiceImplementation) PasswordResetCodeVerify(requestId stri
 	}
 }
 
+func (service *UserServiceImplementation) VerifyFormToken(requestId, token string) {
+	tokenParse, err := jwt.ParseWithClaims(token, &modelService.TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(service.ConfigJwt.FormToken), nil
+	})
+
+	if !tokenParse.Valid {
+		exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		} else {
+			exceptions.PanicIfUnauthorized(err, requestId, []string{"invalid token"}, service.Logger)
+		}
+	}
+}
+
 func (service *UserServiceImplementation) PasswordCodeRequest(requestId string, passwordRequest *request.PasswordCodeRequest) error {
+
 	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, passwordRequest.Email)
 
-	if user.Id == "" {
+	if user.Id == " " {
 		exceptions.PanicIfRecordNotFound(errors.New("email not found"), requestId, []string{"Email not registered"}, service.Logger)
 	}
 
@@ -157,25 +203,22 @@ func (service *UserServiceImplementation) UpdateStatusActiveUser(requestId strin
 }
 
 func (service *UserServiceImplementation) UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error {
+	service.VerifyFormToken(requestId, updateUserPasswordRequest.FormToken)
+
 	// Validate request
 	request.ValidateUpdateUserPasswordRequest(service.Validate, updateUserPasswordRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, updateUserPasswordRequest.Email)
+	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, updateUserPasswordRequest.Credential)
 
 	password := updateUserPasswordRequest.Password
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
-	if user.PasswordResetCode == updateUserPasswordRequest.Code {
-		userEntity := &entity.User{}
-		userEntity.Password = string(bcryptPassword)
-		userEntity.PasswordResetCode = ""
-		_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
-	} else {
-		err := errors.New("email and code not match")
-		exceptions.PanicIfBadRequest(err, requestId, []string{"email and code not match"}, service.Logger)
-	}
+	userEntity := &entity.User{}
+	userEntity.Password = string(bcryptPassword)
+	userEntity.PasswordResetCode = ""
+	_, errUpdateUser := service.UserRepositoryInterface.UpdateUserPassword(service.DB, user.Id, *userEntity)
+	exceptions.PanicIfError(errUpdateUser, requestId, service.Logger)
 
 	return nil
 }
@@ -249,12 +292,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// Validate request
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
-	// Check username if exsict
-	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
-	if checkUsername.Id != "" {
-		err := errors.New("username already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
-	}
+	service.VerifyFormToken(requestId, userRequest.FormToken)
 
 	emailLowerCase := strings.ToLower(userRequest.Email)
 	// Check email if exsict
@@ -284,7 +322,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
 
 	// Generate referal code
-	referalCode := service.GenerateReferalCode()
+	referalCode := service.GenerateReferalCode(userRequest.FullName)
 
 	// Create family profile
 	familyEntity := &entity.Family{}
@@ -307,20 +345,20 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.Id = utilities.RandomUUID()
 	userEntity.IdFamilyMembers = familyMembers.Id
 	userEntity.IdLevelMember = 1
-	userEntity.Username = userRequest.Username
 	userEntity.Password = string(bcryptPassword)
+	userEntity.IsActive = 1
+	userEntity.VerificationDate = null.NewTime(time.Now(), true)
 	if userRequest.RegistrationReferalCode == "" {
 		// dafault kode referal jika inputan kosong
 		userEntity.RegistrationReferalCode = "0X0ROQIBA"
 	} else {
-		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
+		userEntity.RegistrationReferalCode = strings.ToUpper(userRequest.RegistrationReferalCode)
 	}
 
 	userEntity.CreatedDate = time.Now()
 	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
-	userEntity.OtpCode = utilities.GenerateRandomCode()
 
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
@@ -360,34 +398,6 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	}
 	// end of promo registration code
 
-	var userModelService modelService.User
-	userModelService.Id = user.Id
-	userModelService.Username = user.Username
-	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
-
-	token, err := service.GenerateTokenVerify(userModelService)
-	exceptions.PanicIfError(err, requestId, service.Logger)
-
-	templateData := modelService.BodyLinkEmail{
-		URL:      service.ConfigEmail.LinkVerifyEmail + token,
-		FullName: familyMembersEntity.FullName,
-	}
-
-	runtime.GOMAXPROCS(1)
-
-	// // send whatsapp
-	// waEntity := modelService.WhatsappBody{}
-	// waEntity.Key = "1"
-	// waEntity.Value = "full_name"
-	// waEntity.ValueText = userEntity.OtpCode
-	// WhatsappMssgTemplateId := config.GetConfig().Whatsapp.MssgOtpTemplateId
-	// waPhone := strings.Replace(familyMembers.Phone, "0", "62", 1)
-	// go utilities.SendWhatsapp(waPhone, familyMembers.FullName, &waEntity, WhatsappMssgTemplateId)
-
-	// send email
-	to := familyMembersEntity.Email
-	go service.SendEmailVerification(to, templateData)
-
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
 	userResponse = response.ToUserCreateUserResponse(user, family, familyMembers, balancePoint)
@@ -395,17 +405,34 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	return userResponse
 }
 
-func (service *UserServiceImplementation) GenerateReferalCode() (referalCode string) {
-	referalCodeEntity := &entity.ReferalCode{}
+func (service *UserServiceImplementation) GenerateReferalCode(fullName string) string {
+	var splitNickname []string
+	var referalName string
+	var referalCode string
+
+	splitFullName := strings.Split(fullName, " ")
+
+	if len(splitFullName) >= 2 {
+		splitNickname = strings.Split(string(splitFullName[len(splitFullName)-2]), "")
+	} else {
+		splitNickname = strings.Split(fullName, "")
+	}
+
+	referalName = splitNickname[0] + splitNickname[1] + splitNickname[2]
+
+	// Check if referal code exist
 	for {
-		referalCodeEntity.ReferalCode = utilities.GenerateReferalCode()
-		// Check referal code if exist
-		checkUser, _ := service.UserRepositoryInterface.FindUserByReferal(service.DB, referalCodeEntity.ReferalCode)
-		if checkUser.Id == "" {
+		rand.Seed(time.Now().UTC().UnixNano())
+		generateCode := 100 + rand.Intn(999-100)
+		referalCode = strings.ToUpper(referalName) + strconv.Itoa(generateCode)
+
+		result, _ := service.UserRepositoryInterface.FindUserByReferalCode(service.DB, referalCode)
+		if result.Id == "" {
 			break
 		}
 	}
-	return referalCodeEntity.ReferalCode
+
+	return referalCode
 }
 
 func (service *UserServiceImplementation) FindUserByReferal(requestId string, referal string) (userResponse response.FindUserByReferalResponse) {

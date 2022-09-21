@@ -11,8 +11,10 @@ type UserRepositoryInterface interface {
 	UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdateStatusActiveUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 	UpdatePasswordResetCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
-	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error
 	UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
+	UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error
+	DeleteAccount(DB *gorm.DB, idUser string, user entity.User) error
 	FindUserByUsername(DB *gorm.DB, username string) (entity.User, error)
 	FindUserByEmail(DB *gorm.DB, email string) (entity.User, error)
 	FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error)
@@ -34,6 +36,16 @@ func NewUserRepository(configDatabase *config.Database) UserRepositoryInterface 
 	}
 }
 
+func (repository *UserRepositoryImplementation) UpdateUserTokenDevice(DB *gorm.DB, idUser string, user entity.User) error {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			TokenDevice: user.TokenDevice,
+		})
+	return result.Error
+}
+
 func (repository *UserRepositoryImplementation) UpdateUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
 	result := DB.
 		Model(entity.User{}).
@@ -43,6 +55,16 @@ func (repository *UserRepositoryImplementation) UpdateUser(DB *gorm.DB, idUser s
 			Password: user.Password,
 		})
 	return user, result.Error
+}
+
+func (repository *UserRepositoryImplementation) DeleteAccount(DB *gorm.DB, idUser string, user entity.User) error {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			IsDelete: user.IsDelete,
+		})
+	return result.Error
 }
 
 func (repository *UserRepositoryImplementation) UpdateUserPassword(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
@@ -79,14 +101,18 @@ func (repository *UserRepositoryImplementation) UpdatePasswordResetCodeUser(DB *
 	return user, result.Error
 }
 
-func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, idUser string, user entity.User) error {
+	updateUserOtp := make(map[string]interface{})
+	updateUserOtp["otp_code"] = user.OtpCode
+	updateUserOtp["otp_code_expired_due_date"] = user.OtpCodeExpiredDueDate
+	updateUserOtp["otp_limit_phone"] = user.OtpLimitPhone
+	updateUserOtp["otp_limit_reset_date"] = user.OtpLimitResetDate
+
 	result := DB.
 		Model(entity.User{}).
 		Where("id = ?", idUser).
-		Updates(entity.User{
-			OtpCode: user.OtpCode,
-		})
-	return user, result.Error
+		Updates(&updateUserOtp)
+	return result.Error
 }
 
 func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user entity.User) (entity.User, error) {
@@ -108,13 +134,13 @@ func (repository *UserRepositoryImplementation) FindUserByReferal(DB *gorm.DB, r
 
 func (repository *UserRepositoryImplementation) FindUserByEmail(DB *gorm.DB, email string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Where("users.is_delete = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Where("users.is_delete = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
 	return user, results.Error
 }
 

@@ -1,9 +1,7 @@
 package service
 
 type PushNotificationRequestBody struct {
-	ToDeviceToken string           `json:"to"`
-	Priority      string           `json:"priority"`
-	SoundName     string           `json:"soundname"`
+	ToDeviceToken []string         `json:"registration_ids"`
 	Notification  NotificationData `json:"notification"`
 }
 

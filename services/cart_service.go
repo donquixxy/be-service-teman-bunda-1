@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -22,6 +23,7 @@ type CartServiceInterface interface {
 	CartPlusQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	CartMinQtyProduct(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
 	UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse)
+	// DeleteProductInCart(requestId string, deleteProductInCartRequest *request.DeleteProductInCartRequest)
 }
 
 type CartServiceImplementation struct {
@@ -32,6 +34,7 @@ type CartServiceImplementation struct {
 	CartRepositoryInterface     mysql.CartRepositoryInterface
 	ShippingRepositoryInterface mysql.ShippingRepositoryInterface
 	ProductRepositoryInterface  mysql.ProductRepositoryInterface
+	SettingRepositoryInterface  mysql.SettingRepositoryInterface
 }
 
 func NewCartService(
@@ -41,7 +44,8 @@ func NewCartService(
 	logger *logrus.Logger,
 	cartRepositoryInterface mysql.CartRepositoryInterface,
 	shippingRepositoryInterface mysql.ShippingRepositoryInterface,
-	productRepositoryInterface mysql.ProductRepositoryInterface) CartServiceInterface {
+	productRepositoryInterface mysql.ProductRepositoryInterface,
+	settingRepositoryInterface mysql.SettingRepositoryInterface) CartServiceInterface {
 	return &CartServiceImplementation{
 		ConfigWebserver:             configWebserver,
 		DB:                          DB,
@@ -50,15 +54,16 @@ func NewCartService(
 		CartRepositoryInterface:     cartRepositoryInterface,
 		ShippingRepositoryInterface: shippingRepositoryInterface,
 		ProductRepositoryInterface:  productRepositoryInterface,
+		SettingRepositoryInterface:  settingRepositoryInterface,
 	}
 }
 
 func (service *CartServiceImplementation) FindCartByIdUser(requestId string, IdUser string, IdKelurahan int) (addProductToCartResponse response.FindCartByIdUserResponse) {
 	carts, _ := service.CartRepositoryInterface.FindCartByIdUser(service.DB, IdUser)
-	shippingCost, err := service.ShippingRepositoryInterface.GetShippingCostByIdKelurahan(service.DB, IdKelurahan)
+	shippingCost, err := service.SettingRepositoryInterface.FindSettingShippingCost(service.DB)
 
 	exceptions.PanicIfError(err, requestId, service.Logger)
-	addProductToCartResponse = response.ToFindCartByIdUserResponse(carts, shippingCost.ShippingCost)
+	addProductToCartResponse = response.ToFindCartByIdUserResponse(carts, shippingCost.Value)
 	return addProductToCartResponse
 }
 
@@ -95,8 +100,12 @@ func (service *CartServiceImplementation) CartMinQtyProduct(requestId string, up
 }
 
 func (service *CartServiceImplementation) UpdateQtyProductInCart(requestId string, updateQtyProductInCartRequest *request.UpdateQtyProductInCartRequest) (updateProductQtyInCartResponse response.UpdateProductQtyInCartResponse) {
+
 	request.ValidateUpdateQtyProductInCartRequest(service.Validate, updateQtyProductInCartRequest, requestId, service.Logger)
 	cartProductExist, _ := service.CartRepositoryInterface.FindCartById(service.DB, updateQtyProductInCartRequest.IdCart)
+
+	fmt.Println("request id cart = ", updateQtyProductInCartRequest.IdCart)
+	fmt.Println("request qty = ", updateQtyProductInCartRequest.Qty)
 
 	if cartProductExist.Id == "" {
 		err := errors.New("id cart not found")

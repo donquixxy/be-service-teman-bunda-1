@@ -47,6 +47,8 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayment.BankCode = bankVa.BankCode
 		listPayment.BankName = bankVa.BankName
 		listPayment.BankLogo = bankVa.BankLogo
+		listPayment.AdminFee = bankVa.AdminFee
+		listPayment.AdminFeePercentage = bankVa.AdminFeePercentage
 		listPayments = append(listPayments, *listPayment)
 	}
 
@@ -67,6 +69,8 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayment.BankCode = bankVa.BankCode
 		listPayment.BankName = bankVa.BankName
 		listPayment.BankLogo = bankVa.BankLogo
+		listPayment.AdminFee = bankVa.AdminFee
+		listPayment.AdminFeePercentage = bankVa.AdminFeePercentage
 		listPayments = append(listPayments, *listPayment)
 	}
 
@@ -87,6 +91,8 @@ func (service *PaymentChannelServiceImplementation) FindListPaymentChannel(reque
 		listPayment.BankCode = cc.BankCode
 		listPayment.BankName = cc.BankName
 		listPayment.BankLogo = cc.BankLogo
+		listPayment.AdminFee = cc.AdminFee
+		listPayment.AdminFeePercentage = cc.AdminFeePercentage
 		listPayments = append(listPayments, *listPayment)
 	}
 
