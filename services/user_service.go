@@ -292,12 +292,7 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	// Validate request
 	request.ValidateCreateUserRequest(service.Validate, userRequest, requestId, service.Logger)
 
-	// Check username if exsict
-	checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
-	if checkUsername.Id != "" {
-		err := errors.New("username already exist")
-		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Username sudah digunakan"}, service.Logger)
-	}
+	service.VerifyFormToken(requestId, userRequest.FormToken)
 
 	emailLowerCase := strings.ToLower(userRequest.Email)
 	// Check email if exsict
@@ -351,23 +346,19 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 	userEntity.IdFamilyMembers = familyMembers.Id
 	userEntity.IdLevelMember = 1
 	userEntity.Password = string(bcryptPassword)
-	userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
+	userEntity.IsActive = 1
+	userEntity.VerificationDate = null.NewTime(time.Now(), true)
 	if userRequest.RegistrationReferalCode == "" {
 		// dafault kode referal jika inputan kosong
 		userEntity.RegistrationReferalCode = "0X0ROQIBA"
 	} else {
-		userEntity.RegistrationReferalCode = userRequest.RegistrationReferalCode
+		userEntity.RegistrationReferalCode = strings.ToUpper(userRequest.RegistrationReferalCode)
 	}
 
 	userEntity.CreatedDate = time.Now()
 	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
 	userEntity.ReferalCode = referalCode
 	userEntity.RefreshToken = ""
-	userEntity.OtpLimitPhone = 4
-	otpCode := utilities.GenerateRandomCode()
-	bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
-	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
-	userEntity.OtpCode = string(bcryptOtpCode)
 
 	user, err := service.UserRepositoryInterface.CreateUser(tx, *userEntity)
 	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error insert user"}, service.Logger, tx)
@@ -406,25 +397,6 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
 	}
 	// end of promo registration code
-
-	var userModelService modelService.User
-	userModelService.Id = user.Id
-	userModelService.Username = user.Username
-	userModelService.IdKelurahan = user.FamilyMembers.IdKelurahan
-
-	token, err := service.GenerateTokenVerify(userModelService)
-	exceptions.PanicIfError(err, requestId, service.Logger)
-
-	templateData := modelService.BodyLinkEmail{
-		URL:      service.ConfigEmail.LinkVerifyEmail + token,
-		FullName: familyMembersEntity.FullName,
-	}
-
-	// go utilities.SendSmsOtp(familyMembers.Phone, otpCode)
-
-	// send email
-	to := familyMembersEntity.Email
-	go service.SendEmailVerification(to, templateData)
 
 	commit := tx.Commit()
 	exceptions.PanicIfError(commit.Error, requestId, service.Logger)

@@ -13,6 +13,7 @@ type CreateUserRequest struct {
 	Phone                   string `json:"phone" form:"phone" validate:"required"`
 	Password                string `json:"password" form:"password" validate:"required"`
 	RegistrationReferalCode string `json:"registration_referal_code" form:"registration_referal_code"`
+	FormToken               string `json:"form_token" form:"form_token"`
 }
 
 func ReadFromCreateUserRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createUser *CreateUserRequest) {

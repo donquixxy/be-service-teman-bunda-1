@@ -55,6 +55,9 @@ func main() {
 
 	e.Use(middleware.CORS())
 
+	// Otp Manager
+	otpManagerRepository := mysql.NewOtpManagerRepository(&appConfig.Database)
+
 	// User Address Repository
 	userShippingAddressRepository := mysql.NewUserShippingAddressRepository(&appConfig.Database)
 
@@ -183,7 +186,9 @@ func main() {
 		logrusLogger,
 		cartRepository,
 		shippingRepository,
-		productRepository)
+		productRepository,
+		settingsRepository,
+	)
 
 	// Balance Point Service
 	balancePointService := services.NewBalancePointService(
@@ -226,7 +231,8 @@ func main() {
 		validate,
 		logrusLogger,
 		userRepository,
-		settingsRepository)
+		settingsRepository,
+		otpManagerRepository)
 
 	// Product Service
 	productService := services.NewProductService(

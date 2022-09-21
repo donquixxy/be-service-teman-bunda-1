@@ -520,7 +520,6 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.Address = orderRequest.Address
 	orderEntity.Phone = user.FamilyMembers.Phone
 	orderEntity.CourierNote = orderRequest.CourierNote
-	orderEntity.TotalBill = orderRequest.TotalBill
 	orderEntity.OrderSatus = "Menunggu Pembayaran"
 	orderEntity.OrderedAt = time.Now()
 	orderEntity.PaymentMethod = orderRequest.PaymentMethod
@@ -529,7 +528,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	orderEntity.PaymentByPoint = orderRequest.PaymentByPoint
 	orderEntity.PaymentFee = orderRequest.PaymentFee
 	if orderRequest.PaymentMethod != "trf" {
-		orderEntity.PaymentByCash = orderRequest.PaymentByCash + orderRequest.PaymentFee
+		orderEntity.PaymentByCash = (orderRequest.TotalBill + orderRequest.PaymentFee) - orderRequest.PaymentByPoint
 	}
 	orderEntity.ShippingCost = orderRequest.ShippingCost
 	orderEntity.ShippingStatus = "Menunggu"
@@ -576,6 +575,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	var qty []int
 	var price []float64
 	var totalPrice float64
+	var paymentPointForCC float64
 	for _, cartItem := range cartItems {
 		orderItemEntity := &entity.OrderItem{}
 		orderItemEntity.Id = utilities.RandomUUID()
@@ -608,15 +608,24 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			product = append(product, orderItemEntity.ProductName)
 			qty = append(qty, orderItemEntity.Qty)
 			price = append(price, orderItemEntity.Price)
+			paymentPointForCC = orderRequest.PaymentByPoint * (-1)
 		}
 	}
 
-	if (totalPrice + orderRequest.ShippingCost) != orderRequest.TotalBill {
+	orderEntity.TotalBill = totalPrice + orderRequest.ShippingCost
+
+	fmt.Println("Total Bill = ", totalPrice+orderRequest.ShippingCost-orderRequest.PaymentByPoint)
+	fmt.Println("Request Total Bill = ", orderRequest.TotalBill-orderRequest.PaymentByPoint)
+
+	fmt.Println("Total Bill + Fee", totalPrice+orderRequest.ShippingCost+orderRequest.PaymentFee-orderRequest.PaymentByPoint)
+	fmt.Println("Request Bill + Fee", (orderRequest.TotalBill+orderRequest.PaymentFee)-orderRequest.PaymentByPoint)
+
+	if ((totalPrice + orderRequest.ShippingCost) - orderRequest.PaymentByPoint) != orderRequest.TotalBill-orderRequest.PaymentByPoint {
 		fmt.Print("harga tidak sama, user name = ", user.FamilyMembers.FullName)
 		exceptions.PanicIfErrorWithRollback(errors.New("price not same 1"), requestId, []string{"price not same 1"}, service.Logger, tx)
 	}
 
-	if (totalPrice + orderRequest.ShippingCost + orderRequest.PaymentFee) != (orderRequest.PaymentByCash + orderRequest.PaymentByPoint) {
+	if (((totalPrice + orderRequest.ShippingCost) + orderRequest.PaymentFee) - orderRequest.PaymentByPoint) != (orderRequest.TotalBill+orderRequest.PaymentFee)-orderRequest.PaymentByPoint {
 		fmt.Print("harga tidak sama 2, user name = ", user.FamilyMembers.FullName)
 		exceptions.PanicIfErrorWithRollback(errors.New("price not same 2"), requestId, []string{"price not same 2"}, service.Logger, tx)
 	}
@@ -632,9 +641,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		var ipaymu_key = string(service.ConfigPayment.IpaymuKey)
 
 		// tambahkan ongkos kirim
-		product = append(product, "Shipping Cost", "Payment Fee")
-		qty = append(qty, 1, 1)
-		price = append(price, orderRequest.ShippingCost, orderRequest.PaymentFee)
+		product = append(product, "Shipping Cost", "Payment Fee", "Payment Point")
+		qty = append(qty, 1, 1, 1)
+		price = append(price, orderRequest.ShippingCost, orderRequest.PaymentFee, paymentPointForCC)
 
 		url, _ := url.Parse(string(service.ConfigPayment.IpaymuSnapUrl))
 
@@ -856,11 +865,11 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		max2 := 99
 		rand2Number := rand.Intn(max2-min2+1) + min
 
-		sisaPembagi := math.Mod(orderRequest.PaymentByCash, 1000)
+		sisaPembagi := math.Mod(orderEntity.TotalBill, 1000)
 		if sisaPembagi < 100 {
-			payment.Data.Total = orderRequest.PaymentByCash + float64(rand3Number)
+			payment.Data.Total = orderEntity.TotalBill + float64(rand3Number)
 		} else if sisaPembagi >= 100 {
-			payment.Data.Total = orderRequest.PaymentByCash + float64(rand2Number)
+			payment.Data.Total = orderEntity.TotalBill + float64(rand2Number)
 		}
 
 		payment.Data.PaymentName = bankTransfer.BankName
@@ -869,7 +878,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 
 		orderEntity.PaymentNo = bankTransfer.NoAccount
 		orderEntity.PaymentName = bankTransfer.BankName
-		orderEntity.PaymentByCash = payment.Data.Total
+		orderEntity.PaymentByCash = payment.Data.Total - orderRequest.PaymentByPoint
 		orderEntity.PaymentDueDate = null.NewTime(time.Now().Add(time.Hour*24), true)
 		payment.Data.Expired = orderEntity.PaymentDueDate.Time.Format("2006-01-02 15:04:05")
 

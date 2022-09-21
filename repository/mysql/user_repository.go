@@ -134,13 +134,13 @@ func (repository *UserRepositoryImplementation) FindUserByReferal(DB *gorm.DB, r
 
 func (repository *UserRepositoryImplementation) FindUserByEmail(DB *gorm.DB, email string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Where("users.is_delete = ?", 0).Find(&user, "FamilyMembers.email = ?", email)
 	return user, results.Error
 }
 
 func (repository *UserRepositoryImplementation) FindUserByPhone(DB *gorm.DB, phone string) (entity.User, error) {
 	var user entity.User
-	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
+	results := DB.Joins("FamilyMembers").Where("users.not_verification = ?", 0).Where("users.is_delete = ?", 0).Find(&user, "FamilyMembers.phone = ?", phone)
 	return user, results.Error
 }
 

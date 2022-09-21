@@ -1,6 +1,8 @@
 package services
 
 import (
+	"errors"
+
 	"github.com/go-playground/validator"
 	"github.com/sirupsen/logrus"
 	"github.com/tensuqiuwulu/be-service-teman-bunda/config"
@@ -63,6 +65,9 @@ func (service *UserShippingAddressServiceImplementation) CreateUserShippingAddre
 
 func (service *UserShippingAddressServiceImplementation) FindUserShippingAddressByIdUser(requestId string, idUser string) (userShippingAddressResponses []response.FindUserShippingAddress) {
 	userShippingAddresss, err := service.UserShippingAddressRepositoryInterface.FindUserShippingAddressByIdUser(service.DB, idUser)
+	if len(userShippingAddresss) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("address not found"), requestId, []string{"address not found"}, service.Logger)
+	}
 	exceptions.PanicIfError(err, requestId, service.Logger)
 	userShippingAddressResponses = response.ToFindUserShippingAddressResponse(userShippingAddresss)
 	return userShippingAddressResponses

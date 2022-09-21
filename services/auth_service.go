@@ -32,13 +32,14 @@ type AuthServiceInterface interface {
 }
 
 type AuthServiceImplementation struct {
-	ConfigurationWebserver     config.Webserver
-	DB                         *gorm.DB
-	ConfigJwt                  config.Jwt
-	Validate                   *validator.Validate
-	Logger                     *logrus.Logger
-	UserRepositoryInterface    mysql.UserRepositoryInterface
-	SettingRepositoryInterface mysql.SettingRepositoryInterface
+	ConfigurationWebserver        config.Webserver
+	DB                            *gorm.DB
+	ConfigJwt                     config.Jwt
+	Validate                      *validator.Validate
+	Logger                        *logrus.Logger
+	UserRepositoryInterface       mysql.UserRepositoryInterface
+	SettingRepositoryInterface    mysql.SettingRepositoryInterface
+	OtpManagerRepositoryInterface mysql.OtpManagerRepositoryInterface
 }
 
 func NewAuthService(
@@ -48,15 +49,17 @@ func NewAuthService(
 	validate *validator.Validate,
 	logger *logrus.Logger,
 	userRepositoryInterface mysql.UserRepositoryInterface,
-	settingRepositoryInterface mysql.SettingRepositoryInterface) AuthServiceInterface {
+	settingRepositoryInterface mysql.SettingRepositoryInterface,
+	otpManagerRepositoryInterface mysql.OtpManagerRepositoryInterface) AuthServiceInterface {
 	return &AuthServiceImplementation{
-		ConfigurationWebserver:     configurationWebserver,
-		DB:                         DB,
-		ConfigJwt:                  configJwt,
-		Validate:                   validate,
-		Logger:                     logger,
-		UserRepositoryInterface:    userRepositoryInterface,
-		SettingRepositoryInterface: settingRepositoryInterface,
+		ConfigurationWebserver:        configurationWebserver,
+		DB:                            DB,
+		ConfigJwt:                     configJwt,
+		Validate:                      validate,
+		Logger:                        logger,
+		UserRepositoryInterface:       userRepositoryInterface,
+		SettingRepositoryInterface:    settingRepositoryInterface,
+		OtpManagerRepositoryInterface: otpManagerRepositoryInterface,
 	}
 }
 
@@ -93,45 +96,49 @@ func (service *AuthServiceImplementation) SendOtpByEmail(requestId string, sendO
 func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtpBySmsRequest *request.SendOtpBySmsRequest) error {
 	request.ValidateSendOtpBySmsRequest(service.Validate, sendOtpBySmsRequest, requestId, service.Logger)
 
-	user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, sendOtpBySmsRequest.Phone)
-	if user.Id == "" {
-		exceptions.PanicIfRecordNotFound(errors.New("record not found"), requestId, []string{"user not found"}, service.Logger)
+	resultOtp, err := service.OtpManagerRepositoryInterface.FindOtpByPhone(service.DB, sendOtpBySmsRequest.Phone)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+
+	if sendOtpBySmsRequest.TypeOtp == 1 {
+		user, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, resultOtp.Phone)
+		if len(user.Id) != 0 {
+			exceptions.PanicIfBadRequest(errors.New("phone already use"), requestId, []string{"phone already use"}, service.Logger)
+		}
 	}
 
-	userEntity := &entity.User{}
+	if len(resultOtp.Id) == 0 {
+		otpManagerEntity := &entity.OtpManager{}
+		otpManagerEntity.Id = utilities.RandomUUID()
+		otpManagerEntity.OtpCode = utilities.GenerateRandomCode()
+		otpManagerEntity.Phone = sendOtpBySmsRequest.Phone
+		otpManagerEntity.PhoneLimit = 5
+		otpManagerEntity.IpAddressLimit = 5
+		otpManagerEntity.OtpExperiedAt = time.Now().Add(time.Minute * 5)
+		otpManagerEntity.CreatedDate = time.Now()
 
-	if user.OtpLimitPhone <= 0 {
+		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpManagerEntity.OtpCode)
 
-		if time.Now().After(user.OtpLimitResetDate.Time) {
-			// make otp code
-			otpCode := utilities.GenerateRandomCode()
-			bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
-			exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
+		createOtpErr := service.OtpManagerRepositoryInterface.CreateOtp(service.DB, otpManagerEntity)
+		exceptions.PanicIfError(createOtpErr, requestId, service.Logger)
 
-			userEntity.OtpCode = string(bcryptOtpCode)
-			userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
-			userEntity.OtpLimitPhone = 4
-			errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
-			exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
-
-			go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
-
-		} else {
-			exceptions.PanicIfBadRequest(errors.New("phone limit to send otp"), requestId, []string{"phone limit to send otp"}, service.Logger)
+	} else {
+		if resultOtp.PhoneLimit <= 0 {
+			exceptions.PanicIfBadRequest(errors.New("phone daily limit"), requestId, []string{"phone daily limit"}, service.Logger)
 		}
-	} else if user.OtpLimitPhone > 0 {
-		otpCode := utilities.GenerateRandomCode()
-		bcryptOtpCode, err := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
-		exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate otp code"}, service.Logger)
 
-		userEntity.OtpCode = string(bcryptOtpCode)
-		userEntity.OtpCodeExpiredDueDate = null.NewTime(time.Now().Add(time.Minute*5), true)
-		userEntity.OtpLimitPhone = user.OtpLimitPhone - 1
-		userEntity.OtpLimitResetDate = null.NewTime(time.Now().Add(time.Hour*12), true)
-		errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+		otpManagerEntity := &entity.OtpManager{}
+		otpManagerEntity.OtpCode = utilities.GenerateRandomCode()
+		// otpManagerEntity.OtpCode = "123456"
+		otpManagerEntity.PhoneLimit = resultOtp.PhoneLimit - 1
+		otpManagerEntity.OtpExperiedAt = time.Now().Add(time.Minute * 5)
+		otpManagerEntity.UpdatedDate = null.NewTime(time.Now(), true)
 
-		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpCode)
+		// Send OTP
+		go utilities.SendSmsOtp(sendOtpBySmsRequest.Phone, otpManagerEntity.OtpCode)
+
+		// Update OTP
+		updateOtpErr := service.OtpManagerRepositoryInterface.UpdateOtp(service.DB, resultOtp.Id, otpManagerEntity)
+		exceptions.PanicIfError(updateOtpErr, requestId, service.Logger)
 	}
 	return nil
 }
@@ -139,52 +146,45 @@ func (service *AuthServiceImplementation) SendOtpBySms(requestId string, sendOtp
 func (service *AuthServiceImplementation) VerifyOtp(requestId string, verifyOtpRequest *request.VerifyOtpRequest) (string, error) {
 	request.ValidateVerifyOtpByPhoneRequest(service.Validate, verifyOtpRequest, requestId, service.Logger)
 
-	var user entity.User
+	// var user entity.User
 
-	user, _ = service.UserRepositoryInterface.FindUserByPhone(service.DB, verifyOtpRequest.Credential)
-
-	if user.Id == "" {
-		emailLowerCase := strings.ToLower(verifyOtpRequest.Credential)
-		user, _ = service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
-		if user.Id == "" {
-			exceptions.PanicIfRecordNotFound(errors.New("user not found"), requestId, []string{"user not found"}, service.Logger)
-		}
+	otp, _ := service.OtpManagerRepositoryInterface.FindOtpByPhone(service.DB, verifyOtpRequest.Credential)
+	if len(otp.Id) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("otp not found"), requestId, []string{"otp not found"}, service.Logger)
 	}
 
-	// cek if otp code not exist
-	if user.OtpCode == " " {
-		exceptions.PanicIfBadRequest(errors.New("otp code null"), requestId, []string{"otp code null"}, service.Logger)
+	if verifyOtpRequest.OtpCode != otp.OtpCode {
+		exceptions.PanicIfBadRequest(errors.New("otp not match"), requestId, []string{"otp not match"}, service.Logger)
 	}
 
-	// cek expired token
-	if time.Now().After(user.OtpCodeExpiredDueDate.Time) {
-		exceptions.PanicIfBadRequest(errors.New("otp code has expired"), requestId, []string{"otp code has expired"}, service.Logger)
-	}
+	// var userModelService modelService.User
+	// userModelService.Phone = otp.Phone
+	token, _ := service.GenerateTokenForm()
+	// verifyOtpResponse := response.ToVerifyOtpResponse(token)
 
-	// verify Otp code
-	err := bcrypt.CompareHashAndPassword([]byte(user.OtpCode), []byte(verifyOtpRequest.OtpCode))
-	exceptions.PanicIfBadRequest(err, requestId, []string{"Invalid Credentials"}, service.Logger)
+	return token, nil
 
-	if user.IsActive == 0 && user.NotVerification != 1 {
-		userEntity := &entity.User{}
-		userEntity.OtpCode = " "
-		userEntity.IsActive = 1
-		userEntity.VerificationDate = null.NewTime(time.Now(), true)
-		_, err := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(err, requestId, service.Logger)
-		return "", nil
-	} else if user.IsActive == 1 {
-		userEntity := &entity.User{}
-		userEntity.OtpCode = " "
-		errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
-		exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
-		token, _ := service.GenerateTokenForm()
-		return token, nil
-	} else {
-		err := errors.New("bad request")
-		exceptions.PanicIfBadRequest(err, requestId, []string{"bad request"}, service.Logger)
-		return "", nil
-	}
+	// Jika user melakukan pendaftaran
+	// if user.IsActive == 0 && user.NotVerification != 1 {
+	// 	userEntity := &entity.User{}
+	// 	userEntity.OtpCode = " "
+	// 	userEntity.IsActive = 1
+	// 	userEntity.VerificationDate = null.NewTime(time.Now(), true)
+	// 	_, err := service.UserRepositoryInterface.UpdateStatusActiveUser(service.DB, user.Id, *userEntity)
+	// 	exceptions.PanicIfError(err, requestId, service.Logger)
+	// 	return "", nil
+	// } else if user.IsActive == 1 {
+	// 	userEntity := &entity.User{}
+	// 	userEntity.OtpCode = " "
+	// 	errUpdateOtpCodeUser := service.UserRepositoryInterface.UpdateOtpCodeUser(service.DB, user.Id, *userEntity)
+	// 	exceptions.PanicIfError(errUpdateOtpCodeUser, requestId, service.Logger)
+	// 	token, _ := service.GenerateTokenForm()
+	// 	return token, nil
+	// } else {
+	// 	err := errors.New("bad request")
+	// 	exceptions.PanicIfBadRequest(err, requestId, []string{"bad request"}, service.Logger)
+	// 	return "", nil
+	// }
 }
 
 func (service *AuthServiceImplementation) Login(requestId string, authRequest *request.AuthRequest) (authResponse interface{}) {
