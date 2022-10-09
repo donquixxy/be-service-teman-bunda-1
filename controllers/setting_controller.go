@@ -12,7 +12,8 @@ import (
 
 type SettingControllerInterface interface {
 	FindSettingShippingCost(c echo.Context) error
-	FindSettingVerApp(c echo.Context) error
+	FindSettingVerAppAndroid(c echo.Context) error
+	FindSettingVerAppIos(c echo.Context) error
 }
 
 type SettingControllerImplementation struct {
@@ -35,9 +36,16 @@ func (controller *SettingControllerImplementation) FindSettingShippingCost(c ech
 	return c.JSON(http.StatusOK, responses)
 }
 
-func (controller *SettingControllerImplementation) FindSettingVerApp(c echo.Context) error {
+func (controller *SettingControllerImplementation) FindSettingVerAppAndroid(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	verApp := controller.SettingServiceInterface.FindSettingVerApp(requestId)
+	verApp := controller.SettingServiceInterface.FindSettingVerAppAndroid(requestId)
+	responses := response.Response{Code: 200, Mssg: "success", Data: verApp, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *SettingControllerImplementation) FindSettingVerAppIos(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	verApp := controller.SettingServiceInterface.FindSettingVerAppIos(requestId)
 	responses := response.Response{Code: 200, Mssg: "success", Data: verApp, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

@@ -577,6 +577,11 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 	var totalPrice float64
 	var paymentPointForCC float64
 	for _, cartItem := range cartItems {
+		productResult, err := service.ProductRepositoryInterface.FindProductById(service.DB, cartItem.IdProduct)
+		exceptions.PanicIfError(err, requestId, service.Logger)
+		if productResult.Stock <= 0 {
+			exceptions.PanicIfRecordNotFound(errors.New("stock product is empty"), requestId, []string{"Stock Produk Habis ", productResult.ProductName}, service.Logger)
+		}
 		orderItemEntity := &entity.OrderItem{}
 		orderItemEntity.Id = utilities.RandomUUID()
 		orderItemEntity.IdOrder = orderEntity.Id
