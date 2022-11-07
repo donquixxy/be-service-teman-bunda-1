@@ -15,6 +15,7 @@ type SettingServiceInterface interface {
 	FindSettingShippingCost(requestId string) (settingShippingCost response.FindSettingShippingCost)
 	FindSettingVerAppAndroid(requestId string) (settingVerApp response.FindSettingVerApp)
 	FindSettingVerAppIos(requestId string) (settingVerApp response.FindSettingVerApp)
+	FindNewVersionApp(requestId string, os int) (settingVerApp []response.FindSettingVerApp)
 }
 
 type SettingServiceImplementation struct {
@@ -31,6 +32,16 @@ func NewSettingService(configWebserver config.Webserver, DB *gorm.DB, logger *lo
 		Logger:                     logger,
 		SettingRepositoryInterface: settingRepositoryInterface,
 	}
+}
+
+func (service *SettingServiceImplementation) FindNewVersionApp(requestId string, os int) (verAppResponse []response.FindSettingVerApp) {
+	verApp, err := service.SettingRepositoryInterface.FindNewVersionApp(service.DB, os)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	if len(verApp) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("type os not found"), requestId, []string{"type os not found"}, service.Logger)
+	}
+	verAppResponse = response.ToFindSettingVerAppList(verApp)
+	return verAppResponse
 }
 
 func (service *SettingServiceImplementation) FindSettingShippingCost(requestId string) (shippingCostResponse response.FindSettingShippingCost) {
