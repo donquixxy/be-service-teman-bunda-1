@@ -12,3 +12,13 @@ func ToFindSettingVerApp(verApp entity.Settings) (verAppResponse FindSettingVerA
 	verAppResponse.Value = verApp.SettingsTitle
 	return verAppResponse
 }
+
+func ToFindSettingVerAppList(verApp []entity.Settings) (verAppResponse []FindSettingVerApp) {
+	for _, value := range verApp {
+		var findSettingVerApp FindSettingVerApp
+		findSettingVerApp.SettingName = value.SettingsName
+		findSettingVerApp.Value = value.SettingsTitle
+		verAppResponse = append(verAppResponse, ToFindSettingVerApp(value))
+	}
+	return verAppResponse
+}

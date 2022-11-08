@@ -158,6 +158,7 @@ func SettingRoute(e *echo.Echo, configWebserver config.Webserver, configurationJ
 	group.GET("/setting/shippingcost", settingControllerInterface.FindSettingShippingCost, authMiddlerware.Authentication(configurationJWT))
 	group.GET("/setting/verapp/android", settingControllerInterface.FindSettingVerAppAndroid)
 	group.GET("/setting/verapp/ios", settingControllerInterface.FindSettingVerAppIos)
+	group.GET("/setting/version", settingControllerInterface.FindNewVersionApp)
 }
 
 // Main Route
