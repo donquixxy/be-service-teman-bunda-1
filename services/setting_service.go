@@ -16,6 +16,7 @@ type SettingServiceInterface interface {
 	FindSettingVerAppAndroid(requestId string) (settingVerApp response.FindSettingVerApp)
 	FindSettingVerAppIos(requestId string) (settingVerApp response.FindSettingVerApp)
 	FindNewVersionApp(requestId string, os int) (settingVerApp []response.FindSettingVerApp)
+	FindNewVersionApp2(requestId string, os int) (settingVerApp response.FindSettingVerApp2)
 }
 
 type SettingServiceImplementation struct {
@@ -41,6 +42,16 @@ func (service *SettingServiceImplementation) FindNewVersionApp(requestId string,
 		exceptions.PanicIfRecordNotFound(errors.New("type os not found"), requestId, []string{"type os not found"}, service.Logger)
 	}
 	verAppResponse = response.ToFindSettingVerAppList(verApp)
+	return verAppResponse
+}
+
+func (service *SettingServiceImplementation) FindNewVersionApp2(requestId string, os int) (verAppResponse response.FindSettingVerApp2) {
+	verApp, err := service.SettingRepositoryInterface.FindNewVersionApp(service.DB, os)
+	exceptions.PanicIfError(err, requestId, service.Logger)
+	if len(verApp) == 0 {
+		exceptions.PanicIfRecordNotFound(errors.New("type os not found"), requestId, []string{"type os not found"}, service.Logger)
+	}
+	verAppResponse = response.ToFindSettingVerAppList2(verApp, os)
 	return verAppResponse
 }
 

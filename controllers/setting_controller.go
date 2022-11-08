@@ -16,6 +16,7 @@ type SettingControllerInterface interface {
 	FindSettingVerAppAndroid(c echo.Context) error
 	FindSettingVerAppIos(c echo.Context) error
 	FindNewVersionApp(c echo.Context) error
+	FindNewVersionApp2(c echo.Context) error
 }
 
 type SettingControllerImplementation struct {
@@ -35,6 +36,14 @@ func (controller *SettingControllerImplementation) FindNewVersionApp(c echo.Cont
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	OS, _ := strconv.Atoi(c.QueryParam("os"))
 	verApp := controller.SettingServiceInterface.FindNewVersionApp(requestId, OS)
+	responses := response.Response{Code: 200, Mssg: "success", Data: verApp, Error: []string{}}
+	return c.JSON(http.StatusOK, responses)
+}
+
+func (controller *SettingControllerImplementation) FindNewVersionApp2(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	OS, _ := strconv.Atoi(c.QueryParam("os"))
+	verApp := controller.SettingServiceInterface.FindNewVersionApp2(requestId, OS)
 	responses := response.Response{Code: 200, Mssg: "success", Data: verApp, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }
