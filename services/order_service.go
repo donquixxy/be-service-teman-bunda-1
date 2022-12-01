@@ -933,8 +933,9 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 		exceptions.PanicIfErrorWithRollback(errUpdateOrderPayment, requestId, []string{"Error update order"}, service.Logger, tx)
 
 		//update product stock
-		orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, order.Id)
-		for _, orderItem := range orderItems {
+		// orderItems, _ := service.OrderItemRepositoryInterface.FindOrderItemsByIdOrder(service.DB, orderEntity.Id)
+		// log.Println("orderItems = ", orderItems)
+		for _, orderItem := range cartItems {
 			product, errFindProduct := service.ProductRepositoryInterface.FindProductById(tx, orderItem.IdProduct)
 			exceptions.PanicIfErrorWithRollback(errFindProduct, requestId, []string{"product not found"}, service.Logger, tx)
 
@@ -955,7 +956,7 @@ func (service *OrderServiceImplementation) CreateOrder(requestId string, idUser 
 			exceptions.PanicIfErrorWithRollback(errAddProductStockHistory, requestId, []string{"add stock history error"}, service.Logger, tx)
 		}
 
-		// delete data item in cart
+		// delete da	ta item in cart
 		errDelete := service.CartRepositoryInterface.DeleteAllProductInCartByIdUser(tx, idUser, cartItems)
 		exceptions.PanicIfErrorWithRollback(errDelete, requestId, []string{"Error delete in cart"}, service.Logger, tx)
 
