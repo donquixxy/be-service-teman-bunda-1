@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strings"
+	"log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
@@ -24,6 +25,8 @@ type UserControllerInterface interface {
 	UpdateUserPassword(c echo.Context) error
 	UpdateUserTokenDevice(c echo.Context) error
 	DeleteAccount(c echo.Context) error
+	// Timegap Api
+	CreateUserTimegap(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -55,6 +58,15 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 	request := request.ReadFromCreateUserRequestBody(c, requestId, controller.Logger)
 	userResponse := controller.UserServiceInterface.CreateUser(requestId, request)
 	response := response.Response{Code: 201, Mssg: "user created", Data: userResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+// Timegap Register API
+func (controller *UserControllerImplementation) CreateUserTimegap(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadRegisterTimegapRequest(c, requestId, controller.Logger)
+	log.Println("hehe!")
+	userResponse := controller.UserServiceInterface.CreateUserTimeGap(requestId, request)
+	response := response.Response{Code: 201, Mssg: "Timegap user created!", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

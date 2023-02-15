@@ -24,6 +24,8 @@ type UserRepositoryInterface interface {
 	SaveUserRefreshToken(DB *gorm.DB, id string, refreshToken string) (int64, error)
 	FindUserByUsernameAndRefreshToken(DB *gorm.DB, username string, refresh_token string) (entity.User, error)
 	FindUserByReferalCode(DB *gorm.DB, referalCode string) (entity.User, error)
+	// TimegapApi
+	CreateUserTimeGap(DB *gorm.DB, user entity.User) (entity.User, error)
 }
 
 type UserRepositoryImplementation struct {
@@ -116,6 +118,11 @@ func (repository *UserRepositoryImplementation) UpdateOtpCodeUser(DB *gorm.DB, i
 }
 
 func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user entity.User) (entity.User, error) {
+	results := DB.Create(user)
+	return user, results.Error
+}
+// =================================================== TimegapAPI
+func (repository *UserRepositoryImplementation) CreateUserTimeGap(DB *gorm.DB, user entity.User) (entity.User, error) {
 	results := DB.Create(user)
 	return user, results.Error
 }

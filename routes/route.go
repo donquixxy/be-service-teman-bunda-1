@@ -35,6 +35,9 @@ func KelurahanRoute(e *echo.Echo, configWebserver config.Webserver, kelurahanCon
 func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface, userShippingAddressControllerInterface controllers.UserShippingAddressControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/user/create", userControllerInterface.CreateUser)
+	// this is timegap new register API
+	group.POST("/user/create/timegap", userControllerInterface.CreateUserTimegap)
+	// Lanjut
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))

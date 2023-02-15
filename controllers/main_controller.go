@@ -23,6 +23,6 @@ func NewMainController(configurationWebserver config.Webserver) MainControllerIn
 }
 
 func (controller *MainControllerImplementation) Main(c echo.Context) error {
-	respon := response.Response{Code: 200, Mssg: "success", Data: nil, Error: []string{}}
+	respon := response.Response{Code: 200, Mssg: "success", Data: "Welcome To AETHER!", Error: []string{}}
 	return c.JSON(http.StatusOK, respon)
 }

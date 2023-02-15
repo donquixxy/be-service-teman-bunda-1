@@ -31,6 +31,9 @@ type User struct {
 	CreatedDate             time.Time       `gorm:"column:created_at;"`
 	TokenDevice             string          `gorm:"column:token_device;"`
 	IsDelete                int             `gorm:"column:is_delete;"`
+	// New Timegap
+	IsTimegap             	int          	`gorm:"column:is_timegap;"`
+	TimegapData             string          `gorm:"column:timegap_data;"`
 }
 
 func (User) TableName() string {

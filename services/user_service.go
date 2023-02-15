@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/go-playground/validator"
 	"github.com/golang-jwt/jwt"
@@ -36,6 +37,8 @@ type UserServiceInterface interface {
 	PasswordResetCodeVerify(requestId string, passwordResetCodeVerifyRequest *request.PasswordResetCodeVerifyRequest) error
 	UpdateUserPassword(requestId string, updateUserPasswordRequest *request.UpdateUserPasswordRequest) error
 	DeleteAccount(requestId string, idUser string)
+	// TimeGap API
+	CreateUserTimeGap(requestId string, userTimeGap *request.RegisterTimegapRequest) (userResponse response.CreateUserResponse)
 }
 
 type UserServiceImplementation struct {
@@ -224,12 +227,9 @@ func (service *UserServiceImplementation) UpdateUserPassword(requestId string, u
 }
 
 func (service *UserServiceImplementation) UpdateUser(requestId string, idUser string, userRequest *request.UpdateUserRequest) error {
-
 	// Validate request
 	request.ValidateUpdateUserRequest(service.Validate, userRequest, requestId, service.Logger)
-
 	user, _ := service.UserRepositoryInterface.FindUserById(service.DB, idUser)
-
 	if userRequest.Username != user.Username {
 		// Check username if exsict
 		checkUsername, _ := service.UserRepositoryInterface.FindUserByUsername(service.DB, userRequest.Username)
@@ -258,12 +258,10 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	}
 
 	tx := service.DB.Begin()
-
 	// Generate Password
 	password := userRequest.Password
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
-
 	// Update family members profile
 	familyMembersEntity := &entity.FamilyMembers{}
 	familyMembersEntity.FullName = userRequest.FullName
@@ -271,7 +269,6 @@ func (service *UserServiceImplementation) UpdateUser(requestId string, idUser st
 	familyMembersEntity.Phone = userRequest.Phone
 	familyMembers, errUpdateFamilyMembers := service.FamilyMembersRepositoryInterface.UpdateFamilyMembers(tx, user.IdFamilyMembers, *familyMembersEntity)
 	exceptions.PanicIfErrorWithRollback(errUpdateFamilyMembers, requestId, []string{"Error update family members"}, service.Logger, tx)
-
 	// Update user profile
 	userEntity := &entity.User{}
 	userEntity.IdFamilyMembers = familyMembers.Id
@@ -404,6 +401,114 @@ func (service *UserServiceImplementation) CreateUser(requestId string, userReque
 
 	return userResponse
 }
+// TimegapApi
+func (service *UserServiceImplementation) CreateUserTimeGap(requestId string, userTimeGap *request.RegisterTimegapRequest) (userResponse response.CreateUserResponse) {
+	// Validate request
+	request.ValidateCreateUserTimegapRequest(service.Validate, userTimeGap, requestId, service.Logger)
+	// service.VerifyFormToken(requestId, userTimeGap.FormToken)
+	emailLowerCase := strings.ToLower(userTimeGap.Email)
+	// Check email if exist
+	checkEmail, _ := service.UserRepositoryInterface.FindUserByEmail(service.DB, emailLowerCase)
+	if checkEmail.Id != "" {
+		err := errors.New("email already exist")
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Email sudah digunakan"}, service.Logger)
+	}
+	phone := strings.Replace(userTimeGap.Phone, "-", "", -1)
+	phoneFinal := strings.Replace(phone, "+62", "0", -1)
+	// Check phone if exist
+	checkPhone, _ := service.UserRepositoryInterface.FindUserByPhone(service.DB, phoneFinal)
+	if checkPhone.Id != "" {
+		err := errors.New("phone already exist")
+		exceptions.PanicIfRecordAlreadyExists(err, requestId, []string{"Phone sudah digunakan"}, service.Logger)
+	}
+	// Begin Transcation
+	tx := service.DB.Begin()
+	exceptions.PanicIfError(tx.Error, requestId, service.Logger)
+	// Generate Password
+	// password := strings.ReplaceAll(userTimeGap.Password, " ", "")
+	// bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	// exceptions.PanicIfBadRequest(err, requestId, []string{"Error Generate Password"}, service.Logger)
+	// Generate referal code
+	referalCode := service.GenerateReferalCodeKudaliar(userTimeGap.FullName, requestId)
+	log.Println(referalCode)
+	// Create family profile
+	familyEntity := &entity.Family{}
+	familyEntity.Id = utilities.RandomUUID()
+	log.Println(familyEntity)
+	family, err := service.FamilyRepositoryInterface.CreateFamily(tx, *familyEntity)
+	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family"}, service.Logger, tx)
+	// Create family members profile
+	familyMembersEntity := &entity.FamilyMembers{}
+	familyMembersEntity.Id = utilities.RandomUUID()
+	familyMembersEntity.IdFamily = familyEntity.Id
+	familyMembersEntity.FullName = userTimeGap.FullName
+	familyMembersEntity.Email = emailLowerCase
+	familyMembersEntity.Phone = phoneFinal
+	familyMembers, err := service.FamilyMembersRepositoryInterface.CreateFamilyMembers(tx, *familyMembersEntity)
+	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error create family members"}, service.Logger, tx)
+	// Crate user profile
+	userEntity := &entity.User{}
+	userEntity.Id = utilities.RandomUUID()
+	userEntity.IdFamilyMembers = familyMembers.Id
+	userEntity.IdLevelMember = 1
+	// userEntity.Password = string(bcryptPassword)
+	// gelontongan bawa password hash
+	userEntity.Password = string(userTimeGap.Password)
+	userEntity.IsActive = 1
+	// timeGap Param
+	userEntity.IsTimegap = 1
+	userEntity.TimegapData = userTimeGap.TimegapData
+	log.Println("disini datanya timegap")
+	log.Println(userTimeGap)
+	log.Println(userTimeGap.TimegapData)
+	userEntity.VerificationDate = null.NewTime(time.Now(), true)
+	if userTimeGap.RegistrationReferalCode == "" {
+		// dafault kode referal jika inputan kosong
+		userEntity.RegistrationReferalCode = "0X0ROQIBA"
+	} else {
+		userEntity.RegistrationReferalCode = strings.ToUpper(userTimeGap.RegistrationReferalCode)
+	}
+	userEntity.CreatedDate = time.Now()
+	userEntity.VerificationDueDate = time.Now().Add(time.Hour * 24)
+	userEntity.ReferalCode = referalCode
+	userEntity.RefreshToken = ""
+
+	user, err := service.UserRepositoryInterface.CreateUserTimeGap(tx, *userEntity)
+	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error When Inserting User!"}, service.Logger, tx)
+	// Create user balance points
+	balancePointEntity := &entity.BalancePoint{}
+	balancePointEntity.Id = utilities.RandomUUID()
+	balancePointEntity.IdUser = userEntity.Id
+	balancePointEntity.CreatedDate = time.Now()
+	balancePoint, err := service.BalancePointRepositoryInterface.CreateBalancePoint(tx, *balancePointEntity)
+	exceptions.PanicIfErrorWithRollback(err, requestId, []string{"Error inserting balance point!"}, service.Logger, tx)
+	// Kode untuk bonus point registrasi referal
+	if userTimeGap.RegistrationReferalCode != "" {
+		// dapat bonus point jika menggunakan kode referal
+		balancePointEntity := &entity.BalancePoint{}
+		balancePointEntity.BalancePoints = 10000
+		_, errUpdateBalancePoint := service.BalancePointRepositoryInterface.UpdateBalancePoint(tx, balancePoint.IdUser, *balancePointEntity)
+		exceptions.PanicIfErrorWithRollback(errUpdateBalancePoint, requestId, []string{"update balance point error"}, service.Logger, tx)
+		// Add to point history
+		balancePointTxEntity := &entity.BalancePointTx{}
+		balancePointTxEntity.Id = utilities.RandomUUID()
+		balancePointTxEntity.IdBalancePoint = balancePoint.Id
+		balancePointTxEntity.TxType = "debit"
+		balancePointTxEntity.TxDate = time.Now()
+		balancePointTxEntity.TxNominal = balancePointEntity.BalancePoints
+		balancePointTxEntity.LastPointBalance = 0
+		balancePointTxEntity.NewPointBalance = balancePointEntity.BalancePoints
+		balancePointTxEntity.CreatedDate = time.Now()
+		balancePointTxEntity.Description = "Bonus Registrasi"
+		_, errCreateBalancePointTx := service.BalancePointTxRepositoryInterface.CreateBalancePointTx(tx, *balancePointTxEntity)
+		exceptions.PanicIfErrorWithRollback(errCreateBalancePointTx, requestId, []string{"create balance point tx error"}, service.Logger, tx)
+	}
+	// end of promo registration code
+	commit := tx.Commit()
+	exceptions.PanicIfError(commit.Error, requestId, service.Logger)
+	userResponse = response.ToUserCreateUserResponse(user, family, familyMembers, balancePoint)
+	return userResponse
+}
 
 func (service *UserServiceImplementation) GenerateReferalCode(fullName string) string {
 	var splitNickname []string
@@ -419,7 +524,6 @@ func (service *UserServiceImplementation) GenerateReferalCode(fullName string) s
 	}
 
 	referalName = splitNickname[0] + splitNickname[1] + splitNickname[2]
-
 	// Check if referal code exist
 	for {
 		rand.Seed(time.Now().UTC().UnixNano())
@@ -431,7 +535,32 @@ func (service *UserServiceImplementation) GenerateReferalCode(fullName string) s
 			break
 		}
 	}
+	return referalCode
+}
 
+func (service *UserServiceImplementation) GenerateReferalCodeKudaliar(fullName string, requestId string) string {
+	var splitNickname []string
+	var referalName string
+	var referalCode string
+	splitFullName := strings.Split(fullName, " ")
+	log.Println("Check Length Nama")
+	if len(splitFullName) > 5 {
+		splitNickname = strings.Split(string(splitFullName[len(splitFullName)-2]), "")
+	} else {
+		exceptions.PanicIfBadRequest(errors.New("Full name must be more than 5 characters!"), requestId, []string{"Full name must be more than 5 characters!"}, service.Logger)
+	}
+	referalName = splitNickname[0] + splitNickname[1] + splitNickname[2]
+	// Check if referal code exist
+	for {
+		rand.Seed(time.Now().UTC().UnixNano())
+		generateCode := 100 + rand.Intn(999-100)
+		referalCode = strings.ToUpper(referalName) + strconv.Itoa(generateCode)
+
+		result, _ := service.UserRepositoryInterface.FindUserByReferalCode(service.DB, referalCode)
+		if result.Id == "" {
+			break
+		}
+	}
 	return referalCode
 }
 
