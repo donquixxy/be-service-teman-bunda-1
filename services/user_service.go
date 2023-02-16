@@ -543,12 +543,17 @@ func (service *UserServiceImplementation) GenerateReferalCodeKudaliar(fullName s
 	var referalName string
 	var referalCode string
 	splitFullName := strings.Split(fullName, " ")
-	log.Println("Check Length Nama")
-	if len(splitFullName) > 5 {
-		splitNickname = strings.Split(string(splitFullName[len(splitFullName)-2]), "")
+	lenFullName := len(fullName)
+	if(lenFullName >= 5){
+		if len(splitFullName) >= 2 {
+			splitNickname = strings.Split(string(splitFullName[len(splitFullName)-2]), "")
+		} else {
+			exceptions.PanicIfBadRequest(errors.New("Full name must be more than 2 words!"), requestId, []string{"Full name must be more than 2 words!"}, service.Logger)
+		}
 	} else {
 		exceptions.PanicIfBadRequest(errors.New("Full name must be more than 5 characters!"), requestId, []string{"Full name must be more than 5 characters!"}, service.Logger)
 	}
+	
 	referalName = splitNickname[0] + splitNickname[1] + splitNickname[2]
 	// Check if referal code exist
 	for {
