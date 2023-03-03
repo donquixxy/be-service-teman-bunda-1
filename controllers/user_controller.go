@@ -27,6 +27,7 @@ type UserControllerInterface interface {
 	DeleteAccount(c echo.Context) error
 	// Timegap Api
 	CreateUserTimegap(c echo.Context) error
+	UpdateUserTimeGap(c echo.Context) error
 }
 
 type UserControllerImplementation struct {
@@ -44,7 +45,36 @@ func NewUserController(configurationWebserver config.Webserver,
 		UserServiceInterface:   userServiceInterface,
 	}
 }
-
+//  ========================================== Timegap Register API
+func (controller *UserControllerImplementation) CreateUserTimegap(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	request := request.ReadRegisterTimegapRequest(c, requestId, controller.Logger)
+	log.Println("hehe!")
+	userResponse := controller.UserServiceInterface.CreateUserTimeGap(requestId, request)
+	response := response.Response{Code: 201, Mssg: "Timegap user created!", Data: userResponse, Error: []string{}}
+	return c.JSON(http.StatusOK, response)
+}
+func (controller *UserControllerImplementation) UpdateUserTimeGap(c echo.Context) error {
+	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
+	// idUser := middleware.TokenClaimsIdUser(c)
+	idUser := c.Param("id")
+	request := request.ReadTimegapEditRequest(c, requestId, controller.Logger)
+	userResponse := controller.UserServiceInterface.UpdateUserTimeGap(requestId, idUser, request)
+	log.Println (userResponse)
+	if strings.Contains(userResponse.Message,"User Not Found"){
+		response := response.Response{Code: 400, Mssg: "Error!", Data: userResponse, Error: []string{}}
+		return c.JSON(http.StatusOK, response)
+	} else if strings.Contains(userResponse.Message,"NOT A TIMEGAP USER") {
+		response := response.Response{Code: 400, Mssg: "Error!", Data: userResponse, Error: []string{}}
+		return c.JSON(http.StatusOK, response)
+	} else {
+		response := response.Response{Code: 201, Mssg: "Timegap's User Data Updated!", Data: userResponse, Error: []string{}}
+		return c.JSON(http.StatusOK, response)
+	}
+	// response := response.Response{Code: 201, Mssg: "Timegap's User Data Updated!", Data: userResponse, Error: []string{}}
+	
+}
+// =========================================== Normal API
 func (controller *UserControllerImplementation) DeleteAccount(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	idUser := middleware.TokenClaimsIdUser(c)
@@ -58,15 +88,6 @@ func (controller *UserControllerImplementation) CreateUser(c echo.Context) error
 	request := request.ReadFromCreateUserRequestBody(c, requestId, controller.Logger)
 	userResponse := controller.UserServiceInterface.CreateUser(requestId, request)
 	response := response.Response{Code: 201, Mssg: "user created", Data: userResponse, Error: []string{}}
-	return c.JSON(http.StatusOK, response)
-}
-// Timegap Register API
-func (controller *UserControllerImplementation) CreateUserTimegap(c echo.Context) error {
-	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
-	request := request.ReadRegisterTimegapRequest(c, requestId, controller.Logger)
-	log.Println("hehe!")
-	userResponse := controller.UserServiceInterface.CreateUserTimeGap(requestId, request)
-	response := response.Response{Code: 201, Mssg: "Timegap user created!", Data: userResponse, Error: []string{}}
 	return c.JSON(http.StatusOK, response)
 }
 

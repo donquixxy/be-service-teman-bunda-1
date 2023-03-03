@@ -10,6 +10,6 @@ FROM alpine
 RUN apk update && apk add ca-certificates && apk add tzdata && apk add git
 COPY --from=builder /build .
 ENV TZ="Asia/Makassar"
-EXPOSE 9090
+EXPOSE 9000
 
 CMD ./be-service-teman-bunda

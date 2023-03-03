@@ -26,12 +26,28 @@ type UserRepositoryInterface interface {
 	FindUserByReferalCode(DB *gorm.DB, referalCode string) (entity.User, error)
 	// TimegapApi
 	CreateUserTimeGap(DB *gorm.DB, user entity.User) (entity.User, error)
+	UpdateUserTimeGap(DB *gorm.DB, idUser string, user entity.User) (entity.User, error)
 }
 
 type UserRepositoryImplementation struct {
 	configurationDatabase *config.Database
 }
 
+// =================================================== TimegapAPI
+func (repository *UserRepositoryImplementation) CreateUserTimeGap(DB *gorm.DB, user entity.User) (entity.User, error) {
+	results := DB.Create(user)
+	return user, results.Error
+}
+func (repository *UserRepositoryImplementation) UpdateUserTimeGap(DB *gorm.DB, idUser string, user entity.User) (entity.User, error) {
+	result := DB.
+		Model(entity.User{}).
+		Where("id = ?", idUser).
+		Updates(entity.User{
+			TimegapData: user.TimegapData,
+		})
+	return user, result.Error
+}
+// ======================================================= NORMAL API
 func NewUserRepository(configDatabase *config.Database) UserRepositoryInterface {
 	return &UserRepositoryImplementation{
 		configurationDatabase: configDatabase,
@@ -121,11 +137,7 @@ func (repository *UserRepositoryImplementation) CreateUser(DB *gorm.DB, user ent
 	results := DB.Create(user)
 	return user, results.Error
 }
-// =================================================== TimegapAPI
-func (repository *UserRepositoryImplementation) CreateUserTimeGap(DB *gorm.DB, user entity.User) (entity.User, error) {
-	results := DB.Create(user)
-	return user, results.Error
-}
+
 
 func (repository *UserRepositoryImplementation) FindUserByUsername(DB *gorm.DB, username string) (entity.User, error) {
 	var user entity.User

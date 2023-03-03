@@ -35,9 +35,10 @@ func KelurahanRoute(e *echo.Echo, configWebserver config.Webserver, kelurahanCon
 func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface, userShippingAddressControllerInterface controllers.UserShippingAddressControllerInterface) {
 	group := e.Group("api/v1")
 	group.POST("/user/create", userControllerInterface.CreateUser)
-	// this is timegap new register API
-	group.POST("/user/create/timegap", userControllerInterface.CreateUserTimegap)
-	// Lanjut
+	// TimeGap APIs
+	group.POST("/user/timegap/create_user", userControllerInterface.CreateUserTimegap)
+	group.PUT("/user/timegap/update_user/:id", userControllerInterface.UpdateUserTimeGap, authMiddlerware.Authentication(configurationJWT))
+	// NORMAL APis
 	group.GET("/user/referal", userControllerInterface.FindUserByReferal)
 	group.GET("/user", userControllerInterface.FindUserById, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/update", userControllerInterface.UpdateUser, authMiddlerware.Authentication(configurationJWT))
@@ -50,11 +51,9 @@ func UserRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT 
 	group.DELETE("/user/shipping/address", userShippingAddressControllerInterface.DeleteUserShippingAddress, authMiddlerware.Authentication(configurationJWT))
 	group.PUT("/user/delete/account", userControllerInterface.DeleteAccount, authMiddlerware.Authentication(configurationJWT))
 }
-
 func VerifyEmailRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, userControllerInterface controllers.UserControllerInterface) {
 	e.GET("/user/email/verify", userControllerInterface.UpdateStatusActiveUser)
 }
-
 // Auth Route
 func AuthRoute(e *echo.Echo, configWebserver config.Webserver, configurationJWT config.Jwt, authControllerInterface controllers.AuthControllerInterface) {
 	group := e.Group("api/v1")

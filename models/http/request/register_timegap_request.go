@@ -14,17 +14,8 @@ type RegisterTimegapRequest struct {
 	Password                string `json:"password" form:"password" validate:"required"`
 	RegistrationReferalCode string `json:"registration_referal_code" form:"registration_referal_code"`
 	// FormToken               string `json:"form_token" form:"form_token"`
-	TimegapData             string `json:"timegap_data" form:"timegap_data" validate:"required"`
+	TimegapData             string `json:"timegap_data" form:"timegap_data"`
 }
-
-// func ReadFromCreateUserRequestBody(c echo.Context, requestId string, logger *logrus.Logger) (createUser *CreateUserRequest) {
-// 	createUserRequest := new(CreateUserRequest)
-// 	if err := c.Bind(createUserRequest); err != nil {
-// 		exceptions.PanicIfError(err, requestId, logger)
-// 	}
-// 	createUser = createUserRequest
-// 	return createUser
-// }
 
 // First binding data
 func ReadRegisterTimegapRequest(c echo.Context, requestId string, logger *logrus.Logger) (createUserTimegap *RegisterTimegapRequest) {
@@ -35,19 +26,6 @@ func ReadRegisterTimegapRequest(c echo.Context, requestId string, logger *logrus
 	createUserTimegap = createUserTimegapRequest
 	return createUserTimegap
 }
-// func ValidateCreateUserRequest(validate *validator.Validate, createUser *CreateUserRequest, requestId string, logger *logrus.Logger) {
-// 	var errorStrings []string
-// 	err := validate.Struct(createUser)
-// 	var errorString string
-// 	if err != nil {
-// 		for _, errorValidation := range err.(validator.ValidationErrors) {
-// 			errorString = errorValidation.Field() + " is " + errorValidation.Tag()
-// 			errorStrings = append(errorStrings, errorString)
-// 		}
-// 		exceptions.PanicIfBadRequest(err, requestId, errorStrings, logger)
-// 	}
-// }
-// 
 // Second, do validation
 func ValidateCreateUserTimegapRequest(validate *validator.Validate, createUserTimegap *RegisterTimegapRequest, requestId string, logger *logrus.Logger) {
 	var errorStrings []string
