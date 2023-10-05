@@ -23,12 +23,14 @@ type SettingControllerImplementation struct {
 	ConfigWebserver         config.Webserver
 	Logger                  *logrus.Logger
 	SettingServiceInterface services.SettingServiceInterface
+	AppVerService           services.AppVersionService
 }
 
-func NewSettingController(configWebserver config.Webserver, settingServiceInterface services.SettingServiceInterface) SettingControllerInterface {
+func NewSettingController(configWebserver config.Webserver, settingServiceInterface services.SettingServiceInterface, AppVerService services.AppVersionService) SettingControllerInterface {
 	return &SettingControllerImplementation{
 		ConfigWebserver:         configWebserver,
 		SettingServiceInterface: settingServiceInterface,
+		AppVerService:           AppVerService,
 	}
 }
 
@@ -43,7 +45,7 @@ func (controller *SettingControllerImplementation) FindNewVersionApp(c echo.Cont
 func (controller *SettingControllerImplementation) FindNewVersionApp2(c echo.Context) error {
 	requestId := c.Response().Header().Get(echo.HeaderXRequestID)
 	OS, _ := strconv.Atoi(c.QueryParam("os"))
-	verApp := controller.SettingServiceInterface.FindNewVersionApp2(requestId, OS)
+	verApp := controller.AppVerService.FindVersionApp(requestId, OS)
 	responses := response.Response{Code: 200, Mssg: "success", Data: verApp, Error: []string{}}
 	return c.JSON(http.StatusOK, responses)
 }

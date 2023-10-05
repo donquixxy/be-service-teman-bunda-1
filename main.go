@@ -58,6 +58,9 @@ func main() {
 
 	e.Use(middleware.CORS())
 
+	// Appver repository
+	appVerRepository := mysql.NewAppVersionRepository()
+
 	// Otp Manager
 	otpManagerRepository := mysql.NewOtpManagerRepository(&appConfig.Database)
 
@@ -129,6 +132,9 @@ func main() {
 
 	// Product Brand Repository
 	productBrandRepository := mysql.NewProductBrandRepository(&appConfig.Database)
+
+	// Appver service
+	appverService := services.NewAppVersionService(mysqlDBConnection, logrusLogger, appVerRepository)
 
 	// Setting Service
 	settingService := services.NewSettingService(
@@ -304,7 +310,7 @@ func main() {
 		paymentLogRepository)
 
 	// Setting Controller
-	settingController := controllers.NewSettingController(appConfig.Webserver, settingService)
+	settingController := controllers.NewSettingController(appConfig.Webserver, settingService, appverService)
 	routes.SettingRoute(e, appConfig.Webserver, appConfig.Jwt, settingController)
 
 	// User Address Controller

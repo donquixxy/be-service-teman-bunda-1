@@ -13,6 +13,21 @@ type FindSettingVerApp2 struct {
 	New     string `json:"new"`
 }
 
+func ToFindSettingAppResponses(os int, current string, new string) FindSettingVerApp2 {
+	res := FindSettingVerApp2{}
+
+	if os == 1 {
+		res.OS = "android"
+	} else {
+		res.OS = "ios"
+	}
+
+	res.Current = current
+	res.New = new
+
+	return res
+}
+
 func ToFindSettingVerAppList2(verApp []entity.Settings, os int) (verAppResponse FindSettingVerApp2) {
 	if os == 1 {
 		verAppResponse.OS = "android"
